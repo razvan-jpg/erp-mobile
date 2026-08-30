@@ -1,0 +1,150 @@
+ZÁSADY OCHRANY OSOBNÍCH ÚDAJŮ
+Poslední aktualizace: 5. června 2026
+
+Tyto zásady ochrany osobních údajů popisují, jak DATECONTA.RO (dále jen „společnost“, „my“ nebo „provozovatel“) se sídlem v Bukurešti shromažďuje, používá, ukládá, sdílí a chrání osobní údaje, když používáte mobilní aplikaci iOS - ERP MOBILE (dále jen „aplikace“ nebo „ERP Mobile“).
+
+Přečtěte si prosím pozorně tento dokument. Stažením, instalací, vytvořením účtu a používáním aplikace rozumíte a přijímáte postupy popsané v těchto zásadách ochrany osobních údajů. Pokud s těmito podmínkami nesouhlasíte, neinstalujte ani nepoužívejte aplikaci.
+
+1. ZÁKLADNÍ ZÁSADY ZPRACOVÁNÍ ÚDAJŮ
+
+Jako poskytovatel řešení Mobile ERP (Enterprise Resource Planning) si uvědomujeme kritický význam obchodních dat a osobních údajů zadávaných do našeho systému. Zpracování údajů probíhá v souladu s:
+	• Nařízení (EU) 2016/679 (GDPR) o ochraně fyzických osob v souvislosti se zpracováním osobních údajů.
+	• Zákon č. 190/2018 o opatřeních k provedení GDPR v Rumunsku.
+	• Pokyny pro kontrolu Apple App Store, zejména oddíl 5.1 o ochraně osobních údajů a zabezpečení dat.
+
+2. NAŠE ROLE: OPERÁTOR VS. EMPOWERED (DATOVÝ PROCESOR)
+
+Je nezbytné rozlišovat mezi dvěma způsoby, kterými jsou data spravována v rámci aplikace ERP Mobile:
+	• My jako provozovatel (správce údajů): Jsme provozovateli údajů shromažďovaných za účelem řízení obchodního vztahu s Vaší společností (fakturační údaje klienta právnické osoby, kontaktní údaje správců/zákonných zástupců, údaje o hlavním uživatelském účtu).
+	• My jako oprávněný (zpracovatel dat): U všech obchodních údajů zadaných uživateli v modulech ERP (údaje zaměstnanců našich klientů, údaje zákazníků koncového uživatele, faktury, mzdy, zásoby, lékařské záznamy atd.) je náš klient (váš zaměstnavatel/společnost) Provozovatelem údajů a my jsme pouze Autorizovaný zástupce, který poskytuje technickou infrastrukturu. Tato politika upravuje oba aspekty, ale práva zaměstnanců ohledně údajů zadaných společností do ERP musí být uplatňována přímo u zaměstnavatele.
+
+3. KATEGORIE SBÍRANÝCH ÚDAJŮ A ZPŮSOB SBĚRU
+
+Aplikace shromažďuje několik typů informací v závislosti na povolených modulech ERP a oprávněních udělených zařízení iOS:
+
+A. Údaje poskytnuté přímo uživatelem
+	• Autentizační a profilové údaje: Jméno, křestní jméno, profesní e-mailová adresa, telefonní číslo, název zaměstnávající společnosti, funkce/role ve společnosti, profilový obrázek (volitelné), zašifrované bezpečné heslo (salt & hash).
+	• Obchodní údaje zadané v modulech:
+	◦ Prodejní modul/CRM: Kontaktní údaje zákazníka (jména, dodací adresy, daňové kódy).
+	◦ Modul HR/Mzdy: Identifikační údaje zaměstnance, CNP, čas, podrobnosti o platu, bankovní účty.
+	◦ Finanční/Účetní modul: Faktury, účtenky, bankovní transakce, pokladny.
+
+B. Data shromažďovaná automaticky prostřednictvím používání aplikace na iOS
+	• Informace o zařízení: model iPhone/iPad, verze operačního systému iOS, jedinečné identifikátory zařízení (UUID, IDFV – Identifikátor pro dodavatele), jazyková sada, časové pásmo a informace o mobilní/Wi-Fi síti.
+	• Log a diagnostická data (Crash Logs): V případě chyby aplikace automaticky shromažďujeme zprávy o selhání (prostřednictvím nástrojů, jako je Apple Crashlytics), které obsahují stav systému v době selhání, abychom chyby opravili.
+	• Údaje o používání (Analytics): Akce prováděné v aplikaci (např.: zobrazené obrazovky, stisknutá tlačítka, čas strávený v modulu), shromážděné anonymně nebo pseudonymizované.
+
+C. Použitá oprávnění iOS a jejich odůvodnění (oprávnění aplikace)
+
+V souladu se zásadami společnosti Apple bude Aplikace vyžadovat přístup k určitým funkcím iOS pouze v případě, že je jejich použití nezbytně nutné k provedení akce ERP:
+
+Povolení iOS — Technické a provozní odůvodnění
+
+Umístění (aktuální / pozadí) — Používá se výhradně pro moduly pole: geograficky lokalizované měření času (Clock-in/Clock-out), sledování tras obchodních zástupců nebo doručovatelů. Bez výslovného souhlasu a předchozího nastavení v ERP nesledujeme polohu na pozadí.
+
+Kamera — Pro skenování čárových kódů/QR při správě zásob, skenování daňových dokladů/účtenek pro výpisy a jejich přímé připojení k účetnictví.
+
+Fotografie / Galerie (Knihovna fotografií) — Umožňuje uživateli nahrávat smlouvy, obrázky produktů nebo dokumenty PDF již uložené v zařízení.
+
+Push Notifications (Apple APNs) — Pro kritická systémová upozornění: schválení pracovních postupů, upozornění na omezené zásoby, interní zprávy mezi odděleními nebo nově přidělené úkoly.
+
+Face ID / Touch ID — Pro zabezpečení místního přístupu k aplikaci, poskytování rychlé a bezpečné biometrické autentizační metody. Biometrické údaje nikdy neopustí zabezpečenou enklávu zařízení (Secure Enclave Apple); dostaneme pouze odpověď na úspěch/neúspěch.
+
+4. ÚČELY ZPRACOVÁNÍ A PRÁVNÍ ZÁKLAD
+
+V GDPR zpracováváme osobní údaje na základě následujících právních základů:
+
+1. Uzavření smlouvy (čl. 6 odst. 1 písm. b ze dne GDPR)
+	• Poskytování plné funkčnosti aplikace ERP Mobile podle Podmínek podepsaných s vaší společností.
+	• Vytváření, správa a zabezpečení uživatelských účtů.
+	• Zpracování operací prováděných v rámci modulů ERP (generování faktur, zpracování mezd, skladové hospodářství).
+
+2. Plnění zákonné povinnosti (čl. 6 odst. 1 písm. c ze dne GDPR)
+	• Vedení finančně-účetních záznamů podle rumunské fiskální legislativy.
+	• Zajištění kybernetických bezpečnostních opatření a hlášení možných narušení bezpečnosti Národnímu dozorovému úřadu pro zpracování osobních údajů (ANSPDCP).
+
+3. Oprávněný zájem Provozovatele (čl. 6 odst. 1 písm. f ze dne GDPR)
+	• Optimalizace výkonu aplikace iOS, řešení technických problémů a zlepšení uživatelské zkušenosti (UI/UX).
+	• Prevence podvodů, zneužití nebo kybernetických útoků na infrastrukturu Cloud ERP.
+	• Založení, výkon nebo obhajoba práva u soudu v případě obchodních sporů.
+
+4. Souhlas uživatele (čl. 6 odst. 1 písm. a) ze dne GDPR)
+	• Odesílání oznámení marketingového typu (pokud je to možné) nebo přístup k určitým senzorům telefonu (jako je přesné umístění GPS, kde pracovní právo vyžaduje výslovný souhlas s monitorováním vozového parku/zaměstnanců).
+
+5. UCHOVÁVÁNÍ A UCHOVÁVÁNÍ DAT (UCHOVÁVÁNÍ DAT)
+
+Vaše data jsou uložena v zabezpečených cloudových prostředích umístěných na území Evropské unie (např.: AWS Frankfurt / Microsoft Azure Dublin / Google Cloud), což zajišťuje plný soulad se standardy datové suverenity.
+
+Doba uchovávání se liší v závislosti na typu údajů:
+	• Údaje o uživatelském účtu: Jsou uchovávány po celou dobu trvání obchodní smlouvy mezi DATECONTA.RO a Klientem, plus období 36 měsíců po ukončení smlouvy, pro historii technického auditu a řešení případných sporů.
+	• Finančně-účetní údaje vložené do ERP: Jsou uchovávány po dobu 10 let v souladu s předpisy Fiskálního zákoníku Rumunska o archivaci podkladů.
+	• Lokalizační údaje (GPS): Jsou-li shromažďovány pro měření času nebo tras, jsou uchovávány po dobu maximálně 30 dnů (nebo podle interních zásad vašeho zaměstnavatele HR), poté jsou automaticky smazány nebo anonymizovány.
+	• Zprávy o selhání (iOS Diagnostic): Uchovávají se maximálně 90 dní a používají se výhradně pro ladění.
+
+6. POSKYTOVÁNÍ A SDÍLENÍ ÚDAJŮ
+
+Osobní údaje neprodáváme, nepronajímáme ani nevyměňujeme třetím stranám. Údaje mohou být přenášeny nebo k nim mohou mít přístup následující kategorie příjemců za přísných pravidel důvěrnosti:
+
+1. Poskytovatelé cloudových služeb a IT infrastruktury: Poskytovatelé hostingových, databázových a bezpečnostních služeb (např.: AWS, Google Cloud, Microsoft Azure).
+
+2. Poskytovatelé integrovaných nástrojů (SDK třetích stran):
+	◦ Apple Inc.: Pro zpracování push notifikací (APNs) a diagnostiku chyb prostřednictvím TestFlight/App Store Connect.
+	◦ Služby Analytics/Crash Reporting: (např.: Firebase Crashlytics, Sentry) používané výhradně pro sledování stability aplikace.
+
+3. Orgány veřejné moci a státní instituce: (ANAF, soudy, orgány policie) pouze na základě výslovné zákonné povinnosti a v mezích zákona.
+
+4. Integrace s třetími stranami na přání zákazníka: Pokud povolíte integrace API z mobilního ERP s bankami (Open Banking), kurýry (FAN Courier, DPD atd.) nebo tržišti (eMAG), budou potřebná data předána těmto partnerům podle vašich pokynů.
+
+Mezinárodní přenosy dat
+
+Pokud někteří naši techničtí subdodavatelé sídlí mimo Evropský hospodářský prostor (SEE), například v SUA, zajišťujeme, aby byly přenosy dat chráněny standardními smluvními doložkami (SCCs) schválenými Evropskou komisí a případně rámcem EU-U.S. Data Privacy Framework.
+
+7. BEZPEČNOSTNÍ OPATŘENÍ PODLE STANDARDŮ APPLE A ENISA
+
+Bezpečnost obchodních dat je naší absolutní prioritou. Zavedli jsme pokročilá technická a organizační opatření, mimo jiné:
+	• Šifrování při přenosu (Data in Transit): Veškerá komunikace mezi aplikací iOS a našimi servery API probíhá prostřednictvím zabezpečených protokolů HTTPS s šifrováním TLS 1.3 a technikami SSL Pinning, aby se zabránilo útokům typu Man-in-the-Middle (MitM).
+	• Šifrování v klidu (Data v klidu): Centrální databáze je šifrována pomocí algoritmu AES-256. Data uložená lokálně na zařízení iOS (mezipaměť aplikace) jsou uložena v Keychain iOS a jsou chráněna nativním šifrováním na hardwarové úrovni společnosti Apple.
+	• Řízení přístupu: Vícefaktorová autentizace (MFA/2FA) povinná nebo volitelná pro uživatele, přísné zásady hesel a řízení přístupu na základě rolí (RBAC - Role-Based Access Control).
+	• Bezpečnostní audity: Pravidelně provádíme penetrační testy (Pen-Testing) a skenování zranitelnosti infrastruktury ERP.
+	• Izolace dat (Multi-Tenancy): Data každé klientské společnosti jsou logicky nebo fyzicky izolována v samostatných databázích, což zabraňuje riziku úniku dat mezi různými klienty.
+
+8. PRÁVA DOTČENÝCH OSOB (V RÁMCI __DRŽENÍ3__)
+
+V souladu s GDPR máte následující konkrétní práva. Opět platí, že pokud jste zaměstnancem zákazníka ERP, možná budete muset kontaktovat přímo svého zaměstnavatele, abyste mohli uplatnit tato práva, protože řídí provozní databázi.
+
+	• Právo na přístup (čl. 15): Můžete si vyžádat potvrzení o tom, že jsou vaše údaje zpracovávány, a jejich kopii.
+	• Právo na opravu (čl. 16): Můžete požádat o opravu nepřesných údajů nebo doplnění neúplných údajů (mnoho z nich lze upravit přímo z profilu uživatele v Aplikaci).
+	• Právo na výmaz údajů („právo být zapomenut“) (čl. 17): Můžete požádat o výmaz údajů za určitých podmínek (např.: údaje již nejsou potřebné pro daný účel, odvolali jste svůj souhlas). Toto právo se nevztahuje na údaje, které jsme ze zákona povinni uchovávat (např. faktury).
+	• Právo na omezení zpracování (čl. 18): V určitých případech můžete požádat o dočasné zablokování zpracování údajů.
+	• Právo na přenositelnost údajů (článek 20): Můžete požádat o export svých údajů ve strukturovaném, běžně používaném a strojově čitelném formátu (např.: JSON, CSV, Excel).
+	• Právo vznést námitku (čl. 21): Můžete vznést námitku proti zpracování založenému na našem oprávněném zájmu z důvodů souvisejících s vaší konkrétní situací.
+	• Právo nebýt předmětem individuálního automatizovaného rozhodnutí (článek 22): Naše aplikace nepoužívá profilovací algoritmy ani 100% automatizovaná rozhodnutí, která na vás mají právní účinky.
+
+Pro uplatnění některého z těchto práv můžete zaslat písemnou, podepsanou a datovanou žádost na e-mailovou adresu: ERPMobile@dateconta.ro. Na vaši žádost odpovíme maximálně do 45 dnů.
+
+Máte také právo podat stížnost u vnitrostátního dozorového úřadu:
+
+Národní úřad pro dozor nad zpracováním osobních údajů (ANSPDCP)
+G-ral Blvd. Gheorghe Magheru 28-30, sektor 1, PSČ 010336, Bukurešť, Rumunsko
+www.dataprotection.ro | anspdcp@dataprotection.ro
+
+9. SOUKROMÍ NEZLETILÝCH
+
+Aplikace ERP MOBILE je softwarový nástroj Business-to-Business (B2B) určený výhradně pro profesionální, firemní a komerční nebo zaměstnanecké použití. Aplikace není zaměřena na vědomé shromažďování údajů od osob mladších 18 let (nebo mladších 16 let, v závislosti na jurisdikci), a není ani navržena tak, aby vědomě shromažďovala údaje. Pokud zjistíme, že údaje o nezletilé osobě byly omylem zadány bez souhlasu rodičů, okamžitě je vymažeme z našich systémů.
+
+10. AKTUALIZACE TĚCHTO ZÁSAD
+
+Vyhrazujeme si právo tyto Zásady ochrany osobních údajů pravidelně aktualizovat a upravovat tak, aby odrážely změny v legislativě, nové požadavky Apple App Store nebo změny našich ERP modulů a funkcí.
+
+V případě podstatných změn vás při příštím otevření aplikace upozorníme prostřednictvím varovné obrazovky uvnitř aplikace (Oznámení v aplikaci) nebo e-mailem s žádostí, abyste si přečetli a v případě potřeby přijali nové podmínky, než budete pokračovat v používání aplikace. Pokračování v používání poté, co změny vstoupí v platnost, představuje váš implicitní souhlas s nimi.
+
+11. KONTAKTNÍ ÚDAJE
+
+Máte-li jakékoli dotazy, vysvětlení nebo požadavky týkající se těchto zásad ochrany osobních údajů nebo toho, jak aplikace iOS ERP Mobile nakládá s vašimi údaji, kontaktujte nás na adrese:
+
+	• Celé jméno: DATECONTA.RO
+	• Pozor: Pověřenec pro ochranu osobních údajů (DPO)
+	• Věnovaný e-mail: ERPMobile@dateconta.ro
+	• Telefon: +40.786.500.005
+
+Tyto zásady ochrany osobních údajů byly navrženy tak, aby byla zajištěna transparentnost a dodržování předpisů.

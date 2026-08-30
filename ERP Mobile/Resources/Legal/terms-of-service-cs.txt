@@ -1,0 +1,95 @@
+„ERP Mobile“ (iOS) PODMÍNKY A PODMÍNKY POUŽÍVÁNÍ MOBILNÍ APLIKACE
+Poslední aktualizace: 5. června 2026
+Před stažením, instalací nebo používáním mobilní aplikace ERP Mobile pro iOS (dále jen „Aplikace“), vyvinuté, vlastněné a provozované společností DATECONTA.RO se sídlem v Bukurešti / Rumunsko, dále jen „Poskytovatel“, si prosím pozorně přečtěte tyto smluvní podmínky („Smlouva“, „Podmínky“).
+Stažením, instalací, přístupem nebo používáním Aplikace vyjadřujete (jako „Uživatel“ nebo „Zákazník“, fyzická nebo právnická osoba jednající v rámci své komerční činnosti) svůj výslovný a jednoznačný souhlas s dodržováním těchto Podmínek. Pokud s těmito Podmínkami nesouhlasíte, nesmíte Aplikaci stahovat, instalovat ani používat a musíte ji okamžitě smazat ze svého zařízení Apple.
+1. DEFINICE A VÝKLAD
+V tomto dokumentu mají následující termíny níže uvedený význam, pokud kontext nevyžaduje jinak:
+Aplikace ERP Mobile: Softwarová aplikace přizpůsobená pro operační systém iOS (iPhone, iPad), včetně všech aktualizací, upgradů a přídavných modulů poskytovaných dodavatelem.
+Uživatelský účet: Individuální profil zabezpečený přihlašovacími údaji (uživatelské jméno a heslo/biometrie) přidělené zaměstnanci nebo spolupracovníkovi Klienta pro přístup do ERP systému.
+Zákazník: Právnická nebo komerční osoba, která uzavřela s Poskytovatelem hlavní smlouvu o poskytování/předplatném na užívání ERP platformy.
+Zákaznická data: Veškeré informace, finanční údaje, seznamy zákazníků, inventář, dokumenty nebo jiné materiály zadané, nahrané nebo zpracované prostřednictvím Aplikace Uživateli.
+Apple App Store: Digitální distribuční platforma provozovaná Apple Inc., jejímž prostřednictvím je Aplikace zpřístupněna.
+2. UDĚLENÍ LICENCE A OMEZENÍ POUŽÍVÁNÍ
+2.1. Omezená licence
+Při přísném dodržování této Smlouvy a zaplacení souvisejícího předplatného Zákazníkem Poskytovatel uděluje Zákazníkovi a jeho oprávněným Uživatelům nevýhradní, nepřenosnou, odvolatelnou a omezenou licenci ke stažení, instalaci a používání Aplikace na kompatibilních mobilních zařízeních vlastněných nebo ovládaných Zákazníkem, a to výhradně pro interní obchodní účely.
+2.2. Extrémní omezení použití
+Uživateli je přísně zakázáno, přímo nebo prostřednictvím třetích stran:
+Kopírovat, upravovat, přizpůsobovat, překládat nebo vytvářet odvozená díla založená na Aplikaci;
+Zpětně analyzovat, dekompilovat, rozebírat nebo se jinak pokoušet odhalit zdrojový kód Aplikace;
+Pronajímat, půjčovat, dále prodávat, poskytovat sublicence nebo distribuovat Aplikaci třetím stranám, na které se rámcová smlouva nevztahuje;
+Obcházet, deaktivovat nebo zasahovat do bezpečnostních funkcí nebo systémů správy digitálních práv (DRM) integrovaných do systému iOS pro tuto aplikaci;
+Používání aplikace k nezákonným, podvodným účelům nebo k ukládání/přenášení materiálů se škodlivým obsahem (viry, malware).
+3. VYTVOŘENÍ ÚČTU, ZABEZPEČENÍ A PŘÍSTUP
+3.1. Registrace a pověření
+Pro používání Aplikace musí mít Uživatel aktivní účet vytvořený v centrální ERP platformě Zákazníkem určeným administrátorem. Uživatel se zavazuje poskytovat přesné, úplné a aktuální informace.
+3.2. Zodpovědnost za bezpečnost
+Zákazník a jednotliví uživatelé jsou přímo a výhradně odpovědní za:
+Uchování uživatelských ID, hesel a metod biometrické autentizace v tajnosti (FaceID / TouchID).
+Všechny činnosti prováděné pod tímto účtem.
+Okamžitě informovat Poskytovatele, pokud má podezření na kompromitaci účtu nebo neoprávněný přístup.
+DŮLEŽITÉ UPOZORNĚNÍ ZABEZPEČENÍ ZAŘÍZENÍ: Poskytovatel nenese odpovědnost za ztrátu nebo poškození způsobené používáním Aplikace na neoprávněně upraveném zařízení iOS (provoz typu Jailbreak). Použití aplikace na zařízeních s Jailbreak je přísně zakázáno, protože potlačuje nativní bezpečnostní protokoly iOS a vystavuje zákaznická data velkým bezpečnostním rizikům.
+4. DUŠEVNÍ VLASTNICTVÍ A AUTORSKÁ PRÁVA
+4.1. Majetek dodavatele
+
+Aplikace, včetně mimo jiné jejího designu, grafického rozhraní, prvků UX/UI, zdrojového kódu, databází, ochranných známek, log, modulové struktury a použitého know-how, jsou výhradním duševním vlastnictvím Poskytovatele (nebo jeho poskytovatelů licencí) a jsou chráněny národními a mezinárodními zákony o autorských právech a duševním vlastnictví. Nic v tomto dokumentu nepředstavuje převod těchto práv na zákazníka nebo uživatele.
+4.2. Vlastnictví Údajů zadaných Zákazníkem
+Zákazník si ponechává veškerá práva duševního vlastnictví a autorská práva ke všem Zákaznickým datům zadaným do Aplikace. Zákazník používáním Aplikace uděluje Poskytovateli celosvětovou, omezenou a bezplatnou licenci k hostování, přenosu, zpracování a zobrazování Zákaznických dat, a to výhradně za účelem poskytování Služeb ERP a zajištění technické funkčnosti Aplikace.
+5. DOSTUPNOST, PODPORA A AKTUALIZACE
+5.1. Úroveň služeb (SLA)
+Poskytovatel vynaloží obchodně přiměřené úsilí k zajištění dostupnosti Aplikace 24 hodin denně, 7 dní v týdnu. Přístup však může být dočasně přerušen z důvodu:
+Plánované údržbové práce (oznámené zpravidla minimálně 24 hodin předem);
+Kritické aktualizace zabezpečení nebo naléhavé opravy chyb;
+Technické poruchy cloudové infrastruktury nebo telekomunikačních sítí nezávislých na Poskytovateli;
+Změny Apple v ekosystému iOS, které vyžadují okamžité technické úpravy.
+5.2. Aktualizace systému (aktualizace a upgrady)
+Poskytovatel bude pravidelně vydávat aktualizace aplikace prostřednictvím App Store za účelem opravy chyb, zlepšení výkonu nebo zavedení nových modulů.
+Uživatel souhlasí s instalací nejnovějších verzí Aplikace pro zajištění optimálního a bezpečného provozu.
+Poskytovatel nezaručuje kompatibilitu Aplikace se staršími verzemi operačního systému iOS (podporována je zpravidla pouze aktuální verze iOS a poslední dvě předchozí hlavní verze).
+6. VYLOUČENÍ ZÁRUKY A OMEZENÍ ODPOVĚDNOSTI
+6.1. Poskytování služby „tak jak je“ (As Is)
+APLIKACE JE POSKYTOVÁNA „TAK, JAK JE“ A „JAK JE DOSTUPNÁ“, BEZ ZÁRUK JAKÉHOKOLI DRUHU, VÝSLOVNÝCH NEBO PŘEDPOKLÁDANÝCH. POSKYTOVATEL VÝSLOVNĚ ODMÍTÁ VEŠKERÉ PŘEDPOKLÁDANÉ ZÁRUKY OBCHODOVATELNOSTI, VHODNOSTI PRO KONKRÉTNÍ ÚČEL, PŘESNOSTI VYTAŽENÝCH FINANČNÍCH NEBO OBCHODNÍCH ÚDAJŮ A NEPORUŠENÍ PRÁV TŘETÍCH STRAN.
+6.2. Omezení finanční odpovědnosti
+DODAVATEL V NEJVYŠŠÍM ROZSAHU POVOLENÉM PLATNÝM ZÁKONEM NEBUDE V ŽÁDNÉM PŘÍPADĚ ODPOVĚDNÝ ZA NEPŘÍMÉ, NÁHODNÉ, ZVLÁŠTNÍ, TRESTUJÍCÍ NEBO NÁSLEDNÉ ŠKODY, VČETNĚ, ALE NE VÝHRADNĚ:
+ušlý zisk, příjem nebo obrat;
+Ztráta dat, přerušení podnikání nebo ztráta obchodních příležitostí;
+chybná manažerská nebo finanční rozhodnutí učiněná na základě zpráv generovaných aplikací;
+Fiskální sankce nebo pokuty uložené úřady Klientovi v důsledku nesprávného zpracování údajů.
+CELKOVÁ ODPOVĚDNOST DODAVATELE ZA JAKÉKOLI NÁROKY VZNIKLÉ Z TĚCHTO PODMÍNEK NEBO SOUVISEJÍCÍ S TĚMITO PODMÍNKAMI NEPŘESAHUJE CELKOVOU ČÁSTKU ZAPLACENOU ZÁKAZNÍKEM DODAVATELE ZA PŘEDPLATNÉ UŽIVATELŮ BĚHEM POSLEDNÍCH 6 (SOUVISEJÍCÍ S TĚMITO PODMÍNKAMI) ODPOVĚDNOST.
+7. OCHRANA ÚDAJŮ A SOUKROMÍ
+7.1. GDPR a Osobní údaje
+Používáním Aplikace může Poskytovatel zpracovávat některé osobní údaje Uživatelů (jméno, e-mail, IP adresy, přístupové logy, geolokační údaje, pokud si to modul ERP vyžádá). Právní vztah týkající se zpracování osobních údajů se v souladu s Nařízením (EU) 2016/679 (GDPR) řídí Zásadami ochrany osobních údajů a Smlouvou o zpracování údajů (DPA), která je přílohou hlavní smlouvy mezi Zákazníkem a Poskytovatelem.
+7.2. Důvěrnost obchodních informací
+Poskytovatel bere na vědomí, že informace uložené v ERP jsou přísně důvěrné. Poskytovatel zavádí pokročilá technická a organizační opatření (end-to-end šifrování při přenosu, šifrované úložiště na zabezpečených serverech, pravidelné audity), aby zabránil úniku obchodních informací třetím stranám.
+8. POZASTAVENÍ A UKONČENÍ SMLOUVY
+8.1. Pozastavení přístupu
+
+Poskytovatel si vyhrazuje právo okamžitě a bez předchozího upozornění pozastavit přístup do Aplikace pro jakýkoli Uživatelský účet nebo pro celého Zákazníka v těchto případech:
+Zpoždění platby předplatného o více než 15 dnů od data splatnosti;
+Závažné nebo opakované porušení omezení použití (neoprávněné poskytování sublicence, pokusy o hackování, zpětné inženýrství);
+Používání Aplikace způsobem ohrožujícím stabilitu serverů nebo bezpečnost sítě Poskytovatele.
+8.2. Ukončení z podnětu zákazníka
+Zákazník může ukončit používání aplikace v souladu s ustanoveními o ukončení v hlavní smlouvě o poskytování služeb. Po ukončení smlouvy právo na přístup k Aplikaci okamžitě zaniká a Uživatelé jsou povinni smazat Aplikaci ze všech zařízení vlastněných iOS.
+9. ZVLÁŠTNÍ USTANOVENÍ PRO EKOSYSTÉM JABLKO (iOS)
+V souladu s pravidly stanovenými Apple Inc. pro aplikace distribuované prostřednictvím App Store zákazník a uživatel berou na vědomí a souhlasí s následujícím:
+Povaha smlouvy: Tento dokument se uzavírá výhradně mezi dodavatelem a objednatelem/uživatelem. Apple Inc. není stranou této smlouvy a nemá žádnou povinnost ani odpovědnost související s aplikací nebo jejím obsahem.
+Údržba a podpora: Poskytovatel je výhradně odpovědný za poskytování služeb údržby a podpory pro Aplikaci. Společnost Apple nemá žádnou povinnost poskytovat služby údržby pro Aplikaci.
+Záruky v App Store: V případě jakéhokoli nesouladu aplikace s příslušnými zárukami může uživatel upozornit společnost Apple a společnost Apple vrátí uživateli kupní cenu aplikace (pokud existuje). V maximálním rozsahu povoleném příslušnými zákony nebude mít Apple žádné další záruční povinnosti s ohledem na Aplikaci.
+Nároky na duševní vlastnictví: Pokud třetí strana tvrdí, že Aplikace porušuje její práva duševního vlastnictví, bude za vyšetřování, obhajobu, řešení a vyřízení jakéhokoli takového nároku odpovědný Poskytovatel, nikoli společnost Apple.
+Soulad s exportními předpisy: Uživatel prohlašuje a zaručuje, že se nenachází v zemi, na kterou se vztahuje embargo vlády USA. nebo označena jako země, která „podporuje terorismus“ a není na žádném americkém vládním seznamu zakázaných nebo omezených stran.
+Oprávněná třetí strana: Společnost Apple a její dceřiné společnosti jsou oprávněnými třetími stranami této smlouvy. Přijetím těchto podmínek bude mít společnost Apple právo (a bude se mít za to, že právo přijala) vymáhat tuto smlouvu vůči vám jako oprávněné třetí straně.
+10. ÚPRAVA PODMÍNEK
+Poskytovatel má právo tyto Podmínky kdykoli jednostranně upravit tak, aby odrážely legislativní změny, technologické změny nebo vývoj funkčnosti ERP Aplikace.
+Změny se stanou platnými do [např.: 15 dnů] od oznámení uživatelům (oznámení zaslané e-mailem nebo prostřednictvím upozornění v aplikaci v rámci aplikace iOS).
+Pokračování v používání Aplikace po uplynutí výpovědní lhůty představuje konkludentní a úplný souhlas s novými Podmínkami.
+11. PLATNÉ PRÁVO A ŘEŠENÍ SPORŮ
+11.1. Platné právo
+Tato smlouva a všechny její právní účinky se řídí, vykládají a vymáhají v souladu se zákony Rumunska.
+11.2. Řešení sporů
+Jakýkoli spor, kontroverze nebo nárok vyplývající z těchto Podmínek nebo v souvislosti s nimi, a to i s ohledem na jejich platnost, výklad, vymáhání nebo ukončení, budou řešeny smírně mezi zástupci stran. Pokud nebude možné smírné urovnání do 30 dnů od objevení sporu, bude spor předložen k výhradnímu řešení příslušným soudům v sídle dodavatele.
+12. ZÁVĚREČNÁ USTANOVENÍ
+
+Pokud bude jakékoli ustanovení těchto podmínek prohlášeno za neplatné, nezákonné nebo nevymahatelné soudem, bude toto ustanovení upraveno tak, aby odráželo původní záměr stran v plném rozsahu zákona, a platnost a vymahatelnost zbývajících ustanovení nebude žádným způsobem ovlivněna. Tento dokument představuje úplnou dohodu mezi Uživatelem a Poskytovatelem ohledně používání Aplikace v systému iOS, která nahrazuje veškerá předchozí písemná nebo ústní ujednání v této věci (avšak nenahrazuje hlavní obchodní smlouvu na služby ERP podepsanou mezi Zákazníkem a Poskytovatelem).
+V případě jakýchkoli dotazů, žádostí o podporu nebo upozornění souvisejících s těmito podmínkami nás můžete kontaktovat na adrese:
+E-mail: ERPMobile@dateconta.ro
+Telefon: +40 786 500 005
+Pokračováním v používání aplikace ERP Mobile potvrzujete, že jste si přečetli, porozuměli a souhlasíte s tím, že budete právně vázáni všemi výše uvedenými ustanoveními.

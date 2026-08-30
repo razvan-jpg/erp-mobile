@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cont confirmat — ERP Mobile</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #f0f4ff 0%, #e8eef8 100%);
+      color: #1a1a2e;
+      padding: 24px;
+    }
+    .card {
+      max-width: 440px;
+      width: 100%;
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      background: #e8f5e9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 12px; line-height: 1.4; }
+    p { margin: 0; color: #555; line-height: 1.6; font-size: 1rem; }
+    .sub { margin-top: 16px; font-size: 0.875rem; color: #888; }
+    .error .icon { background: #ffebee; }
+    .error h1 { color: #c62828; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card" id="state-loading">
+    <div class="icon">⏳</div>
+    <h1>Se finalizează activarea contului...</h1>
+    <p class="sub">Vă rugăm așteptați câteva secunde.</p>
+  </div>
+
+  <div class="card hidden" id="state-success">
+    <div class="icon">✓</div>
+    <h1>Contul a fost confirmat cu succes.</h1>
+    <p>Vă puteți autentifica în aplicație.</p>
+    <p class="sub">Veți primi în câteva minute un email cu datele contului (verificați și spam).</p>
+  </div>
+
+  <div class="card hidden error" id="state-error">
+    <div class="icon">!</div>
+    <h1>Confirmarea nu a putut fi finalizată</h1>
+    <p id="error-message">Link invalid sau expirat. Contactați administratorul.</p>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "__SUPABASE_URL__";
+    const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+
+    (async function () {
+      const loading = document.getElementById("state-loading");
+      const success = document.getElementById("state-success");
+      const error = document.getElementById("state-error");
+      const errorMessage = document.getElementById("error-message");
+
+      function show(el) {
+        loading.classList.add("hidden");
+        success.classList.add("hidden");
+        error.classList.add("hidden");
+        el.classList.remove("hidden");
+      }
+
+      function parseParams() {
+        const hash = window.location.hash.startsWith("#")
+          ? window.location.hash.slice(1)
+          : window.location.hash;
+        return {
+          hashParams: new URLSearchParams(hash),
+          queryParams: new URLSearchParams(window.location.search),
+        };
+      }
+
+      async function verifyTokenHash(tokenHash, type) {
+        const res = await fetch(SUPABASE_URL + "/auth/v1/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ token_hash: tokenHash, type }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.msg || data.error_description || data.error || "Verificare eșuată");
+        }
+        return data.access_token;
+      }
+
+      async function exchangeCode(code) {
+        const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=pkce", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ auth_code: code }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.msg || data.error_description || data.error || "Schimb cod eșuat");
+        }
+        return data.access_token;
+      }
+
+      async function sendWelcomeEmail(accessToken) {
+        const res = await fetch(SUPABASE_URL + "/functions/v1/complete-account-activation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + accessToken,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.warn("complete-account-activation:", data);
+        }
+        return data;
+      }
+
+      try {
+        const { hashParams, queryParams } = parseParams();
+        const err = hashParams.get("error_description") || hashParams.get("error")
+          || queryParams.get("error_description") || queryParams.get("error");
+
+        if (err) {
+          errorMessage.textContent = decodeURIComponent(err.replace(/\+/g, " "));
+          show(error);
+          return;
+        }
+
+        let accessToken = hashParams.get("access_token") || queryParams.get("access_token");
+        const tokenHash = queryParams.get("token_hash");
+        const type = queryParams.get("type");
+        const code = queryParams.get("code");
+
+        if (!accessToken && tokenHash && type) {
+          accessToken = await verifyTokenHash(tokenHash, type);
+        }
+        if (!accessToken && code) {
+          accessToken = await exchangeCode(code);
+        }
+
+        if (accessToken) {
+          await sendWelcomeEmail(accessToken);
+        }
+
+        show(success);
+      } catch (e) {
+        errorMessage.textContent = e.message || "Eroare necunoscută";
+        show(error);
+      }
+    })();
+  </script>
+</body>
+</html>

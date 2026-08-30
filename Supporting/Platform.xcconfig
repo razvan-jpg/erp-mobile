@@ -1,0 +1,3 @@
+// Minimum platform versions for ERP Mobile (iOS + Mac Catalyst).
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+MACOSX_DEPLOYMENT_TARGET = 12.0

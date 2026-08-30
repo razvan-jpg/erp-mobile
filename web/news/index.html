@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Noutăți ERP Mobile — ce este nou în aplicație" />
+  <title>Ce este nou — ERP Mobile</title>
+  <style>
+    /*
+      ============================================================
+      ERP Mobile — pagină „Ce este nou”
+      Publicați acest fișier pe rincon.ro ca:  /news/index.html
+      URL: http://www.rincon.ro/news
+
+      Pentru o versiune nouă: copiați blocul <article class="release">
+      de mai jos, lipiți-l DEASUPRA celor existente și actualizați
+      numărul versiunii, data și lista de modificări.
+      ============================================================
+    */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #ffffff;
+      color: #1a1a2e;
+      line-height: 1.55;
+      -webkit-text-size-adjust: 100%;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .brand span { color: #003399; }
+    .lang-switch {
+      display: flex;
+      gap: 4px;
+      background: #eef1f8;
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .lang-switch button {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #555;
+    }
+    .lang-switch button.active {
+      background: #fff;
+      color: #003399;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+      padding-bottom: max(48px, env(safe-area-inset-bottom));
+    }
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 20px;
+      color: #003399;
+    }
+    .release {
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #e8ecf4;
+    }
+    .release:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .release h2 {
+      font-size: 1.1rem;
+      margin: 0 0 12px;
+      color: #003399;
+    }
+    .release ul {
+      margin: 0;
+      padding-left: 1.2em;
+    }
+    .release li {
+      margin-bottom: 0.55em;
+    }
+    .release li:last-child { margin-bottom: 0; }
+    [data-lang] { display: none; }
+    html.lang-ro [data-lang="ro"],
+    html.lang-en [data-lang="en"] { display: block; }
+    .footer-note {
+      margin-top: 32px;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">ERP Mobile <span>by DATECONTA.RO</span></div>
+    <div class="lang-switch" role="group" aria-label="Limba">
+      <button type="button" id="btn-ro" class="active" aria-pressed="true">RO</button>
+      <button type="button" id="btn-en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <main>
+    <h1 data-lang="ro">Ce este nou</h1>
+    <h1 data-lang="en">What's new</h1>
+
+    <!-- ========== Versiune nouă: copiați acest bloc deasupra ========== -->
+
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.018 — 03.08.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+        <li>Imbunatatiri si corectii la intocmirea NIR-ului.</li>		
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+        <li>Improvements and corrections in the preparation of the NIR.</li>		
+	</ul>
+    </article>		
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.017 — 31.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>		
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.016 — 29.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>Corecții la modul de inregistrare in fisa furnizor a facturilor storno sau a Notelor de Credit. S-a introdus posibilitatea alocarii acestora pe facturi restante astfel incat sa nu mai ramana cu sold.</li>
+		<li>S-a finalizat "Catalog"-ul si s-a inbunatatit modul de afisare al produselor in acesta, acum afisand la fiecare produs din Catalog Stocul, pretul de achizitie sau de productie, pretul de vanzare si profitul / bucata valoric si procentual.</li>
+		<li>S-au implementat retetele la produsele finite care necesita reteta de productie.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>Corrections to the way of recording cancellation invoices or Credit Notes in the supplier record. The possibility of allocating them to outstanding invoices has been introduced so that they no longer have a balance.</li>
+		<li>The "Catalog" has been finalized and the way products are displayed in it has been improved, now displaying for each product in the Catalog the Stock, the purchase or production price, the selling price and the profit / piece in value and percentage.</li>
+		<li>Recipes have been implemented for finished products that require the production recipe.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.015 — 17.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>Doar ADMIN - S-a modificat structura fisei de articol, s-au introdus pe aceasta Categorii de articole: Marfa, Materie prime, Produs finit (vizibil obligatoriu in catalog), Ambalaj si Materiale consumabile.</li>
+		<li>Doar ADMIN - S-a inceput implementarea "Fisei de stoc" in paralel cu lucrul la "Catalog", a produselor finite si descarcarea stocului prin vanzarea acestora.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>ADMIN only - The structure of the item sheet has been modified, and the following item categories have been introduced: Merchandise, Raw Materials, Finished Product (mandatory visible in the catalog), Packaging and Consumables.</li>
+		<li>ADMIN only - The implementation of the "Stock Sheet" began in parallel with the work on the "Catalog", the finished products and the unloading of the stock by selling them.</li>
+	</ul>
+    </article>		
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.014 — 16.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.013 — 15.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.012 — 14.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.011 — 11.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>		
+	
+	<article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.010 — 10.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>S-a adăugat posibilitatea de a defini puncte de lucru si depozite in Nomenclatoare -> Societati.</li>
+		<li>S-a implementat posibilitatea generării NIR-ului in urma creării/importului facturilor de furnizori, cu stabilirea condiției de adăugare la stoc doar a produselor care au NIR.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>Added the possibility of defining work points and warehouses in Nomenclature -> Companies has been added.</li>
+		<li>Added the possibility of generating the NIR following the creation/import of supplier invoices has been implemented, with the condition of adding to stock only products that have NIR.</li>		
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+		<h2>Ver 1.0.009 — 09.07.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+	</ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.008 — 23.06.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>S-a modificat modul de calcul si afișare pe fisa de cont furnizori/clienți.</li>
+		<li>Aplicația a devenit compatibilă cu iOS 15 sau mai mare și macOS Monterey (12) sau mai mare.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>The calculation and display method on the supplier/customer account sheet has been changed.</li>
+		<li>The application has become compatible with iOS 15 or higher and macOS Monterey (12) or higher.</li>		
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.007 — 19.06.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>S-a modificat pe formularul plăti / încasări posibilitatea selectării mai multor facturi la alocare, calculând si completând automat câmpurile “Alocare pe facturi”, “Suma de plata” si “Referință”.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>The possibility of selecting multiple invoices for allocation has been changed on the payments / receipts form, automatically calculating and completing the “Allocation by invoices”, “Payment amount” and “Reference” fields.</li>
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.006 — 16.06.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+		<li>Introducerea vizualizării stil calendar (1 luna) pe tab-ul “Scadente”.</li>
+		<li>Introducerea modulului ERP “Clienți” cu structura similară celui “Furnizori”.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+		<li>Introducing the calendar style view (1 month) on the “Due Dates” tab.</li>
+		<li>Introduction of the ERP module "Customers" with a structure similar to the "Suppliers" module.</li>		
+	</ul>
+    </article>	
+	
+	<article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.005 — 14.06.2026</h2>
+      <ul data-lang="ro">
+        <li>Corecții minore de erori și îmbunătățiri.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Minor bug fixes and improvments.</li>
+	</ul>
+    </article>
+	
+    <article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.004 — 12.06.2026</h2>
+      <ul data-lang="ro">
+        <li>Aplicatia este compatibilă si rulează si pe macOS.</li>
+        <li>Afișarea la intrarea in aplicație a ecranului “INFO”.</li>
+		    <li>La pornirea aplicației se verifica existența unui update in AppStore si se propune update-ul daca este cazul.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>The application is compatible and also runs on macOS.</li>
+        <li>Displaying the “INFO” screen upon entering the application.</li>
+		    <li>When starting the application, it checks for an update in the AppStore and proposes the update if necessary.</li>
+      </ul>
+    </article>
+
+    <article class="release" id="v-1-0-003">
+      <h2>Ver 1.0.003 — 07.06.2026</h2>
+      <ul data-lang="ro">
+        <li>A fost implementată opțiunea de a importa facturile din xml descărcat din e-Factura, una câte una sau bulk din director local/cloud/stick USB conectat la device în momentul importului.</li>
+        <li>A fost implementat modulul „Stocuri” cu următoarele funcționalități: Stoc / Mișcări / Inventar.</li>
+		    <li>A fost implementat modulul “Produse” cu următoarele funcționalități: Catalog / Articole / Rețete. Articolele sunt create automat la importul din e-Factura sau pot fi adăugate manual sau prin scanarea codului de bare.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>The option to import invoices from xml downloaded from e-Invoice, one by one or in bulk from the local/cloud/USB stick directory connected to the device at the time of import, has been implemented.</li>
+        <li>The „Inventory” module has been implemented with the following features: Stock / Movements / Physical inventory.</li>
+		    <li>The “Products” module has been implemented with the following functionalities: Catalog / Articles / Recipes. Articles are created automatically upon import from e-Invoice or can be added manually or by scanning the barcode.</li>
+      </ul>
+    </article>
+
+    <article class="release" id="v-1-0-002">
+      <h2>Ver 1.0.002 — 06.06.2026</h2>
+      <ul data-lang="ro">
+        <li>La plăți fără asociere în rubrica „Referințe” va trece după facturile plătite și restul rămas de plată la acel furnizor.</li>
+        <li>În fișa furnizorului, dacă numărul de zile scadență este 0, atunci la crearea unei facturi noi pentru acel furnizor va fi propusă aceeași cu data facturii.</li>
+        <li>La crearea unei facturi noi, în lista de unde aleg furnizorul prima opțiune este „Adaugă furnizor nou”, care te trimite în ecranul de creare furnizor; după salvare revii în ecranul de creare factură nouă cu furnizorul deja selectat.</li>
+        <li>La introducerea sumei sunt acceptate maxim 4 zecimale după separatorul zecimal, dar salvarea și afișarea se face prin rotunjire la două.</li>
+        <li>În lista de facturi s-au adăugat criteriile de selecție: număr factură, interval dată, nume furnizor.</li>
+        <li>În lista de plăți s-au adăugat criteriile de selecție: număr chitanță/OP, număr factură plătită, interval dată, nume furnizor.</li>
+        <li>În ecranul „Gestionare facturi furnizori / plăți” s-a introdus tab-ul „Scadente”, cu scadențele împărțite în 3 categorii: "Scadente depășite", "Scadente săptămâna curentă"  și "Scadente viitoare".</li>
+      </ul>
+      <ul data-lang="en">
+        <li>For payments without association in the „References” column, the remaining balance is applied after paid invoices for that supplier.</li>
+        <li>In the supplier sheet, if the number of days due is 0, when creating a new invoice for that supplier the due date proposed is the same as the invoice date.</li>
+        <li>When creating a new invoice, the first option in the supplier list is „Add new supplier”; choosing it opens supplier creation and returns to the new invoice screen with the new supplier already selected.</li>
+        <li>When entering amounts, up to 4 decimal places are accepted on input, but saving and display round to two decimals.</li>
+        <li>Invoice list filters added: invoice number, date range, supplier name.</li>
+        <li>Payment list filters added: receipt/OP number, paid invoice number, date range, supplier name.</li>
+        <li>In „Manage supplier invoices / payments”, a „Due dates” tab shows due dates in 3 categories: " Due dates overdue", "Due dates current week", and "Due dates upcoming".</li>
+      </ul>
+    </article>
+
+    <p class="footer-note" data-lang="ro">ERP Mobile · DATECONTA.RO · Iunie 2026</p>
+    <p class="footer-note" data-lang="en">ERP Mobile · DATECONTA.RO · June 2026</p>
+  </main>
+
+  <script>
+    (function () {
+      var KEY = "erp-news-lang";
+      var html = document.documentElement;
+      var btnRo = document.getElementById("btn-ro");
+      var btnEn = document.getElementById("btn-en");
+
+      function setLang(lang) {
+        html.classList.remove("lang-ro", "lang-en");
+        html.classList.add("lang-" + lang);
+        btnRo.classList.toggle("active", lang === "ro");
+        btnEn.classList.toggle("active", lang === "en");
+        btnRo.setAttribute("aria-pressed", lang === "ro");
+        btnEn.setAttribute("aria-pressed", lang === "en");
+        html.lang = lang;
+        try { localStorage.setItem(KEY, lang); } catch (e) {}
+      }
+
+      btnRo.addEventListener("click", function () { setLang("ro"); });
+      btnEn.addEventListener("click", function () { setLang("en"); });
+
+      var saved = null;
+      try { saved = localStorage.getItem(KEY); } catch (e) {}
+      setLang(saved === "en" ? "en" : "ro");
+    })();
+  </script>
+</body>
+</html>

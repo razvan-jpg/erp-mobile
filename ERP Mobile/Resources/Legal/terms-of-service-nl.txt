@@ -1,0 +1,95 @@
+"ERP Mobile" (iOS) GEBRUIKSVOORWAARDEN VOOR MOBIELE APP
+Laatste update: 5 juni 2026
+Lees deze Algemene Voorwaarden ("Overeenkomst", "Voorwaarden") aandachtig door voordat u de ERP Mobile mobiele applicatie voor iOS (de "Applicatie") downloadt, installeert of gebruikt, ontwikkeld, eigendom van en beheerd door DATECONTA.RO, gevestigd in Boekarest / Roemenië, hierna de "Aanbieder" genoemd.
+Door de Applicatie te downloaden, te installeren, er toegang toe te krijgen of deze te gebruiken, geeft u (als "Gebruiker" of "Klant", een natuurlijke of rechtspersoon die handelt in het kader van zijn commerciële activiteit) aan dat u uitdrukkelijk en ondubbelzinnig akkoord gaat met de naleving van deze Voorwaarden. Als u niet akkoord gaat met deze Voorwaarden, mag u de Applicatie niet downloaden, installeren of gebruiken en moet u deze onmiddellijk van uw Apple-apparaat verwijderen.
+1. DEFINITIES EN INTERPRETATIE
+In dit document hebben de volgende termen de hieronder gespecificeerde betekenis, tenzij de context anders vereist:
+ERP Mobile Applicatie: De softwareapplicatie aangepast voor het besturingssysteem iOS (iPhone, iPad), inclusief alle door Leverancier geleverde updates, upgrades en add-on modules.
+Gebruikersaccount: Het individuele profiel beveiligd met inloggegevens (gebruikersnaam en wachtwoord/biometrie) toegewezen aan een medewerker of medewerker van de Klant om toegang te krijgen tot het ERP-systeem.
+Klant: De rechtspersoon of commerciële entiteit die met de Aanbieder een hoofddienst-/abonnementscontract heeft afgesloten voor het gebruik van het ERP-platform.
+Klantgegevens: Alle informatie, financiële gegevens, klantenlijsten, inventaris, documenten of andere materialen die door Gebruikers via de Applicatie worden ingevoerd, geüpload of verwerkt.
+Apple App Store: Het digitale distributieplatform beheerd door Apple Inc. waarmee de Applicatie beschikbaar wordt gesteld.
+2. LICENTIEVERLENING EN GEBRUIKSBEPERKINGEN
+2.1. Beperkte licentie
+Onder voorbehoud van strikte naleving van deze Overeenkomst en betaling van het bijbehorende abonnement door de Klant, verleent de Provider de Klant en zijn geautoriseerde Gebruikers een niet-exclusieve, niet-overdraagbare, herroepbare en beperkte licentie om de Applicatie te downloaden, installeren en gebruiken op compatibele mobiele apparaten die eigendom zijn van of beheerd worden door de Klant, uitsluitend voor interne zakelijke doeleinden.
+2.2. Extreme gebruiksbeperkingen
+Het is de gebruiker ten strengste verboden, rechtstreeks of via derden:
+Kopiëren, wijzigen, aanpassen, vertalen of afgeleide werken maken op basis van de Applicatie;
+Reverse-engineeren, decompileren, demonteren of anderszins proberen de broncode van de Applicatie te achterhalen;
+De Applicatie verhuren, uitlenen, doorverkopen, in sublicentie geven of distribueren aan derden die niet onder de raamovereenkomst vallen;
+Het omzeilen, uitschakelen of verstoren van beveiligingsfuncties of digitale rechtenbeheersystemen (DRM) die zijn geïntegreerd in het iOS-systeem voor deze toepassing;
+Om de Applicatie te gebruiken voor illegale, frauduleuze doeleinden of om materiaal met schadelijke inhoud (virussen, malware) op te slaan/te verzenden.
+3. ACCOUNT AANMAKEN, VEILIGHEID EN TOEGANG
+3.1. Registratie en legitimatiegegevens
+Om de Applicatie te kunnen gebruiken, moet de Gebruiker een actief account hebben aangemaakt in het centrale ERP-platform door de door de Klant aangewezen beheerder. De gebruiker verbindt zich ertoe juiste, volledige en actuele informatie te verstrekken.
+3.2. Verantwoordelijkheid voor veiligheid
+De Klant en individuele Gebruikers zijn rechtstreeks en uitsluitend verantwoordelijk voor:
+Het vertrouwelijk houden van gebruikers-ID, wachtwoorden en biometrische authenticatiemethoden (FaceID / TouchID).
+Alle activiteiten die onder die rekening worden uitgevoerd.
+Het onmiddellijk op de hoogte stellen van de Aanbieder als hij vermoedt dat er sprake is van accountcompromis of ongeautoriseerde toegang.
+BELANGRIJKE OPMERKING VOOR APPARAATBEVEILIGING: De Provider is niet aansprakelijk voor verlies of schade veroorzaakt door het gebruik van de Applicatie op een niet-geautoriseerd aangepast iOS-apparaat (bewerking van het type Jailbreak). Gebruik van de Applicatie op apparaten met Jailbreak is ten strengste verboden, omdat dit de eigen beveiligingsprotocollen van iOS overschrijft en Klantgegevens blootstelt aan grote beveiligingsrisico's.
+4. INTELLECTUEEL EIGENDOM EN AUTEURSRECHT
+4.1. Eigendom van Leverancier
+
+De Applicatie, inclusief maar niet beperkt tot het ontwerp, de grafische interface, UX/UI-elementen, broncode, databases, handelsmerken, logo's, modulestructuur en gebruikte knowhow, zijn het exclusieve intellectuele eigendom van de Aanbieder (of zijn licentiegevers) en worden beschermd door nationale en internationale auteursrechten en intellectuele eigendomswetten. Niets in dit document vormt een overdracht van deze rechten aan de Klant of Gebruiker.
+4.2. Eigendom van de door de Klant ingevoerde Gegevens
+De Klant behoudt alle intellectuele eigendomsrechten en auteursrechten op alle Klantgegevens die in de Applicatie worden ingevoerd. Door de Applicatie te gebruiken, verleent de Klant de Provider een wereldwijde, beperkte en gratis licentie voor het hosten, verzenden, verwerken en weergeven van Klantgegevens, uitsluitend met het doel de ERP-diensten te leveren en de technische functionaliteit van de Applicatie te garanderen.
+5. BESCHIKBAARHEID, ONDERSTEUNING EN UPDATES
+5.1. Serviceniveau (SLA)
+De Aanbieder zal commercieel redelijke inspanningen leveren om de beschikbaarheid van de Applicatie 24 uur per dag, 7 dagen per week te garanderen. De toegang kan echter tijdelijk worden onderbroken vanwege:
+Geplande onderhoudswerkzaamheden (in de regel minimaal 24 uur van tevoren aangekondigd);
+Kritieke beveiligingsupdates of urgente bugfixes;
+Technische storingen van de cloudinfrastructuur of telecommunicatienetwerken onafhankelijk van de Aanbieder;
+De wijzigingen van Apple in het iOS-ecosysteem die onmiddellijke technische aanpassingen vereisen.
+5.2. Systeemupdates (updates en upgrades)
+De Provider zal periodiek updates voor de Applicatie uitbrengen via App Store om bugs op te lossen, de prestaties te verbeteren of nieuwe modules te introduceren.
+De Gebruiker gaat ermee akkoord de nieuwste versies van de Applicatie te installeren om een ​​optimale en veilige werking te garanderen.
+De Aanbieder garandeert niet de compatibiliteit van de Applicatie met oudere versies van het besturingssysteem iOS (in de regel worden alleen de huidige versie van iOS en de laatste twee voorgaande hoofdversies ondersteund).
+6. UITSLUITING VAN GARANTIE EN BEPERKING VAN AANSPRAKELIJKHEID
+6.1. Het leveren van de service "zoals deze is" (As Is)
+DE APPLICATIE WORDT GELEVERD "AS IS" EN "ZOALS BESCHIKBAAR", ZONDER ENIGE GARANTIE, EXPLICIET OF IMPLICIET. AANBIEDER WIJST UITDRUKKELIJK ALLE IMPLICIETE GARANTIES AF VAN VERKOOPBAARHEID, GESCHIKTHEID VOOR EEN BEPAALD DOEL, NAUWKEURIGHEID VAN FINANCIËLE OF COMMERCIËLE GEGEVENS EN NIET-INBREUK OP RECHTEN VAN DERDEN.
+6.2. Beperking van financiële aansprakelijkheid
+VOOR ZOVER TOEGESTAAN DOOR DE TOEPASSELIJKE WETGEVING IS DE LEVERANCIER IN GEEN GEVAL AANSPRAKELIJK VOOR INDIRECTE, INCIDENTELE, SPECIALE, BESTRAFFENDE OF GEVOLGSCHADE, MET INBEGRIP VAN MAAR NIET BEPERKT TOT:
+Gederfde winst, inkomen of omzet;
+Verlies van gegevens, bedrijfsonderbreking of verlies van zakelijke kansen;
+Verkeerde bestuurlijke of financiële beslissingen genomen op basis van de rapporten gegenereerd door de Applicatie;
+Fiscale boetes of boetes die door de overheid aan de Klant worden opgelegd als gevolg van een onjuiste gegevensverwerking.
+IN ALLE GEVALLEN ZAL DE TOTALE AANSPRAKELIJKHEID VAN DE LEVERANCIER VOOR ELKE CLAIM DIE VOORTVLOEIT UIT OF VERBAND HOUDT MET DEZE VOORWAARDEN NIET HOGER ZIJN DAN HET TOTALE BEDRAG DAT DOOR DE KLANT AAN DE LEVERANCIER IS BETAALD VOOR HET GEBRUIKERSABONNEMENT GEDURENDE DE LAATSTE 6 (ZES) MAANDEN VOORAFGAAND AAN DE GEBEURTENIS DIE AANLEIDING GEEFT TOT AANSPRAKELIJKHEID.
+7. GEGEVENSBESCHERMING EN PRIVACY
+7.1. GDPR en persoonlijke gegevens
+Door gebruik te maken van de Applicatie kan de Aanbieder bepaalde persoonsgegevens van de Gebruikers verwerken (naam, e-mail, IP-adressen, toegangslogs, geolocatiegegevens als de ERP-module daarom vraagt). De juridische relatie met betrekking tot de verwerking van persoonsgegevens wordt beheerst door het Privacybeleid en de Gegevensverwerkingsovereenkomst (DPA) die zijn toegevoegd aan het hoofdcontract tussen de Klant en de Aanbieder, in overeenstemming met Verordening (EU) 2016/679 (GDPR).
+7.2. Vertrouwelijkheid van bedrijfsinformatie
+De Aanbieder erkent dat de informatie die is opgeslagen in het ERP strikt vertrouwelijk is. De aanbieder implementeert geavanceerde technische en organisatorische maatregelen (end-to-end-encryptie tijdens de overdracht, gecodeerde opslag op beveiligde servers, periodieke audits) om het lekken van bedrijfsinformatie naar derden te voorkomen.
+8. OPSCHORTING EN BEËINDIGING VAN HET CONTRACT
+8.1. Opschorting van toegang
+
+De Aanbieder behoudt zich het recht voor om de toegang tot de Applicatie voor een Gebruikersaccount of voor de gehele Klant onmiddellijk en zonder voorafgaande kennisgeving op te schorten in de volgende gevallen:
+Het uitstellen van de betaling van het abonnement met meer dan 15 dagen vanaf de vervaldatum;
+Ernstige of herhaalde schending van gebruiksbeperkingen (ongeoorloofde sublicenties, hackpogingen, reverse engineering);
+Het gebruik van de Applicatie op een manier die de stabiliteit van de servers of de veiligheid van het netwerk van de Aanbieder in gevaar brengt.
+8.2. Beëindiging op initiatief van de klant
+De Klant kan het gebruik van de Applicatie beëindigen in overeenstemming met de beëindigingsclausules in de hoofdserviceovereenkomst. Bij beëindiging van het contract vervalt het recht op toegang tot de Applicatie onmiddellijk en zijn Gebruikers verplicht de Applicatie te verwijderen van alle apparaten die eigendom zijn van iOS.
+9. SPECIFIEKE BEPALINGEN VOOR HET APPEL-ECOSYSTEEM (iOS)
+In overeenstemming met de regels opgelegd door Apple Inc. voor applicaties die via App Store worden gedistribueerd, erkennen Klant en Gebruiker het volgende en gaan ermee akkoord:
+Aard van de Overeenkomst: Dit document wordt uitsluitend gesloten tussen Leverancier en Klant/Gebruiker. Apple Inc. is geen partij bij deze Overeenkomst en heeft geen verplichting of aansprakelijkheid met betrekking tot de Applicatie of de inhoud ervan.
+Onderhoud en ondersteuning: De Provider is als enige verantwoordelijk voor het leveren van onderhouds- en ondersteuningsdiensten voor de Applicatie. Apple heeft geen verplichting om onderhoudsdiensten voor de Applicatie te leveren.
+Garanties in App Store: In het geval dat de Applicatie niet voldoet aan de toepasselijke garanties, kan de Gebruiker Apple hiervan op de hoogte stellen, en Apple zal de aankoopprijs van de Applicatie (indien van toepassing) aan de Gebruiker terugbetalen. Voor zover toegestaan ​​door de toepasselijke wetgeving, heeft Apple geen andere garantieverplichtingen met betrekking tot de Applicatie.
+Intellectuele-eigendomsclaims: Als een derde partij beweert dat de Applicatie inbreuk maakt op diens intellectuele-eigendomsrechten, is de Aanbieder, en niet Apple, verantwoordelijk voor het onderzoeken, verdedigen, oplossen en afwijzen van dergelijke claims.
+Naleving van exportregelgeving: De gebruiker verklaart en garandeert dat hij zich niet bevindt in een land dat onderworpen is aan een embargo van de Amerikaanse overheid. of aangewezen als een land dat “terrorisme ondersteunt” en niet op een Amerikaanse overheidslijst staat van verboden of beperkte partijen.
+Derde begunstigde: Apple en de dochterondernemingen van Apple zijn derde begunstigden van deze Overeenkomst. Door deze Voorwaarden te aanvaarden heeft Apple het recht (en wordt geacht dit recht te hebben aanvaard) om deze Overeenkomst jegens u als derde begunstigde af te dwingen.
+10. WIJZIGING VAN VOORWAARDEN
+De Aanbieder heeft het recht om deze Algemene Voorwaarden op elk moment eenzijdig te wijzigen om wijzigingen in de wetgeving, technologische veranderingen of de evolutie van de functionaliteit van de ERP-applicatie weer te geven.
+Wijzigingen worden van toepassing binnen [bijvoorbeeld: 15 dagen] na kennisgeving aan gebruikers (kennisgeving verzonden per e-mail of via een in-app-waarschuwing binnen de iOS-applicatie).
+Voortgezet gebruik van de Applicatie na het verstrijken van de opzegtermijn houdt een stilzwijgende en volledige aanvaarding van de nieuwe Algemene Voorwaarden in.
+11. TOEPASSELIJK RECHT EN GESCHILLENBESLECHTING
+11.1. Toepasselijk recht
+Deze Overeenkomst en al zijn juridische gevolgen worden beheerst, geïnterpreteerd en gehandhaafd in overeenstemming met de wetten van Roemenië.
+11.2. Geschillenbeslechting
+Elk geschil, controverse of claim die voortvloeit uit of verband houdt met deze Algemene Voorwaarden, inclusief met betrekking tot hun geldigheid, interpretatie, handhaving of beëindiging, zal in der minne worden geschikt tussen de vertegenwoordigers van de partijen. Indien een minnelijke schikking niet binnen 30 dagen na het ontstaan ​​van het geschil mogelijk is, zal het geschil ter exclusieve beslechting worden voorgelegd aan de bevoegde rechtbanken van de zetel van de Leverancier.
+12. SLOTBEPALINGEN
+
+Als een bepaling van deze Voorwaarden door een rechtbank nietig, onwettig of niet-afdwingbaar wordt verklaard, zal die bepaling worden aangepast om de oorspronkelijke bedoeling van de partijen weer te geven in de ruimste zin van de wet, en zullen de geldigheid en afdwingbaarheid van de overige bepalingen op geen enkele manier worden aangetast. Dit document vormt de volledige overeenkomst tussen de Gebruiker en de Aanbieder met betrekking tot het gebruik van de Applicatie op het iOS-systeem, en vervangt alle eerdere schriftelijke of mondelinge afspraken over dit onderwerp (maar zonder dat dit het belangrijkste commerciële contract voor ERP-diensten ondertekend tussen de Klant en de Aanbieder vervangt).
+Voor vragen, ondersteuningsverzoeken of mededelingen met betrekking tot deze Voorwaarden kunt u contact met ons opnemen via:
+E-mail: ERPMobile@dateconta.ro
+Telefoon: +40.786.500.005
+Door de ERP Mobile-applicatie te blijven gebruiken, bevestigt u dat u alle bovenstaande clausules heeft gelezen en begrepen en dat u ermee akkoord gaat juridisch gebonden te zijn.

@@ -1,0 +1,43 @@
+---
+description: Always bump version, What's New, and Help with user-visible deliveries
+alwaysApply: true
+---
+
+# Version + Help + What's New (mandatory, unattended)
+
+For every **user-visible** delivery (new module/tab, UX change, important fix, settings flow, new Help topic) do **all three in the same turn**. Do not wait for the user to ask. Same rule as running Supabase migrations.
+
+Skip only for purely internal refactors with no user-facing text or behavior.
+
+## 1. Version
+
+Increment the patch (`1.0.024` → `1.0.025`) in **all** of:
+
+- `ERP Mobile.xcodeproj/project.pbxproj` (`MARKETING_VERSION`, every occurrence)
+- `Supporting/VersionBuildState.json` (`marketingVersion` **and** increment `buildNumber`)
+- `Supporting/GeneratedVersion.xcconfig` (`CURRENT_PROJECT_VERSION` = new build number)
+
+If you added a Supabase migration, also bump `AppInfo.databaseSchemaVersion`.
+
+One bump per logical release batch, not per tiny file save — but **never** ship several user-visible changes without a bump.
+
+## 2. What's New (`WhatsNewContent.swift`)
+
+- New release block at the **top** (RO + EN), same version + today's date.
+- Move done `upcoming` items into that release; refresh `upcoming` to the next version.
+- Update footer dates.
+- Write what the **user** sees, not implementation details.
+
+## 3. Help (`ERPHelpContent.swift`, `ro.json`, `en.json`, Zetta `HelpContent.swift` if relevant)
+
+- Update `help.last_updated` (RO + EN) to today.
+- Add or extend sections; renumber titles if a section was inserted.
+- Screenshots in `Assets.xcassets` (`Help*.imageset`) + `screenshotAssetNames`.
+
+## Finish checklist
+
+1. Version + build files above
+2. What's New
+3. Help
+4. Mac Catalyst still compiles
+5. New SQL applied (`.tools/supabase-go db push --yes` or query + repair)

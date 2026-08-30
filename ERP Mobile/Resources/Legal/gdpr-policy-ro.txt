@@ -1,0 +1,180 @@
+POLITICA GDPR
+Ultima actualizare: 15 August 2026 · Versiune document: 1.0
+
+Prezenta Politică GDPR descrie cadrul de conformare al DATECONTA.RO pentru aplicația mobilă iOS ERP Mobile, drepturile persoanelor vizate și modul de exercitare. Se completează cu documentul Privacy (Politica de confidențialitate) și cu Termenii de utilizare ai Aplicației.
+
+Contact GDPR: ERPMobile@dateconta.ro · Telefon: +40.786.500.005
+
+1. CADRU NORMATIV
+
+Prelucrările descrise se desfășoară în conformitate cu:
+	•	Regulamentul (UE) 2016/679 (GDPR);
+	•	Legea nr. 190/2018 privind măsuri de punere în aplicare a GDPR;
+	•	Legea nr. 506/2004 (prelucrări în sectorul comunicațiilor electronice), unde este aplicabilă;
+	•	acte speciale din domeniul fiscal, contabil și e-Factura, care impun păstrarea unor evidențe.
+
+Autoritatea de supraveghere: ANSPDCP — www.dataprotection.ro · anspdcp@dataprotection.ro
+
+2. IDENTITATEA OPERATORULUI (PENTRU DATELE DE CONT)
+
+Operator pentru datele colectate în scopul administrării relației comerciale și a conturilor de utilizator:
+	•	Denumire: DATECONTA.RO
+	•	Sediu: București, România
+	•	Email: ERPMobile@dateconta.ro
+	•	Telefon: +40.786.500.005
+
+Nu am desemnat obligatoriu un DPO public separat. Cererile GDPR se trimit la adresa de email de mai sus, cu subiectul „GDPR — cerere persoană vizată”. Dacă legislația sau volumul prelucrărilor o vor impune, vom actualiza datele de contact DPO în această politică.
+
+3. HARTĂ A ROLURILOR
+
+Date — Tu — Noi (DATECONTA.RO)
+
+Nume, email Cont, rol, companie angajatoare, IP login, preferințe limbă
+	•	Tu: persoană vizată
+	•	Noi: operator
+
+Date ale societății pe care o administrezi (CUI, adresă, serii documente, setări firmă)
+	•	Tu: operator / persoană împuternicită a firmei tale
+	•	Noi: împuternicit față de tine (infrastructură SaaS Supabase)
+
+Angajați, clienți, furnizori, salarii, pontaj, stocuri, facturi, registru de casă, extras bancă
+	•	Tu: operator față de persoanele ale căror date le introduci
+	•	Noi: împuternicit (procesator)
+
+Tichete CRM (subiect, mesaje, status, legătură client)
+	•	Tu: operator față de clienții finali menționați în tichet
+	•	Noi: împuternicit
+
+Documente e-Factura / transmisii ANAF la instrucțiunea ta
+	•	Tu: operator / responsabil conținut
+	•	Noi: facilitator tehnic / împuternicit
+
+Date biometrice Face ID / Touch ID
+	•	Tu: persoană vizată
+	•	Noi: nu prelucrăm biometria — rămâne în Secure Enclave Apple; primim doar succes/eșec
+
+4. PRINCIPIILE GDPR PE CARE LE URMĂRIM
+
+1. Legalitate, echitate, transparență — informare prin Privacy, Termeni, Ghid Ajutor și interfața Aplicației.
+2. Limitarea scopului — nu folosim datele Contului pentru scopuri incompatibile cu furnizarea ERP Mobile.
+3. Minimizarea datelor — cerem doar ce este necesar Contului; tu controlezi ce introduci despre angajați și clienți (inclusiv opțiunea CNP placeholder 0000000000000 unde este permis).
+4. Exactitate — poți edita profilul, nomenclatoarele și înregistrările din modulele la care ai acces.
+5. Limitarea stocării — vezi duratele din Privacy (cont, documente fiscale, GPS, crash logs).
+6. Integritate și confidențialitate — măsuri tehnice și organizatorice (TLS, criptare, RBAC, izolare multi-tenant).
+7. Responsabilitate (accountability) — politici, proceduri de răspuns la cereri, evidențe interne.
+
+5. TEMEIURI LEGALE (REZUMAT OPERAȚIONAL)
+
+	•	Contract — Cont, abonament, furnizare ERP Mobile, module activate;
+	•	Obligație legală — evidențe fiscale/contabile, răspunsuri la autorități;
+	•	Interes legitim — securitate, prevenirea fraudei, suport tehnic, îmbunătățiri agregate;
+	•	Consimțământ — doar unde este necesar (ex. notificări marketing opționale, localizare GPS exactă unde legea muncii o impune).
+
+6. DREPTURILE PERSOANELOR VIZATE — DETALIERE
+
+6.1. Dreptul de acces (art. 15)
+Poți obține confirmarea dacă te prelucrăm și o copie a datelor de Cont, plus informații despre scopuri, destinatari, durate și drepturi. Vom evita să prejudiciem drepturile altor utilizatori sau ale altor companii client.
+
+6.2. Dreptul la rectificare (art. 16)
+Corectează din Aplicație (profil, societate, nomenclatoare) sau cere corectarea pe email dacă nu poți edita singur.
+
+6.3. Dreptul la ștergere (art. 17)
+Poți cere ștergerea când datele nu mai sunt necesare scopurilor, îți retragi consimțământul fără alt temei, te opui și nu există motive legitime prevalente, sau datele au fost prelucrate ilegal.
+
+Excepții frecvente: păstrare pentru obligații fiscale (ex. facturi 10 ani), constatarea/exercitarea unui drept în instanță. Ștergerea Contului poate fi amânată până la clarificarea acestor excepții; te informăm.
+
+6.4. Restricționarea prelucrării (art. 18)
+Poți cere restricționarea când contești exactitatea, prelucrarea este ilegală și preferi restricția în locul ștergerii, sau aștepți verificarea interesului legitim după opoziție.
+
+6.5. Portabilitatea (art. 20)
+Pentru datele pe care ni le-ai furnizat și pe care le prelucrăm automat pe bază de contract, poți cere un export într-un format structurat (JSON, CSV, Excel), în măsura fezabilității tehnice. Documentele generate le poți descărca din modulele ERP.
+
+6.6. Opoziția (art. 21)
+Te poți opune prelucrărilor bazate pe interes legitim. Vom opri prelucrarea, exceptând motive legitime care prevalează sau exercitarea unor drepturi legale.
+
+6.7. Decizii automate (art. 22)
+Nu luăm decizii bazate exclusiv pe prelucrare automată care să producă efecte juridice semnificative asupra ta, în afara aplicării transparente a regulilor de acces, abonament sau permisiuni RBAC.
+
+6.8. Plângere
+Ai dreptul să depui plângere la ANSPDCP. Te rugăm totuși să ne contactezi întâi — rezolvăm majoritatea cererilor direct.
+
+7. PROCEDURA DE EXERCITARE A DREPTURILOR
+
+1. Trimite email la ERPMobile@dateconta.ro.
+2. Subiect recomandat: „GDPR — [acces / rectificare / ștergere / portabilitate / opoziție]”.
+3. Include: nume, email Cont, descrierea cererii, eventuale documente utile.
+4. Verificare identitate: putem cere confirmări suplimentare pentru a nu divulga date unor terți.
+5. Termen de răspuns: fără întârzieri nejustificate, maximum o lună; prelungibil cu încă două luni în cazuri complexe (te informăm).
+6. Gratuit: da, de regulă. Cereri vădit nefondate sau repetitive excesiv pot fi refuzate sau taxate conform art. 12 GDPR.
+
+IMPORTANT: Dacă cererea privește datele unui angajat sau client pe care doar tu le-ai introdus, este posibil să te îndrumăm să acționezi ca operator (sau să ne dai instrucțiuni clare de ștergere din Contul tău). Nu putem șterge date ale unor terți fără context și fără temei legal.
+
+8. OBLIGAȚIILE TALE CÂND EȘTI OPERATOR
+
+Dacă introduci date personale ale angajaților, clienților sau colaboratorilor în ERP Mobile, tu trebuie, între altele:
+	•	să ai temei legal (contract, obligație legală, interes legitim etc.);
+	•	să informezi persoanele vizate (notă de informare, contract, factură);
+	•	să nu introduci date excesive (ex. CNP doar dacă este necesar; altfel folosește placeholderul permis);
+	•	să răspunzi cererilor GDPR ale persoanelor vizate; noi te asistăm tehnic (export/ștergere din Cont) pe baza instrucțiunilor tale;
+	•	să configurezi corect permisiunile utilizatorilor și destinatarii documentelor trimise din Aplicație.
+
+9. MĂSURI DE SECURITATE (DETALIERE)
+
+Transport — HTTPS/TLS 1.3, SSL Pinning între Aplicație iOS și API Supabase
+Autentificare — parole hash-uite (salt & hash), opțional MFA, Face ID / Touch ID local
+Autorizare — RBAC pe roluri ERP, izolare logică multi-tenant pe companie
+Aplicație iOS — validări, cache local în Keychain, permisiuni iOS solicitate doar când e necesar
+Infrastructură — Supabase (UE), backup-uri, monitorizare erori
+Organizațional — acces intern limitat, proceduri suport, răspuns la incidente
+
+10. ÎNCĂLCAREA SECURITĂȚII DATELOR (DATA BREACH)
+
+1. Detectare / semnalare internă sau de la utilizator.
+2. Evaluare risc pentru drepturile persoanelor vizate.
+3. Notificare ANSPDCP în 72 de ore când este necesar (art. 33).
+4. Informarea persoanelor vizate când riscul este ridicat (art. 34).
+5. Documentarea incidentului și măsuri de remediere.
+
+Dacă observi un incident: ERPMobile@dateconta.ro, subiect „Securitate / breach”.
+
+11. SUBPROCESATORI
+
+Folosim subprocesatori tip:
+	•	Supabase — hosting bază de date și autentificare (orientat UE);
+	•	Resend — trimitere email tranzacțional (ex. reset parolă, notificări);
+	•	Apple — APNs (notificări push), TestFlight/App Store Connect (diagnostic);
+	•	Servicii analytics/crash reporting — monitorizare stabilitate (ex. Crashlytics, Sentry), unde sunt activate.
+
+Selectăm furnizori cu garanții contractuale adecvate. Modificările materiale vor fi reflectate în Privacy și în această politică.
+
+12. TRANSFERURI ÎN AFARA SEE
+
+Preferăm Spațiul Economic European. Dacă un subprocesator transferă date în afara SEE, ne asigurăm că există garanții adecvate (decizie de adecvare, Clauze Contractuale Standard ale Comisiei Europene, EU-U.S. Data Privacy Framework, după caz).
+
+13. CATEGORII SPECIALE DE DATE (ART. 9)
+
+Nu solicităm și nu dorim date privind sănătatea, originea etnică, orientarea sexuală sau alte categorii speciale, exceptând ceea ce tu introduci voluntar în module HR (ex. fișe medicale) ca operator. Te rugăm să limitezi introducerea la strictul necesar legal. Dacă apar accidental date nejustificate, le vom șterge la sesizare.
+
+14. COPII
+
+ERP Mobile este un instrument B2B destinat profesioniștilor și companiilor. Serviciul nu se adresează minorilor sub 16 ani. Nu creăm Conturi pentru copii în mod intenționat.
+
+15. PĂSTRARE DUPĂ ÎNCHIDEREA CONTULUI
+
+	•	la cerere de ștergere: eliminăm / anonimizăm datele de Cont care nu mai sunt necesare;
+	•	păstrăm evidențele pe care legea le impune (ex. documente fiscale, facturare abonament);
+	•	backup-urile pot conține date reziduale pentru o perioadă scurtă, până la rotația lor.
+
+16. RELAȚIA CU TERMENII
+
+Utilizarea Aplicației implică acceptarea Termenilor. Politica GDPR nu diminuează drepturile imperative ale persoanelor vizate și nu înlocuiește obligațiile tale ca operator față de angajați și clienții finali.
+
+17. ACTUALIZĂRI
+
+Actualizăm acest document când se schimbă prelucrările, modulele ERP Mobile sau legea. Versiunea curentă este cea afișată în Aplicație, cu data de la începutul documentului. Pentru modificări majore putem notifica în app sau pe emailul Contului.
+
+18. CONTACT ȘI AUTORITATE
+
+Operator Cont: DATECONTA.RO — ERPMobile@dateconta.ro · +40.786.500.005
+ANSPDCP: B-dul Gheorghe Magheru 28-30, Sector 1, București — www.dataprotection.ro
+Suport tehnic aplicație: ERPMobile@dateconta.ro (atașează versiunea din bara de jos)

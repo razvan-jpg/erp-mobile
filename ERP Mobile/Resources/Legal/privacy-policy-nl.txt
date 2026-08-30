@@ -1,0 +1,150 @@
+PRIVACYBELEID
+Laatste update: 5 juni 2026
+
+Dit privacybeleid beschrijft hoe DATECONTA.RO (hierna "Bedrijf", "Wij" of "Exploitant" genoemd), gevestigd in Boekarest, persoonlijke gegevens verzamelt, gebruikt, opslaat, deelt en beschermt wanneer u de mobiele applicatie iOS - ERP MOBILE gebruikt (hierna "Applicatie" of "ERP Mobile" genoemd).
+
+Lees dit document aandachtig door. Door de Applicatie te downloaden, te installeren, een account aan te maken en deze te gebruiken, begrijpt en aanvaardt u de praktijken die in dit Privacybeleid worden beschreven. Als u niet akkoord gaat met deze voorwaarden, installeer of gebruik de Applicatie dan niet.
+
+1. FUNDAMENTELE PRINCIPES VAN GEGEVENSVERWERKING
+
+Als aanbieder van een mobiele ERP-oplossing (Enterprise Resource Planning) erkennen wij het cruciale belang van bedrijfsgegevens en persoonlijke gegevens die in ons systeem worden ingevoerd. De gegevensverwerking wordt uitgevoerd in overeenstemming met:
+	• Verordening (EU) 2016/679 (GDPR) betreffende de bescherming van natuurlijke personen met betrekking tot de verwerking van persoonsgegevens.
+	• Wet nr. 190/2018 betreffende maatregelen ter implementatie van GDPR in Roemenië.
+	• De Apple App Store-beoordelingsrichtlijnen, met name paragraaf 5.1 over privacy en gegevensbeveiliging.
+
+2. ONZE ROL: OPERATOR VS. EMPOWERED (GEGEVENSVERWERKER)
+
+Het is essentieel om onderscheid te maken tussen de twee manieren waarop gegevens worden beheerd binnen de ERP Mobile-applicatie:
+	• Wij als Operator (Gegevensbeheerder): Wij zijn beheerders van de gegevens die worden verzameld met het oog op het beheer van de commerciële relatie met uw bedrijf (facturatiegegevens van de rechtspersoonklant, contactgegevens van beheerders/wettelijke vertegenwoordigers, gegevens van de hoofdgebruikersaccount).
+	• Wij als geautoriseerde (gegevensverwerker): Voor alle bedrijfsgegevens die door gebruikers in de ERP-modules worden ingevoerd (gegevens van de werknemers van onze klanten, gegevens van de klanten van de eindgebruiker, facturen, salarissen, voorraden, medische dossiers, enz.), is onze klant (uw werkgever/bedrijf) de gegevensbeheerder en zijn wij slechts een geautoriseerde agent die de technische infrastructuur levert. Dit beleid regelt beide aspecten, maar de rechten van werknemers met betrekking tot gegevens die door het bedrijf in het ERP worden ingevoerd, moeten rechtstreeks bij de werkgever worden uitgeoefend.
+
+3. CATEGORIEËN VERZAMELDE GEGEVENS EN WIJZE VAN VERZAMELING
+
+De applicatie verzamelt verschillende soorten informatie, afhankelijk van de ingeschakelde ERP-modules en de verleende machtigingen op het iOS-apparaat:
+
+A. Gegevens rechtstreeks door de gebruiker verstrekt
+	• Authenticatie- en profielgegevens: Naam, voornaam, professioneel e-mailadres, telefoonnummer, naam van het bedrijf waar u werkt, functie/rol in het bedrijf, profielfoto (optioneel), gecodeerd beveiligd wachtwoord (salt & hash).
+	• Bedrijfsgegevens ingevoerd in de modules:
+	◦ Verkoopmodule/CRM: contactgegevens van klanten (namen, afleveradressen, belastingcodes).
+	◦ Module HR/Payroll: Identificatiegegevens van werknemers, CNP, tijd, salarisgegevens, bankrekeningen.
+	◦ Financiële/boekhoudmodule: facturen, ontvangstbewijzen, banktransacties, kassa's.
+
+B. Gegevens die automatisch worden verzameld door gebruik van de applicatie op iOS
+	• Apparaatinformatie: iPhone/iPad-model, versie van het besturingssysteem iOS, unieke apparaat-ID's (UUID, IDFV - Identificatie voor leveranciers), taalinstelling, tijdzone en informatie over het mobiele/Wi-Fi-netwerk.
+	• Log- en diagnostische gegevens (Crash Logs): In het geval van een Applicatiefout verzamelen we automatisch crashrapporten (via tools zoals Apple Crashlytics) met daarin de status van het systeem op het moment van de crash, om de bugs op te lossen.
+	• Gebruiksgegevens (Analytics): Acties die in de applicatie worden uitgevoerd (bijvoorbeeld: bekeken schermen, ingedrukte knoppen, tijd doorgebracht in een module), anoniem verzameld of gepseudonimiseerd.
+
+C. Gebruikte machtigingen iOS en hun rechtvaardiging (app-machtigingen)
+
+In overeenstemming met het Apple-beleid zal de Applicatie alleen toegang vragen tot bepaalde iOS-functies wanneer het gebruik ervan strikt noodzakelijk is om een ERP-actie uit te voeren:
+
+Toestemming iOS — Technische en operationele rechtvaardiging
+
+Locatie (huidig ​​/ achtergrond) — Exclusief gebruikt voor veldmodules: geolokaliseerde tijdregistratie (inklokken/uitklokken), het volgen van de routes van verkoopagenten of bezorgers. We volgen de locatie niet op de achtergrond zonder uitdrukkelijke toestemming en voorafgaande instelling in ERP.
+
+Camera — Voor het scannen van barcodes/QR's bij voorraadbeheer, het scannen van belastingdocumenten/bonnen voor afschriften en deze rechtstreeks aan de boekhouding te koppelen.
+
+Foto's / Galerij (Fotobibliotheek) — Om de gebruiker in staat te stellen contracten, stockproductafbeeldingen of PDF-documenten te uploaden die al op het apparaat zijn opgeslagen.
+
+Pushmeldingen (Apple APNs) — Voor kritieke systeemwaarschuwingen: workflowgoedkeuringen, meldingen over beperkte voorraad, interne berichten tussen afdelingen of nieuw toegewezen taken.
+
+Face ID / Touch ID — Om lokale toegang tot de applicatie te beveiligen, door een snelle en veilige biometrische authenticatiemethode te bieden. Biometrische gegevens verlaten nooit de beveiligde enclave van het apparaat (Secure Enclave Apple); we krijgen alleen een succes/mislukkingsreactie.
+
+4. DOELEINDEN VAN DE VERWERKING EN RECHTSGRONDSLAG
+
+Wij verwerken persoonsgegevens op basis van de volgende rechtsgronden in GDPR:
+
+1. Uitvoering van een overeenkomst (Art. 6 par. 1 letter b van GDPR)
+	• Het bieden van volledige functionaliteit van de ERP Mobile-applicatie volgens de algemene voorwaarden die met uw bedrijf zijn ondertekend.
+	• Aanmaken, beheren en beveiligen van gebruikersaccounts.
+	• Verwerking van verrichtingen binnen de ERP-modules (facturen genereren, salarisverwerking, voorraadbeheer).
+
+2. Vervulling van een wettelijke verplichting (Art. 6 lid 1 letter c van GDPR)
+	• Het bijhouden van financiële boekhoudkundige gegevens volgens de Roemeense belastingwetgeving.
+	• Het waarborgen van cyberveiligheidsmaatregelen en het melden van mogelijke inbreuken op de beveiliging aan de Nationale Toezichthoudende Autoriteit voor de Verwerking van Persoonsgegevens (ANSPDCP).
+
+3. Het legitieme belang van de Operator (Art. 6 par. 1 letter f van GDPR)
+	• Het optimaliseren van de prestaties van de iOS Applicatie, het oplossen van technische problemen en het verbeteren van de gebruikerservaring (UI/UX).
+	• Preventie van fraude, misbruik of cyberaanvallen op de Cloud ERP-infrastructuur.
+	• Vaststelling, uitoefening of verdediging van een recht voor de rechtbank in geval van commerciële geschillen.
+
+4. Toestemming van de gebruiker (Art. 6 lid 1 letter a van GDPR)
+	• Het verzenden van marketingachtige meldingen (indien van toepassing) of toegang krijgen tot bepaalde telefoonsensoren (zoals de exacte GPS locatie waar de arbeidswetgeving uitdrukkelijke toestemming vereist voor monitoring van het wagenpark/werknemer).
+
+5. BEWAAR EN OPSLAG VAN GEGEVENS (DATA RETENTIE)
+
+Uw gegevens worden opgeslagen in veilige cloudomgevingen op het grondgebied van de Europese Unie (bijvoorbeeld: AWS Frankfurt / Microsoft Azure Dublin / Google Cloud), waardoor volledige naleving van de normen voor gegevenssoevereiniteit wordt gegarandeerd.
+
+De bewaartermijn verschilt afhankelijk van het soort gegevens:
+	• Gebruikersaccountgegevens: Ze worden bewaard gedurende de gehele duur van het commerciële contract tussen DATECONTA.RO en de Klant, plus een periode van 36 maanden na de beëindiging van het contract, voor de technische auditgeschiedenis en de oplossing van mogelijke geschillen.
+	• Financiële boekhoudkundige gegevens ingevoerd in ERP: ze worden gedurende 10 jaar bewaard, in overeenstemming met de voorschriften van de fiscale wet van Roemenië met betrekking tot de archivering van ondersteunende documenten.
+	• Locatiegegevens (GPS): Indien verzameld voor tijdregistratie of routes, worden deze maximaal 30 dagen bewaard (of volgens het interne HR beleid van uw werkgever), waarna ze automatisch worden verwijderd of geanonimiseerd.
+	• Crashrapporten (iOS Diagnostic): ze worden maximaal 90 dagen bewaard en worden uitsluitend gebruikt voor foutopsporing.
+
+6. OPENBAARMAKING EN DELEN VAN GEGEVENS
+
+Wij verkopen, verhuren of verhandelen geen persoonlijke gegevens aan derden. De gegevens kunnen worden verzonden naar of toegankelijk worden gemaakt door de volgende categorieën ontvangers, onder strikte vertrouwelijkheidsregels:
+
+1. Aanbieders van clouddiensten en IT-infrastructuur: Aanbieders van hosting, databases en beveiligingsdiensten (bijvoorbeeld: AWS, Google Cloud, Microsoft Azure).
+
+2. Aanbieders van geïntegreerde tools (SDK's van derden):
+	◦ Apple Inc.: om pushmeldingen (APNs) te verwerken en fouten te diagnosticeren via TestFlight/App Store Connect.
+	◦ Analytics/Crash Reporting-services: (bijvoorbeeld: Firebase Crashlytics, Sentry) uitsluitend gebruikt voor het bewaken van de stabiliteit van de applicatie.
+
+3. Overheidsinstanties en staatsinstellingen: (ANAF, rechtbanken, politie-instanties) alleen op basis van een uitdrukkelijke wettelijke verplichting en binnen de grenzen van de wet.
+
+4. Integratie met derden op verzoek van de Klant: Als u API-integraties vanuit de mobiele ERP met banken (Open Banking), koeriers (FAN Courier, DPD, etc.) of marktplaatsen (eMAG) mogelijk maakt, worden de benodigde gegevens volgens uw instructies naar deze partners verzonden.
+
+Internationale gegevensoverdrachten
+
+Als sommige van onze technische onderaannemers buiten de Europese Economische Ruimte (SEE) zijn gevestigd, zoals in SUA, zorgen wij ervoor dat de gegevensoverdracht wordt beschermd door standaardcontractbepalingen (SCCs) die zijn goedgekeurd door de Europese Commissie en, indien van toepassing, door het EU-U.S. Data Privacy Framework-framework.
+
+7. BEVEILIGINGSMAATREGELEN VOLGENS APPLE- EN ENISA-NORMEN
+
+Beveiliging van zakelijke gegevens is onze absolute prioriteit. We hebben geavanceerde technische en organisatorische maatregelen geïmplementeerd, inclusief maar niet beperkt tot:
+	• Encryptie in transit (gegevens in transit): Alle communicatie tussen de iOS-applicatie en onze API-servers vindt plaats via veilige HTTPS-protocollen met TLS 1.3-codering en SSL Pinning-technieken om Man-in-the-Middle-aanvallen (MitM) te voorkomen.
+	• Encryption at Rest (Data at Rest): De centrale database wordt gecodeerd met behulp van het AES-256-algoritme. Gegevens die lokaal op het iOS-apparaat zijn opgeslagen (app-cache), worden opgeslagen in de iOS-sleutelhanger en worden beschermd door de eigen codering op hardwareniveau van Apple.
+	• Toegangscontrole: Multifactor-authenticatie (MFA/2FA) verplicht of optioneel voor gebruikers, strikt wachtwoordbeleid en op rollen gebaseerde toegangscontrole (RBAC - Role-Based Access Control).
+	• Beveiligingsaudits: Wij voeren periodiek penetratietests (Pen-Testing) en kwetsbaarheidsscans uit op de ERP-infrastructuur.
+	• Gegevensisolatie (Multi-Tenancy): De gegevens van elk klantbedrijf worden logisch of fysiek geïsoleerd in afzonderlijke databases, waardoor het risico op gegevenslekken tussen verschillende klanten wordt voorkomen.
+
+8. RECHTEN VAN DE BETROKKEN PERSONEN (KRACHTENS GDPR)
+
+In overeenstemming met GDPR heeft u de volgende specifieke rechten. Nogmaals, als u een werknemer bent van een ERP-klant, moet u mogelijk rechtstreeks contact opnemen met uw werkgever om deze rechten uit te oefenen, aangezien zij de operationele database beheren.
+
+	• Het recht op inzage (Art. 15): U kunt vragen om een ​​bevestiging van het feit dat uw gegevens worden verwerkt en om een ​​kopie daarvan.
+	• Het recht op rectificatie (Art. 16): U kunt de correctie van onjuiste gegevens of de aanvulling van onvolledige gegevens aanvragen (waarvan vele rechtstreeks vanuit het gebruikersprofiel in de Applicatie kunnen worden gewijzigd).
+	• Het recht om gegevens te verwijderen ("het recht om vergeten te worden") (Art. 17): U kunt onder bepaalde voorwaarden verzoeken om verwijdering van gegevens (bijvoorbeeld: de gegevens zijn niet langer nodig voor het doel, u heeft uw toestemming ingetrokken). Dit recht geldt niet voor gegevens die wij wettelijk verplicht moeten bewaren (bijvoorbeeld facturen).
+	• Het recht om de verwerking te beperken (Art. 18): In bepaalde gevallen kunt u verzoeken om de tijdelijke blokkering van de gegevensverwerking.
+	• Het recht op gegevensportabiliteit (Art. 20): U kunt de export van uw gegevens aanvragen in een gestructureerd, algemeen gebruikt en machinaal leesbaar formaat (bijvoorbeeld: JSON, CSV, Excel).
+	• Het recht om bezwaar te maken (Art. 21): U kunt bezwaar maken tegen de verwerking op basis van ons legitieme belang om redenen die verband houden met uw specifieke situatie.
+	• Het recht om niet te worden onderworpen aan een individueel geautomatiseerd besluit (Art. 22): Onze applicatie maakt geen gebruik van profileringsalgoritmen of 100% geautomatiseerde beslissingen die rechtsgevolgen voor u hebben.
+
+Om een ​​van deze rechten uit te oefenen, kunt u een schriftelijk, ondertekend en gedateerd verzoek sturen naar het e-mailadres: ERPMobile@dateconta.ro. Wij zullen binnen maximaal 45 dagen op uw verzoek reageren.
+
+U heeft ook het recht om een ​​klacht in te dienen bij de nationale toezichthoudende autoriteit:
+
+Nationale Autoriteit voor toezicht op de verwerking van persoonsgegevens (ANSPDCP)
+G-ral Blvd. Gheorghe Magheru 28-30, Sector 1, Postcode 010336, Boekarest, Roemenië
+www.dataprotection.ro | anspdcp@dataprotection.ro
+
+9. PRIVACY VAN MINDERJARIGEN
+
+De ERP MOBILE-applicatie is een Business-to-Business (B2B) softwaretool die uitsluitend bedoeld is voor professioneel, zakelijk, commercieel of werkgelegenheidsgebruik. De Applicatie is niet gericht op en is niet ontworpen om willens en wetens gegevens te verzamelen van personen jonger dan 18 jaar (of jonger dan 16 jaar, afhankelijk van het rechtsgebied). Als we ontdekken dat de gegevens van een minderjarige per ongeluk zijn ingevoerd zonder ouderlijke toestemming, zullen we deze onmiddellijk uit onze systemen verwijderen.
+
+10. UPDATES VAN DIT BELEID
+
+We behouden ons het recht voor om dit privacybeleid periodiek bij te werken en aan te passen om wijzigingen in de wetgeving, nieuwe Apple App Store-vereisten of wijzigingen in onze ERP-modules en functionaliteit weer te geven.
+
+In geval van substantiële wijzigingen zullen wij u hiervan op de hoogte stellen door middel van een waarschuwingsscherm in de Applicatie wanneer u deze de volgende keer opent (In-App Notificatie) of per e-mail, waarin we u vragen de nieuwe voorwaarden te lezen en, indien nodig, te accepteren voordat u de Applicatie verder gaat gebruiken. Voortgezet gebruik nadat de wijzigingen van kracht zijn geworden, houdt in dat u deze impliciet aanvaardt.
+
+11. CONTACTGEGEVENS
+
+Voor vragen, verduidelijkingen of verzoeken met betrekking tot dit privacybeleid of de manier waarop de iOS ERP Mobile-app met uw gegevens omgaat, kunt u contact met ons opnemen via:
+
+	• Volledige naam: DATECONTA.RO
+	• Let op: Functionaris Gegevensbescherming (DPO)
+	• Speciaal e-mailadres: ERPMobile@dateconta.ro
+	• Telefoon: +40.786.500.005
+
+Dit privacybeleid is opgesteld om transparantie en naleving te garanderen.

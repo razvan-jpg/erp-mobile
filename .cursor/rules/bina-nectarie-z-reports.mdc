@@ -1,0 +1,25 @@
+---
+description: BINA Z report extraction — Nectarie maps to COMPLEX MAGNOLIA SRL
+globs: ERP Mobile/Features/Utilities/**/*.swift
+alwaysApply: false
+---
+
+# Extragere Rapoarte Z BINA — Nectarie
+
+## Regulă de business
+
+Când societatea ERP curentă este **Nectarie** (NECTARIE 20XXV S.R.L., CUI 51159591 sau nume care conține „NECTARIE”):
+
+- La login BINA (cont multi-firmă), **nu** selecta prima societate din listă.
+- Selectează explicit societatea BINA **`COMPLEX MAGNOLIA SRL`**.
+- Rapoartele Z se extrag din această societate BINA, nu din alte firme din același cont.
+
+## Implementare
+
+- Maparea este în `BinaCompanySelectionRules.swift` (`nectarieBinaCompanyName`).
+- Detectare Nectarie: `Conturi.isNectarieFirma`, `FirmaRegistry` (CUI), sau nume ERP cu „NECTARIE”.
+- Flux: `CashRegisterZExtractView` → `CashRegisterExtractRequest.erpCompanyName/CUI` → `BinaSmartBusinessSessionClient` → `BinaCompanySelectionRules.selectCompanyID`.
+
+## Extindere
+
+Pentru alte societăți ERP → BINA, adaugă mapări în `BinaCompanySelectionRules.targetBinaCompanyName`.

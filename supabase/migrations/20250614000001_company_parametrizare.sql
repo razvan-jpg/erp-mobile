@@ -1,0 +1,36 @@
+-- Câmpuri parametrizare societate (Nomenclatoare → Societăți → Parametrizare)
+
+ALTER TABLE public.companies
+    ADD COLUMN IF NOT EXISTS cif_country_prefix TEXT NOT NULL DEFAULT 'RO',
+    ADD COLUMN IF NOT EXISTS cod_caen TEXT,
+    ADD COLUMN IF NOT EXISTS capital_social TEXT,
+    ADD COLUMN IF NOT EXISTS split_tva BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS cod_lei TEXT,
+    ADD COLUMN IF NOT EXISTS fax TEXT,
+    ADD COLUMN IF NOT EXISTS web TEXT,
+    ADD COLUMN IF NOT EXISTS logo_url TEXT,
+    ADD COLUMN IF NOT EXISTS hq_country TEXT,
+    ADD COLUMN IF NOT EXISTS hq_county TEXT,
+    ADD COLUMN IF NOT EXISTS hq_city TEXT,
+    ADD COLUMN IF NOT EXISTS hq_postal_code TEXT,
+    ADD COLUMN IF NOT EXISTS hq_street TEXT,
+    ADD COLUMN IF NOT EXISTS hq_street_number TEXT,
+    ADD COLUMN IF NOT EXISTS hq_block TEXT,
+    ADD COLUMN IF NOT EXISTS hq_stair TEXT,
+    ADD COLUMN IF NOT EXISTS hq_apartment TEXT,
+    ADD COLUMN IF NOT EXISTS hq_gln TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_country TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_county TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_city TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_postal_code TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_street TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_street_number TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_block TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_stair TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_apartment TEXT,
+    ADD COLUMN IF NOT EXISTS fiscal_gln TEXT,
+    ADD COLUMN IF NOT EXISTS use_fiscal_in_declarations BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS uses_intra_community_vat BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS intra_community_vat_code TEXT;
+
+COMMENT ON COLUMN public.companies.logo_url IS 'Logo societate: data URL (base64) sau URL extern.';

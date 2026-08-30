@@ -1,0 +1,28 @@
+---
+description: Apply Supabase migrations with db push whenever SQL migrations are added
+alwaysApply: true
+---
+
+# Supabase migrations — run them yourself
+
+Whenever you add or change files under `supabase/migrations/`, **apply them to the linked remote project in the same turn**. Do not leave this for the user.
+
+## How
+
+From the repo root, prefer `.tools/supabase-go`, then `.tools/supabase`:
+
+```bash
+.tools/supabase-go db push --yes
+```
+
+If `.tools/supabase` is missing, use `.tools/supabase-go`. If `db push` fails because remote history has extra versions, apply the new `.sql` file and mark it applied:
+
+```bash
+.tools/supabase-go db query --linked --file supabase/migrations/<file>.sql
+.tools/supabase-go migration repair --status applied <version>
+```
+
+## Also
+
+- Bump `AppInfo.databaseSchemaVersion` when a new migration is added (already required by release docs).
+- If CLI auth fails, say so clearly — do not skip the push silently.

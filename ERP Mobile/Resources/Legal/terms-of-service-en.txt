@@ -1,0 +1,97 @@
+"ERP Mobile" (iOS) MOBILE APP TERMS AND CONDITIONS OF USE
+Last update: August 15, 2026
+
+The August 15, 2026 version includes the CRM module (support tickets), Help guide, local What's New, and access to legal documentation (Privacy, Terms) from the Help tab.
+Please read these Terms and Conditions ("Agreement", "Terms") carefully before downloading, installing or using the ERP Mobile mobile application for iOS (the "Application"), developed, owned and operated by DATECONTA.RO, based in Bucharest / Romania, hereinafter referred to as the "Provider".
+By downloading, installing, accessing or using the Application, you (as a "User" or "Customer", a natural or legal person acting in the course of its commercial activity) express your express and unequivocal agreement to comply with these Terms. If you do not agree to these Terms, you may not download, install or use the Application and you must immediately delete it from your Apple device.
+1. DEFINITIONS AND INTERPRETATION
+In this document, the following terms shall have the meanings specified below, unless the context otherwise requires:
+ERP Mobile Application: The software application adapted for the iOS (iPhone, iPad) operating system, including all updates, upgrades and add-on modules provided by the Supplier.
+User Account: The individual profile secured by credentials (username and password/biometrics) assigned to an employee or collaborator of the Client to access the ERP system.
+Customer: The legal person or commercial entity that has entered into a main service/subscription contract with the Provider for the use of the ERP platform.
+Customer Data: All information, financial data, customer lists, inventory, documents or other materials entered, uploaded or processed through the Application by Users.
+Apple App Store: The digital distribution platform operated by Apple Inc. through which the Application is made available.
+2. GRANT OF LICENSE AND RESTRICTIONS ON USE
+2.1. Limited License
+Subject to strict compliance with this Agreement and payment of the related subscription by the Customer, the Provider grants the Customer and its authorized Users a non-exclusive, non-transferable, revocable and limited license to download, install and use the Application on compatible mobile devices owned or controlled by the Customer, exclusively for internal business purposes.
+2.2. Extreme Restrictions on Use
+The user is strictly prohibited, directly or through third parties:
+Copy, modify, adapt, translate or create derivative works based on the Application;
+Reverse engineer, decompile, disassemble or otherwise attempt to discover the source code of the Application;
+Rent, lend, resell, sublicense or distribute the Application to third parties not covered by the master agreement;
+Circumvent, disable or interfere with security features or digital rights management systems (DRM) integrated into the iOS system for this Application;
+To use the Application for illegal, fraudulent purposes or to store/transmit material with harmful content (viruses, malware).
+3. ACCOUNT CREATION, SECURITY AND ACCESS
+3.1. Registration and Credentials
+To use the Application, the User must have an active account created in the central ERP platform by the Customer's designated administrator. The user undertakes to provide accurate, complete and up-to-date information.
+3.2. Responsibility for Security
+The Customer and individual Users are directly and exclusively responsible for:
+Keeping user ID, passwords and biometric authentication methods confidential (FaceID / TouchID).
+All activities carried out under that account.
+Notifying the Provider immediately if it suspects account compromise or unauthorized access.
+IMPORTANT DEVICE SECURITY NOTE: The Provider shall not be liable for any loss or damage caused by the use of the Application on an unauthorized modified iOS device (Jailbreak type operation). Use of the Application on devices with Jailbreak is strictly prohibited, as it overrides the native security protocols of iOS and exposes Customer Data to major security risks.
+4. INTELLECTUAL PROPERTY AND COPYRIGHT
+4.1. Property of Supplier
+
+The Application, including but not limited to its design, graphical interface, UX/UI elements, source code, databases, trademarks, logos, module structure and know-how used, are the exclusive intellectual property of the Provider (or its licensors) and are protected by national and international copyright and intellectual property laws. Nothing in this document constitutes a transfer of these rights to the Customer or User.
+4.2. Ownership of the Data entered by the Customer
+Customer retains all intellectual property rights and copyrights in all Customer Data entered into the Application. By using the Application, the Customer grants the Provider a worldwide, limited and free license to host, transmit, process and display Customer Data, solely for the purpose of providing the ERP Services and ensuring the technical functionality of the Application.
+5. AVAILABILITY, SUPPORT AND UPDATES
+5.1. Service Level (SLA)
+The Provider will use commercially reasonable efforts to ensure the availability of the Application 24 hours a day, 7 days a week. However, access may be temporarily interrupted due to:
+Scheduled maintenance works (announced as a rule at least 24 hours in advance);
+Critical security updates or urgent bug fixes;
+Technical failures of the cloud infrastructure or telecommunications networks independent of the Provider;
+Apple's changes to the iOS ecosystem that require immediate technical adjustments.
+5.2. System Updates (Updates & Upgrades)
+Provider will periodically release updates to the Application via App Store to fix bugs, improve performance or introduce new modules.
+The User agrees to install the latest versions of the Application to ensure optimal and secure operation.
+The Provider does not guarantee the compatibility of the Application with older versions of the iOS operating system (as a rule, only the current version of iOS and the last two previous major versions are supported).
+6. EXCLUSION OF WARRANTY AND LIMITATION OF LIABILITY
+6.1. Providing the Service "As Is" (As Is)
+THE APPLICATION IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. PROVIDER EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY OF FINANCIAL OR COMMERCIAL DATA EXTRACTED AND NON-INFRINGEMENT OF THIRD PARTY RIGHTS.
+6.2. Limitation of Financial Liability
+TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL SUPPLIER BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE OR CONSEQUENTIAL DAMAGES, INCLUDING BUT NOT LIMITED TO:
+Loss of profits, income or turnover;
+Loss of data, business interruption or loss of business opportunities;
+Erroneous managerial or financial decisions made based on the reports generated by the Application;
+Fiscal penalties or fines imposed on the Client by the authorities as a result of incorrect data processing.
+IN ALL CASES, SUPPLIER'S TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATED TO THESE TERMS SHALL NOT EXCEED THE TOTAL AMOUNT PAID BY CUSTOMER TO SUPPLIER FOR THE USER SUBSCRIPTION DURING THE LAST 6 (SIX) MONTHS PRIOR TO THE EVENT GIVING RISE TO LIABILITY.
+7. DATA PROTECTION AND PRIVACY
+7.1. GDPR and Personal Data
+By using the Application, the Provider can process certain personal data of the Users (name, e-mail, IP addresses, access logs, geolocation data if the ERP module requests it). The legal relationship regarding the processing of personal data is governed by the Privacy Policy and the Data Processing Agreement (DPA) attached to the main contract between the Customer and the Provider, in accordance with Regulation (EU) 2016/679 (GDPR).
+7.2. Confidentiality of Business Information
+The Provider acknowledges that the information stored in the ERP is strictly confidential. The provider implements advanced technical and organizational measures (end-to-end encryption in transit, encrypted storage on secure servers, periodic audits) to prevent the leakage of business information to third parties.
+8. SUSPENSION AND TERMINATION OF CONTRACT
+8.1. Suspension of Access
+
+The Provider reserves the right to suspend immediately and without prior notice access to the Application for any User Account or for the entire Customer in the following cases:
+Delaying the payment of the subscription by more than 15 days from the due date;
+Serious or repeated violation of usage restrictions (unauthorized sublicensing, hacking attempts, reverse engineering);
+Using the Application in a way that endangers the stability of the servers or the security of the Provider's network.
+8.2. Termination at Customer's Initiative
+Customer may terminate use of the Application in accordance with the termination clauses in the master service agreement. Upon termination of the contract, the right to access the Application ceases immediately, and Users are required to delete the Application from all iOS owned devices.
+9. SPECIFIC PROVISIONS FOR THE APPLE ECOSYSTEM (iOS)
+In accordance with the rules imposed by Apple Inc. for applications distributed through App Store, Customer and User acknowledge and agree to the following:
+Nature of the Contract: This document is concluded exclusively between the Supplier and the Client/User. Apple Inc. is not a party to this Agreement and has no obligation or liability related to the Application or its content.
+Maintenance and Support: Provider is solely responsible for providing maintenance and support services for the Application. Apple has no obligation to provide maintenance services for the Application.
+Warranties in App Store: In the event of any nonconformity of the Application with applicable warranties, User may notify Apple, and Apple will refund the purchase price of the Application (if applicable) to User. To the maximum extent permitted by applicable law, Apple shall have no other warranty obligations with respect to the Application.
+Intellectual Property Claims: If a third party claims that the Application infringes its intellectual property rights, the Provider, and not Apple, will be responsible for investigating, defending, resolving and discharging any such claim.
+Compliance with Export Regulations: User represents and warrants that it is not located in a country subject to a U.S. government embargo. or designated as a country that "supports terrorism" and is not on any U.S. government list of prohibited or restricted parties.
+Third Party Beneficiary: Apple and Apple's subsidiaries are third party beneficiaries of this Agreement. By accepting these Terms, Apple will have the right (and will be deemed to have accepted the right) to enforce this Agreement against you as a third-party beneficiary.
+10. MODIFICATION OF TERMS
+The Provider has the right to unilaterally modify these Terms and Conditions at any time, to reflect legislative changes, technological changes or the evolution of the functionality of the ERP Application.
+Changes will become applicable within [eg: 15 days] of notification to Users (notification sent by e-mail or through an in-app alert within the iOS Application).
+Continued use of the Application after the expiration of the notice period constitutes tacit and full acceptance of the new Terms and Conditions.
+11. APPLICABLE LAW AND DISPUTE RESOLUTION
+11.1. Applicable Law
+This Agreement and all its legal effects are governed, interpreted and enforced in accordance with the laws of Romania.
+11.2. Dispute Resolution
+Any dispute, controversy or claim arising out of or in connection with these Terms and Conditions, including with respect to their validity, interpretation, enforcement or termination, shall be settled amicably between the representatives of the parties. If an amicable settlement is not possible within 30 days of the appearance of the dispute, the dispute will be submitted for exclusive resolution to the competent courts at the Supplier's headquarters.
+12. FINAL PROVISIONS
+
+If any provision of these Terms is declared void, illegal or unenforceable by a court of law, that provision will be modified to reflect the original intent of the parties to the fullest extent of the law, and the validity and enforceability of the remaining provisions will not be affected in any way. This document constitutes the entire agreement between the User and the Provider regarding the use of the Application on the iOS system, superseding any previous written or verbal understandings on this subject (but without superseding the main commercial contract for ERP services signed between the Customer and the Provider).
+For any questions, support requests or notices related to these Terms, you can contact us at:
+Email: ERPMobile@dateconta.ro
+Phone: +40.786.500.005
+By continuing to use the ERP Mobile Application, you confirm that you have read, understood and agree to be legally bound by all of the above clauses.

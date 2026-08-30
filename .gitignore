@@ -1,0 +1,24 @@
+# Xcode
+DerivedData/
+**/DerivedData/
+build/
+dist/
+*.xcuserstate
+xcuserdata/
+
+# Secrets — never publish
+Secrets.xcconfig
+ERP Mobile/Config/SupabaseSecrets.plist
+.supabase-db-password
+.env
+.env.*
+
+# Local CLI
+.tools/
+
+# macOS
+.DS_Store
+
+# Supabase local
+supabase/.branches
+supabase/.temp

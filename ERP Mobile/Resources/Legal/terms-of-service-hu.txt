@@ -1,0 +1,95 @@
+"ERP Mobile" (iOS) MOBILALKALMAZÁSI FELTÉTELEK
+Utolsó frissítés: 2026. június 5
+Kérjük, figyelmesen olvassa el a jelen Általános Szerződési Feltételeket ("Szerződés", "Feltételek"), mielőtt letölti, telepíti vagy használja a ERP Mobile mobilalkalmazást a iOS-hoz (a "Alkalmazás"), amelyet a bukaresti (Románia) székhelyű DATECONTA.RO fejlesztett, birtokol és üzemeltet, a továbbiakban: "Szállító".
+Az Alkalmazás letöltésével, telepítésével, elérésével vagy használatával Ön (mint „Felhasználó” vagy „Ügyfél”, kereskedelmi tevékenysége során eljáró természetes vagy jogi személy) kifejezi és egyértelmű beleegyezését adja a jelen Feltételek betartására. Ha nem fogadja el a jelen Feltételeket, nem töltheti le, nem telepítheti és nem használhatja az Alkalmazást, és azonnal törölnie kell Apple eszközéről.
+1. FOGALOMMEGHATÁROZÁSOK ÉS ÉRTELMEZÉS
+Ebben a dokumentumban a következő kifejezések az alábbiakban meghatározott jelentéssel bírnak, hacsak a szövegkörnyezet másként nem kívánja:
+ERP Mobile Alkalmazás: A iOS (iPhone, iPad) operációs rendszerhez adaptált szoftveralkalmazás, beleértve a Szállító által biztosított összes frissítést, frissítést és kiegészítő modult.
+Felhasználói fiók: Az Ügyfél alkalmazottjának vagy munkatársának az ERP rendszerhez való hozzáféréséhez hozzárendelt hitelesítő adatokkal (felhasználónév és jelszó/biometrikus adatok) védett egyéni profil.
+Ügyfél: Az a jogi személy vagy gazdasági társaság, amely az ERP platform használatára a Szolgáltatóval főszolgáltatási/előfizetési szerződést kötött.
+Ügyféladatok: A Felhasználók által az Alkalmazáson keresztül bevitt, feltöltött vagy feldolgozott összes információ, pénzügyi adat, ügyféllisták, leltár, dokumentum vagy egyéb anyag.
+Apple App Store: A Apple Inc. által üzemeltetett digitális terjesztési platform, amelyen keresztül az Alkalmazás elérhető.
+2. ENGEDÉLY KIADÁSA ÉS A HASZNÁLATI KORLÁTOZÁSOK
+2.1. Korlátozott licenc
+Jelen Szerződés szigorú betartása és a kapcsolódó előfizetés Ügyfél általi kifizetése mellett a Szolgáltató nem kizárólagos, át nem ruházható, visszavonható és korlátozott engedélyt ad az Ügyfélnek és jogosult Felhasználóinak az Alkalmazás letöltésére, telepítésére és az Ügyfél tulajdonában lévő vagy általa ellenőrzött kompatibilis mobileszközökön, kizárólag belső üzleti célokra.
+2.2. Szélsőséges felhasználási korlátozások
+A felhasználó közvetlenül vagy harmadik félen keresztül szigorúan tilos:
+az Alkalmazás alapján másolni, módosítani, adaptálni, lefordítani vagy származékos műveket készíteni;
+Az Alkalmazás forráskódjának visszafejtése, visszafejtése, szétszerelése vagy más módon történő megkísérlése;
+Az Alkalmazás bérbeadása, kölcsönzése, továbbértékesítése, allicencbeadása vagy terjesztése a keretszerződés hatálya alá nem tartozó harmadik felek számára;
+Megkerülni, letiltani vagy megzavarni a biztonsági funkciókat vagy a digitális jogkezelési rendszereket (DRM), amelyek a iOS rendszerbe vannak integrálva jelen Alkalmazáshoz;
+Az Alkalmazás illegális, csalárd célokra való felhasználása vagy káros tartalmú anyagok (vírusok, rosszindulatú programok) tárolása/továbbítása.
+3. FIÓK LÉTREHOZÁSA, BIZTONSÁG ÉS HOZZÁFÉRÉS
+3.1. Regisztráció és hitelesítő adatok
+Az Alkalmazás használatához a Felhasználónak aktív fiókkal kell rendelkeznie a központi ERP platformon, amelyet az Ügyfél kijelölt adminisztrátora hozott létre. A felhasználó vállalja, hogy pontos, teljes és naprakész tájékoztatást ad.
+3.2. Felelősség a biztonságért
+Az Ügyfél és az egyéni Felhasználók közvetlenül és kizárólagosan felelősek:
+A felhasználói azonosítók, jelszavak és biometrikus hitelesítési módszerek bizalmas kezelése (FaceID / TouchID).
+A számla alapján végzett összes tevékenység.
+Haladéktalanul értesíti a Szolgáltatót, ha a fiók feltörésére vagy jogosulatlan hozzáférésre gyanakszik.
+FONTOS ESZKÖZBIZTONSÁGI MEGJEGYZÉS: A Szolgáltató nem vállal felelősséget semmilyen veszteségért vagy kárért, amelyet az Alkalmazás jogosulatlanul módosított iOS eszközön (Jailbreak típusú működés) okozott. Az Alkalmazás használata Jailbreak eszközökön szigorúan tilos, mivel felülírja a iOS natív biztonsági protokolljait, és jelentős biztonsági kockázatoknak teszi ki az Ügyféladatokat.
+4. SZELLEMI TULAJDON ÉS SZERZŐI JOG
+4.1. Szállító tulajdona
+
+Az Alkalmazás, beleértve, de nem kizárólagosan annak kialakítását, grafikus felületét, UX/UI elemeit, forráskódját, adatbázisait, védjegyeit, logóit, modulszerkezetét és a felhasznált know-how-t, a Szolgáltató (vagy licencadói) kizárólagos szellemi tulajdonát képezi, és nemzeti és nemzetközi szerzői jogi és szellemi tulajdonjogok védi. A jelen dokumentumban semmi sem jelenti ezen jogok átruházását az Ügyfélre vagy a Felhasználóra.
+4.2. Az Ügyfél által megadott adatok tulajdonjoga
+Az Ügyfél megtartja az Alkalmazásba bevitt összes Ügyféladatra vonatkozó összes szellemi tulajdonjogot és szerzői jogot. Az Alkalmazás használatával az Ügyfél világméretű, korlátozott és ingyenes licencet ad a Szolgáltatónak az Ügyféladatok tárolására, továbbítására, feldolgozására és megjelenítésére, kizárólag az ERP szolgáltatások nyújtása és az Alkalmazás műszaki funkcionalitásának biztosítása céljából.
+5. ELÉRHETŐSÉG, TÁMOGATÁS ÉS FRISSÍTÉSEK
+5.1. Szolgáltatási szint (SLA)
+A Szolgáltató minden gazdaságilag ésszerű erőfeszítést megtesz annak érdekében, hogy az Alkalmazás a nap 24 órájában, a hét minden napján elérhető legyen. A hozzáférés azonban átmenetileg megszakadhat a következők miatt:
+Tervezett karbantartási munkák (általában legalább 24 órával előre bejelentve);
+Kritikus biztonsági frissítések vagy sürgős hibajavítások;
+a felhő infrastruktúra vagy a távközlési hálózatok Szolgáltatótól független műszaki hibái;
+Az Apple változtatásai a iOS ökoszisztémában, amelyek azonnali technikai kiigazítást igényelnek.
+5.2. Rendszerfrissítések (frissítések és frissítések)
+A szolgáltató rendszeres időközönként frissítéseket ad ki az Alkalmazáshoz a App Store oldalon keresztül a hibák kijavítása, a teljesítmény javítása vagy új modulok bevezetése érdekében.
+A Felhasználó vállalja, hogy az optimális és biztonságos működés érdekében telepíti az Alkalmazás legújabb verzióit.
+A Szolgáltató nem garantálja az Alkalmazás kompatibilitását a iOS operációs rendszer régebbi verzióival (általában csak a iOS aktuális verziója és az utolsó két korábbi főverzió támogatott).
+6. A GARANCIA KIZÁRÁSA ÉS A FELELŐSSÉG KORLÁTOZÁSA
+6.1. A szolgáltatás „Ahogy van” biztosítása (As Is)
+AZ ALKALMAZÁST „AHOGY VAN” ÉS „AHOGY ELÉRHETŐ”, BÁRMILYEN KIFEJEZETT VAGY BIZTOSÍTOTT GARANCIA NÉLKÜL NYÚJTOTT EL. A SZOLGÁLTATÓ KIFEJEZETTEN ELNÁLL MINDEN VÉLEMEZTETT GARANCIÁT AZ ELADHATÓSÁGRA, A MEGHATÁROZOTT CÉLRA VALÓ ALKALMASSÁGRA, A KIVONATOTT PÉNZÜGYI VAGY KERESKEDELMI ADATOK PONTOSSÁGÁRA, ÉS A HARMADIK FÉL JOGAI NEM SÉRÉSÉRE VONATKOZÓAN.
+6.2. A pénzügyi felelősség korlátozása
+AZ ALKALMAZANDÓ JOGSZABÁLYOK ÁLTAL ENGEDÉLYEZETT TELJES MÉRTÉKÉBEN A BESZÁLLÍTÓ SEMMILYEN ESETÉN NEM FELELŐS KÖZVETETT, VÉLETLENSZERŰ, KÜLÖNLEGES, BÜNTETŐ VAGY KÖVETKEZMÉNYES KÁROKÉRT, BELEÉRTVE, DE NEM KORLÁTOZOTT:
+Nyereség-, bevétel- vagy forgalomkiesés;
+Adatvesztés, üzleti megszakítás vagy üzleti lehetőségek elvesztése;
+Az Alkalmazás által generált jelentések alapján hozott hibás vezetői vagy pénzügyi döntések;
+A hibás adatkezelés miatt a hatóság által az Ügyféllel szemben kiszabott pénzbírság vagy pénzbírság.
+A BESZÁLLÍTÓ TELJES FELELŐSSÉGE A JELEN FELTÉTELEKBŐL EREDŐ VAGY AZOKHOZ KAPCSOLÓDÓ BÁRMILYEN KÖVETELÉSÉRT MINDEN ESETBEN NEM TUDJA MEG AZ ÜGYFÉL ÁLTAL A BESZÁLLÍTÓNAK FIZETT TELJES ÖSSZEGET, A FELHASZNÁLÓI ELŐFIZETÉSÉRT AZ UTOLSÓ 6. HÓNAV IDEJÉBEN. FELELŐSSÉGRE FELKEDÉS.
+7. ADATVÉDELEM ÉS ADATVÉDELEM
+7.1. GDPR és a személyes adatok
+Az Alkalmazás használatával a Szolgáltató kezelheti a Felhasználók egyes személyes adatait (név, e-mail, IP címek, hozzáférési naplók, földrajzi hely adatai, ha az ERP modul ezt kéri). A személyes adatok kezelésével kapcsolatos jogviszonyra a Megrendelő és a Szolgáltató között létrejött főszerződéshez csatolt Adatkezelési Tájékoztató és Adatkezelési Megállapodás (DPA) az (EU) 2016/679 (GDPR) rendeletnek megfelelően irányadó.
+7.2. Az üzleti információk bizalmas kezelése
+A Szolgáltató tudomásul veszi, hogy az ERP-ben tárolt információk szigorúan bizalmasak. A szolgáltató fejlett technikai és szervezési intézkedéseket hajt végre (végponttól végpontig történő titkosítás az átvitel során, titkosított tárolás biztonságos szervereken, időszakos auditok), hogy megakadályozza az üzleti információk harmadik félhez való kiszivárgását.
+8. A SZERZŐDÉS FELFÜGGESZTÉSE ÉS MEGSZŰNÉSE
+8.1. A hozzáférés felfüggesztése
+
+A Szolgáltató fenntartja a jogot, hogy az Alkalmazáshoz való hozzáférést azonnal és előzetes értesítés nélkül bármely Felhasználói fiókra vagy a teljes Ügyfélre vonatkozóan felfüggesztse az alábbi esetekben:
+az előfizetés fizetésének késedelme az esedékességtől számított 15 napon túl;
+A használati korlátozások súlyos vagy ismételt megsértése (jogosulatlan továbbengedélyezés, feltörési kísérletek, visszafejtés);
+Az Alkalmazás olyan módon történő használata, amely veszélyezteti a szerverek stabilitását vagy a Szolgáltató hálózatának biztonságát.
+8.2. Felmondás az Ügyfél kezdeményezésére
+Az Ügyfél felmondhatja az Alkalmazás használatát a fő szolgáltatási szerződés felmondási záradékai szerint. A szerződés megszűnésével az Alkalmazáshoz való hozzáférés joga azonnal megszűnik, és a Felhasználó köteles az Alkalmazást minden iOS tulajdonában lévő eszközről törölni.
+9. AZ ALMA ÖKOSZISZTÉMÁRA VONATKOZÓ KÜLÖNLEGES RENDELKEZÉSEK (iOS)
+A Apple Inc. által a App Store-on keresztül terjesztett alkalmazásokra vonatkozó szabályokkal összhangban az Ügyfél és a Felhasználó tudomásul veszi és elfogadja az alábbiakat:
+A Szerződés jellege: Jelen dokumentum kizárólag a Szállító és a Megrendelő/Felhasználó között jön létre. A Apple Inc. nem szerződő fél a jelen Szerződésben, és semmilyen kötelezettsége vagy felelőssége nincs az Alkalmazással vagy annak tartalmával kapcsolatban.
+Karbantartás és támogatás: A Szolgáltató kizárólagos felelőssége az Alkalmazáshoz kapcsolódó karbantartási és támogatási szolgáltatások nyújtása. Az Apple nem köteles karbantartási szolgáltatásokat nyújtani az Alkalmazáshoz.
+A App Store garanciái: Ha az Alkalmazás nem felel meg a vonatkozó garanciáknak, a Felhasználó értesítheti az Apple-t, és az Apple visszatéríti az Alkalmazás vételárát (ha van ilyen) a Felhasználónak. Az alkalmazandó törvények által megengedett maximális mértékig az Apple-t semmilyen egyéb jótállási kötelezettség nem terheli az Alkalmazással kapcsolatban.
+Szellemi tulajdonjoggal kapcsolatos követelések: Ha egy harmadik fél azt állítja, hogy az Alkalmazás sérti a szellemi tulajdonhoz fűződő jogait, a Szolgáltató, nem pedig az Apple felelős az ilyen igények kivizsgálásáért, védelméért, megoldásáért és mentesüléséért.
+Az exportszabályozásnak való megfelelés: A felhasználó kijelenti és szavatolja, hogy nem olyan országban található, amelyre az Egyesült Államok kormánya embargó vonatkozik. vagy olyan országként van megjelölve, amely "támogatja a terrorizmust", és nem szerepel az Egyesült Államok kormányának tiltott vagy korlátozott felek listáján.
+Harmadik fél kedvezményezett: Az Apple és az Apple leányvállalatai a jelen Szerződés harmadik fél kedvezményezettjei. A jelen Feltételek elfogadásával az Apple-nek joga lesz (és úgy kell tekinteni, hogy elfogadta a jogot) a jelen Szerződés érvényesítésére Ön, mint harmadik fél kedvezményezett ellen.
+10. FELTÉTELEK MÓDOSÍTÁSA
+A Szolgáltató bármikor jogosult jelen Feltételeket egyoldalúan módosítani, hogy tükrözze a jogszabályi változásokat, a technológiai változásokat vagy az ERP Alkalmazás funkcióinak fejlődését.
+A módosítások a Felhasználók értesítésétől számított [pl.: 15 napon belül] lépnek hatályba (az értesítés e-mailben vagy a iOS alkalmazáson belüli alkalmazáson belüli figyelmeztetés útján történik).
+Az Alkalmazás további használata a felmondási idő lejárta után az új Általános Szerződési Feltételek hallgatólagos és teljes körű elfogadását jelenti.
+11. ALKALMAZANDÓ JOG ÉS VITÁK RENDEZÉSE
+11.1. Alkalmazandó jog
+A jelen Megállapodást és annak minden joghatását Románia törvényei szabályozzák, értelmezik és érvényesítik.
+11.2. Vitarendezés
+A jelen Feltételekből vagy azokkal kapcsolatos bármely vitát, vitát vagy követelést, ideértve azok érvényességét, értelmezését, végrehajtását vagy megszüntetését is, a felek képviselői békés úton rendezik. Ha a vita megjelenésétől számított 30 napon belül nem sikerül békés rendezésre kerülni, a vita kizárólagos megoldásra a Szállító székhelyén illetékes bíróságok elé kerül.
+12. ZÁRÓ RENDELKEZÉSEK
+
+Ha a jelen Feltételek bármely rendelkezését a bíróság semmisnek, törvénytelennek vagy végrehajthatatlannak nyilvánítja, az adott rendelkezést módosítani kell, hogy a törvény legteljesebb mértékben tükrözze a felek eredeti szándékát, és a többi rendelkezés érvényességét és végrehajthatóságát ez semmilyen módon nem érinti. Jelen dokumentum a Felhasználó és a Szolgáltató között létrejött teljes megállapodást képezi az Alkalmazás iOS rendszeren történő használatára vonatkozóan, felülírva a témával kapcsolatos minden korábbi írásbeli vagy szóbeli megállapodást (de anélkül, hogy hatályon kívül helyezné az Ügyfél és a Szolgáltató között az ERP szolgáltatásokra vonatkozó fő kereskedelmi szerződést).
+A jelen Feltételekkel kapcsolatos kérdéseivel, támogatási kérelmeivel vagy értesítéseivel forduljon hozzánk a következő címen:
+E-mail: ERPMobile@dateconta.ro
+Telefon: +40.786.500.005
+A ERP Mobile alkalmazás használatának folytatásával Ön megerősíti, hogy elolvasta, megértette a fenti kikötéseket, és magára nézve kötelezőnek ismeri el.

@@ -1,0 +1,64 @@
+project_id = "erp-mobile"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "https://rincon.ro/email-confirmat.html"
+additional_redirect_urls = [
+  "https://rincon.ro/email-confirmat.html",
+  "https://rincon.ro/**",
+]
+jwt_expiry = 3600
+enable_signup = false
+
+[auth.email]
+# true = provider email activ (login); crearea conturilor rămâne doar prin Admin
+enable_signup = true
+enable_confirmations = true
+
+# seed-admin: apelabil fără JWT la primul launch al app-ului
+[functions.seed-admin]
+verify_jwt = false
+
+# Funcțiile admin verifică JWT la gateway + is_admin în cod
+[functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-update-user]
+verify_jwt = true
+
+[functions.admin-toggle-block]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.email-confirmed]
+verify_jwt = false
+
+[functions.complete-account-activation]
+verify_jwt = false
+
+[functions.update-own-password]
+verify_jwt = true
+
+[functions.admin-test-email]
+verify_jwt = true
+
+[functions.send-welcome-email]
+verify_jwt = false

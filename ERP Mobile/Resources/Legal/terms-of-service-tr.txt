@@ -1,0 +1,95 @@
+"ERP Mobile" (iOS) MOBİL UYGULAMA KULLANIM ŞARTLARI VE KOŞULLARI
+Son güncelleme: 5 Haziran 2026
+Bükreş / Romanya merkezli DATECONTA.RO tarafından geliştirilen, sahip olunan ve işletilen, bundan sonra "Sağlayıcı" olarak anılacak olan iOS için ERP Mobile mobil uygulamasını ("Uygulama") indirmeden, yüklemeden veya kullanmadan önce lütfen bu Şartlar ve Koşulları ("Sözleşme", "Şartlar") dikkatlice okuyun.
+Uygulamayı indirerek, kurarak, erişerek veya kullanarak, siz ("Kullanıcı" veya "Müşteri" olarak, ticari faaliyeti sırasında hareket eden gerçek veya tüzel kişi olarak) bu Koşullara uyma konusundaki açık ve kesin anlaşmanızı ifade etmiş olursunuz. Bu Koşulları kabul etmiyorsanız Uygulamayı indiremez, yükleyemez veya kullanamazsınız ve Apple cihazınızdan derhal silmelisiniz.
+1. TANIMLAR VE YORUM
+Bu belgede, aşağıdaki terimler, bağlam aksini gerektirmedikçe, aşağıda belirtilen anlamlara sahip olacaktır:
+ERP Mobile Uygulaması: Tedarikçi tarafından sağlanan tüm güncellemeler, yükseltmeler ve eklenti modülleri dahil olmak üzere iOS (iPhone, iPad) işletim sistemine uyarlanan yazılım uygulaması.
+Kullanıcı Hesabı: ERP sistemine erişmek için Müşterinin bir çalışanına veya işbirlikçisine atanan kimlik bilgileriyle (kullanıcı adı ve şifre/biyometri) güvence altına alınan bireysel profil.
+Müşteri: ERP platformunun kullanımı için Sağlayıcı ile ana hizmet/abonelik sözleşmesi imzalayan tüzel kişi veya ticari kuruluş.
+Müşteri Verileri: Kullanıcılar tarafından Uygulama üzerinden girilen, yüklenen veya işlenen tüm bilgiler, mali veriler, müşteri listeleri, envanter, belgeler veya diğer materyaller.
+Apple App Store: Apple Inc. tarafından işletilen ve Uygulamanın kullanıma sunulduğu dijital dağıtım platformu.
+2. LİSANS VERİLMESİ VE KULLANIM KISITLAMALARI
+2.1. Sınırlı Lisans
+Bu Sözleşmeye tam olarak uyulması ve ilgili aboneliğin Müşteri tarafından ödenmesi şartıyla, Sağlayıcı, Müşteriye ve onun yetkili Kullanıcılarına, Uygulamayı yalnızca dahili iş amaçları doğrultusunda, Müşterinin sahip olduğu veya kontrol ettiği uyumlu mobil cihazlara indirmeleri, yüklemeleri ve kullanmaları için münhasır olmayan, devredilemez, iptal edilebilir ve sınırlı bir lisans verir.
+2.2. Kullanıma İlişkin Aşırı Kısıtlamalar
+Kullanıcının doğrudan veya üçüncü taraflar aracılığıyla aşağıdakileri yapması kesinlikle yasaktır:
+Uygulamayı kopyalamak, değiştirmek, uyarlamak, tercüme etmek veya buna dayalı türev çalışmalar oluşturmak;
+Uygulamanın kaynak kodunu tersine mühendislik yapmak, kaynak koda dönüştürmek, parçalara ayırmak veya başka bir şekilde keşfetme girişiminde bulunmak;
+Uygulamayı ana sözleşme kapsamına girmeyen üçüncü taraflara kiralamak, ödünç vermek, yeniden satmak, alt lisansını vermek veya dağıtmak;
+Bu Uygulama için iOS sistemine entegre edilmiş güvenlik özelliklerini veya dijital haklar yönetimi sistemlerini (DRM) atlatmak, devre dışı bırakmak veya bunlara müdahale etmek;
+Uygulamayı yasa dışı, dolandırıcılık amacıyla kullanmak veya zararlı içeriğe (virüsler, kötü amaçlı yazılımlar) sahip materyalleri depolamak/iletmek.
+3. HESAP OLUŞTURMA, GÜVENLİK VE ERİŞİM
+3.1. Kayıt ve Kimlik Bilgileri
+Uygulamayı kullanmak için Kullanıcının, merkezi ERP platformunda Müşterinin atanmış yöneticisi tarafından oluşturulmuş aktif bir hesabının olması gerekir. Kullanıcı doğru, eksiksiz ve güncel bilgi sağlamayı taahhüt eder.
+3.2. Güvenlik Sorumluluğu
+Müşteri ve bireysel Kullanıcılar aşağıdakilerden doğrudan ve münhasıran sorumludur:
+Kullanıcı kimliğinin, şifrelerin ve biyometrik kimlik doğrulama yöntemlerinin gizli tutulması (FaceID / TouchID).
+Bu hesap altında gerçekleştirilen tüm faaliyetler.
+Hesabın ele geçirilmesinden veya yetkisiz erişimden şüphelenirse Sağlayıcıyı derhal bilgilendirmek.
+ÖNEMLİ CİHAZ GÜVENLİK NOTU: Sağlayıcı, Uygulamanın yetkisiz olarak değiştirilmiş bir iOS cihazında (Jailbreak tipi işlem) kullanılmasından kaynaklanan hiçbir kayıp veya hasardan sorumlu olmayacaktır. Uygulamanın Jailbreak içeren cihazlarda kullanılması, iOS yerel güvenlik protokollerini geçersiz kıldığından ve Müşteri Verilerini büyük güvenlik risklerine maruz bıraktığından kesinlikle yasaktır.
+4. FİKRİ MÜLKİYET VE TELİF HAKKI
+4.1. Tedarikçinin Mülkiyeti
+
+Tasarımı, grafik arayüzü, UX/UI öğeleri, kaynak kodu, veritabanları, ticari markaları, logoları, modül yapısı ve kullanılan teknik bilgi dahil ancak bunlarla sınırlı olmamak üzere Uygulama, Sağlayıcının (veya lisans verenlerinin) münhasır fikri mülkiyetidir ve ulusal ve uluslararası telif hakkı ve fikri mülkiyet kanunları tarafından korunmaktadır. Bu belgedeki hiçbir şey bu hakların Müşteriye veya Kullanıcıya devredildiği anlamına gelmez.
+4.2. Müşteri tarafından girilen Verilerin Mülkiyeti
+Müşteri, Uygulamaya girilen tüm Müşteri Verilerine ilişkin tüm fikri mülkiyet haklarını ve telif haklarını elinde tutar. Müşteri, Uygulamayı kullanarak, Tedarikçiye yalnızca ERP Hizmetlerini sağlamak ve Uygulamanın teknik işlevselliğini sağlamak amacıyla Müşteri Verilerini barındırmak, iletmek, işlemek ve görüntülemek için dünya çapında, sınırlı ve ücretsiz bir lisans verir.
+5. KULLANILABİLİRLİK, DESTEK VE GÜNCELLEMELER
+5.1. Hizmet Düzeyi (SLA)
+Sağlayıcı, Uygulamanın haftanın 7 günü, günün 24 saati kullanılabilirliğini sağlamak için ticari açıdan makul çabayı gösterecektir. Ancak aşağıdaki nedenlerden dolayı erişim geçici olarak kesintiye uğrayabilir:
+Planlı bakım çalışmaları (kural olarak en az 24 saat önceden duyurulur);
+Kritik güvenlik güncellemeleri veya acil hata düzeltmeleri;
+Sağlayıcıdan bağımsız olarak bulut altyapısının veya telekomünikasyon ağlarının teknik arızaları;
+Apple'ın iOS ekosisteminde acil teknik ayarlamalar gerektiren değişiklikleri.
+5.2. Sistem Güncellemeleri (Güncellemeler ve Yükseltmeler)
+Sağlayıcı, hataları düzeltmek, performansı artırmak veya yeni modüller eklemek için App Store aracılığıyla Uygulamaya yönelik güncellemeleri periyodik olarak yayınlayacaktır.
+Kullanıcı, optimum ve güvenli çalışmayı sağlamak için Uygulamanın en son sürümlerini yüklemeyi kabul eder.
+Sağlayıcı, Uygulamanın iOS işletim sisteminin eski sürümleriyle uyumluluğunu garanti etmez (kural olarak, yalnızca iOS'nin güncel sürümü ve önceki son iki ana sürüm desteklenir).
+6. GARANTİ HARİÇ TUTULMASI VE SORUMLULUĞUN SINIRLANDIRILMASI
+6.1. Hizmetin "Olduğu Gibi" Sağlanması (As Is)
+UYGULAMA, AÇIK VEYA ZIMNİ HERHANGİ BİR GARANTİ OLMAKSIZIN "OLDUĞU GİBİ" VE "MEVCUT OLDUĞU GİBİ" SAĞLANIR. SAĞLAYICI, TİCARİ ELVERİŞLİLİK, BELİRLİ BİR AMACA UYGUNLUK, ÇIKARILAN FİNANSAL VEYA TİCARİ VERİLERİN DOĞRULUĞU VE ÜÇÜNCÜ TARAF HAKLARININ İHLAL EDİLMEMESİNE DAİR TÜM ZIMNİ GARANTİLERİ AÇIKÇA REDDEDER.
+6.2. Mali Sorumluluğun Sınırlandırılması
+GEÇERLİ YASALARIN İZİN VERDİĞİ ÖLÇÜDE, TEDARİKÇİ HİÇBİR DURUMDA, DAHİL ANCAK BUNLARLA SINIRLI OLMAMAK ÜZERE, DOLAYLI, ARIZİ, ÖZEL, CEZAİ VEYA SONUÇ OLARAK ORTAYA ÇIKAN ZARARLARDAN SORUMLU OLMAYACAKTIR:
+Kâr, gelir veya ciro kaybı;
+Veri kaybı, iş kesintisi veya iş fırsatlarının kaybı;
+Uygulama tarafından oluşturulan raporlara dayanarak alınan hatalı yönetimsel veya mali kararlar;
+Yanlış veri işleme sonucu Müşteriye yetkililer tarafından uygulanan mali cezalar veya para cezaları.
+HER DURUMDA, TEDARİKÇİNİN BU ŞARTLARDAN KAYNAKLANAN VEYA BU KOŞULLARLA İLİŞKİLİ HERHANGİ BİR İDDİA İÇİN TOPLAM YÜKÜMLÜLÜĞÜ, SORUMLULUĞA YOL AÇAN OLAYDAN ÖNCEKİ SON 6 (ALTI) AY İÇİNDE MÜŞTERİ TARAFINDAN TEDARİKÇİYE KULLANICI ABONELİĞİ İÇİN ÖDENEN TOPLAM MİKTARI AŞMAYACAKTIR.
+7. VERİLERİN KORUNMASI VE GİZLİLİĞİ
+7.1. GDPR ve Kişisel Veriler
+Sağlayıcı, Uygulamayı kullanarak Kullanıcıların belirli kişisel verilerini (isim, e-posta, IP adresleri, erişim kayıtları, ERP modülünün talep etmesi halinde coğrafi konum verileri) işleyebilir. Kişisel verilerin işlenmesine ilişkin hukuki ilişki, (AB) 2016/679 (GDPR) sayılı Yönetmelik uyarınca, Müşteri ile Sağlayıcı arasındaki ana sözleşmenin ekinde yer alan Gizlilik Politikası ve Veri İşleme Sözleşmesi'ne (DPA) tabidir.
+7.2. Ticari Bilgilerin Gizliliği
+Sağlayıcı, ERP'de saklanan bilgilerin kesinlikle gizli olduğunu kabul eder. Sağlayıcı, iş bilgilerinin üçüncü taraflara sızmasını önlemek için gelişmiş teknik ve organizasyonel önlemler (aktarım sırasında uçtan uca şifreleme, güvenli sunucularda şifreli depolama, periyodik denetimler) uygular.
+8. SÖZLEŞMENİN ASKIYA ALINMASI VE FESİH
+8.1. Erişimin Askıya Alınması
+
+Sağlayıcı, aşağıdaki durumlarda herhangi bir Kullanıcı Hesabının veya Müşterinin tamamının Uygulamaya erişimini derhal ve önceden bildirimde bulunmaksızın askıya alma hakkını saklı tutar:
+Abonelik ödemesinin son ödeme tarihinden itibaren 15 günden fazla geciktirilmesi;
+Kullanım kısıtlamalarının ciddi veya tekrarlanan ihlali (izinsiz alt lisanslama, bilgisayar korsanlığı girişimleri, tersine mühendislik);
+Uygulamanın, sunucuların stabilitesini veya Sağlayıcının ağının güvenliğini tehlikeye atacak şekilde kullanılması.
+8.2. Müşterinin Girişimiyle Fesih
+Müşteri, ana hizmet sözleşmesindeki fesih hükümlerine uygun olarak Uygulamanın kullanımını sonlandırabilir. Sözleşmenin feshi üzerine Uygulamaya erişim hakkı derhal sona erer ve Kullanıcıların Uygulamayı iOS'ye ait tüm cihazlardan silmeleri gerekir.
+9. APPLE EKOSİSTEMİNE YÖNELİK ÖZEL HÜKÜMLER (iOS)
+App Store aracılığıyla dağıtılan uygulamalar için Apple Inc. tarafından uygulanan kurallara uygun olarak, Müşteri ve Kullanıcı aşağıdakileri kabul ve beyan eder:
+Sözleşmenin Niteliği: Bu belge münhasıran Tedarikçi ile Müşteri/Kullanıcı arasında akdedilmiştir. Apple Inc. bu Sözleşmenin tarafı değildir ve Uygulamaya veya içeriğine ilişkin hiçbir yükümlülük veya yükümlülüğe sahip değildir.
+Bakım ve Destek: Sağlayıcı, Uygulamaya ilişkin bakım ve destek hizmetlerinin sağlanmasından yalnızca sorumludur. Apple'ın Uygulama için bakım hizmetleri sağlama yükümlülüğü yoktur.
+App Store Garantileri: Uygulamanın geçerli garantilere uygun olmaması durumunda, Kullanıcı Apple'ı bilgilendirebilir ve Apple, Uygulamanın satın alma fiyatını (varsa) Kullanıcıya iade edecektir. Yürürlükteki yasaların izin verdiği azami ölçüde, Apple'ın Uygulamaya ilişkin başka hiçbir garanti yükümlülüğü olmayacaktır.
+Fikri Mülkiyet İddiaları: Üçüncü bir tarafın Uygulamanın fikri mülkiyet haklarını ihlal ettiğini iddia etmesi halinde, bu tür iddiaların araştırılması, savunulması, çözülmesi ve feshedilmesinden Apple değil Sağlayıcı sorumlu olacaktır.
+İhracat Düzenlemelerine Uygunluk: Kullanıcı, ABD hükümetinin ambargosuna tabi bir ülkede bulunmadığını beyan ve garanti eder. veya "terörizmi destekleyen" bir ülke olarak belirlenmiş ve ABD hükümetinin yasaklı veya kısıtlı taraflar listesinde yer almamaktadır.
+Üçüncü Taraf Lehtar: Apple ve Apple'ın bağlı kuruluşları bu Sözleşmenin üçüncü taraf lehtarlarıdır. Bu Koşulları kabul ettiğinizde Apple, üçüncü taraf lehtar olarak bu Sözleşmeyi size karşı uygulama hakkına sahip olacaktır (ve bu hakkı kabul etmiş sayılacaktır).
+10. ŞARTLARIN DEĞİŞTİRİLMESİ
+Sağlayıcı, mevzuat değişikliklerini, teknolojik değişiklikleri veya ERP Uygulamasının işlevselliğindeki gelişmeleri yansıtacak şekilde bu Hüküm ve Koşulları herhangi bir zamanda tek taraflı olarak değiştirme hakkına sahiptir.
+Değişiklikler Kullanıcılara bildirim yapıldıktan sonra [örn. 15 gün] içinde geçerli olacaktır (bildirim e-postayla veya iOS Uygulaması içindeki uygulama içi uyarı yoluyla gönderilir).
+Bildirim süresinin sona ermesinden sonra Uygulamanın kullanılmaya devam edilmesi, yeni Şartlar ve Koşulların zımni ve tam olarak kabul edildiği anlamına gelir.
+11. GEÇERLİ HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ
+11.1. Geçerli Kanun
+Bu Sözleşme ve tüm yasal etkileri Romanya yasalarına uygun olarak yönetilir, yorumlanır ve uygulanır.
+11.2. Uyuşmazlık Çözümü
+Geçerliliği, yorumlanması, uygulanması veya feshedilmesi de dahil olmak üzere, bu Hüküm ve Koşullardan kaynaklanan veya bunlarla bağlantılı olarak ortaya çıkan herhangi bir anlaşmazlık, ihtilaf veya iddia, tarafların temsilcileri arasında dostane bir şekilde çözülecektir. Anlaşmazlığın ortaya çıkmasından itibaren 30 gün içinde dostane bir çözüm mümkün olmazsa, anlaşmazlık özel çözüm için Tedarikçinin merkezindeki yetkili mahkemelere sunulacaktır.
+12. SON HÜKÜMLER
+
+Bu Şartların herhangi bir hükmünün bir mahkeme tarafından geçersiz, yasa dışı veya uygulanamaz ilan edilmesi durumunda, bu hüküm, tarafların asıl niyetini kanunun en geniş kapsamına göre yansıtacak şekilde değiştirilecek ve geri kalan hükümlerin geçerliliği ve uygulanabilirliği hiçbir şekilde etkilenmeyecektir. Bu belge, Uygulamanın iOS sistemi üzerinde kullanımına ilişkin Kullanıcı ile Sağlayıcı arasındaki sözleşmenin tamamını teşkil etmekte olup, bu konuda daha önce yazılmış veya sözlü mutabakatların yerine geçmektedir (ancak Müşteri ile Sağlayıcı arasında ERP hizmetlerine ilişkin imzalanan ana ticari sözleşmenin yerine geçmemektedir).
+Bu Şartlarla ilgili her türlü soru, destek talebi veya bildirim için bizimle şu adresten iletişime geçebilirsiniz:
+E-posta: ERPMobile@dateconta.ro
+Telefon: +40.786.500.005
+ERP Mobile Uygulamasını kullanmaya devam ederek, yukarıdaki hükümlerin tamamını okuduğunuzu, anladığınızı ve yasal olarak bağlı olduğunuzu kabul ettiğinizi onaylamış olursunuz.

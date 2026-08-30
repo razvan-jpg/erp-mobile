@@ -1,0 +1,180 @@
+GDPR POLICY
+Last update: August 15, 2026 · Document version: 1.0
+
+This GDPR Policy describes the compliance framework of DATECONTA.RO for the ERP Mobile iOS application, the rights of data subjects, and how to exercise them. It complements the Privacy document and the Application Terms of Use.
+
+GDPR contact: ERPMobile@dateconta.ro · Phone: +40.786.500.005
+
+1. LEGAL FRAMEWORK
+
+Processing is carried out in accordance with:
+	•	Regulation (EU) 2016/679 (GDPR);
+	•	Law no. 190/2018 on measures to implement GDPR;
+	•	Law no. 506/2004 (electronic communications sector), where applicable;
+	•	Special acts on taxation, accounting and e-Invoice, which require retention of certain records.
+
+Supervisory authority: ANSPDCP — www.dataprotection.ro · anspdcp@dataprotection.ro
+
+2. CONTROLLER IDENTITY (FOR ACCOUNT DATA)
+
+Controller for data collected to manage the commercial relationship and user accounts:
+	•	Name: DATECONTA.RO
+	•	Registered office: Bucharest, Romania
+	•	Email: ERPMobile@dateconta.ro
+	•	Phone: +40.786.500.005
+
+We have not mandatorily appointed a separate public DPO. GDPR requests should be sent to the email address above with the subject “GDPR — data subject request”. If legislation or processing volume requires it, we will update DPO contact details in this policy.
+
+3. ROLE MAP
+
+Data — You — Us (DATECONTA.RO)
+
+Name, account email, role, employing company, login IP, language preferences
+	•	You: data subject
+	•	Us: controller
+
+Company data you administer (tax ID, address, document series, company settings)
+	•	You: controller / authorized person of your company
+	•	Us: processor towards you (Supabase SaaS infrastructure)
+
+Employees, customers, suppliers, payroll, time tracking, inventory, invoices, cash register, bank statements
+	•	You: controller towards the persons whose data you enter
+	•	Us: processor
+
+CRM tickets (subject, messages, status, client link)
+	•	You: controller towards end customers mentioned in the ticket
+	•	Us: processor
+
+e-Invoice documents / ANAF transmissions at your instruction
+	•	You: controller / content owner
+	•	Us: technical facilitator / processor
+
+Face ID / Touch ID biometric data
+	•	You: data subject
+	•	Us: we do not process biometrics — it remains in Apple Secure Enclave; we only receive success/failure
+
+4. GDPR PRINCIPLES WE FOLLOW
+
+1. Lawfulness, fairness, transparency — information through Privacy, Terms, Help guide and Application UI.
+2. Purpose limitation — we do not use Account data for purposes incompatible with providing ERP Mobile.
+3. Data minimization — we only request what the Account needs; you control what you enter about employees and customers (including the CNP placeholder 0000000000000 where permitted).
+4. Accuracy — you can edit your profile, master data and records in modules you can access.
+5. Storage limitation — see retention periods in Privacy (account, tax documents, GPS, crash logs).
+6. Integrity and confidentiality — technical and organizational measures (TLS, encryption, RBAC, multi-tenant isolation).
+7. Accountability — policies, request handling procedures, internal records.
+
+5. LEGAL BASES (OPERATIONAL SUMMARY)
+
+	•	Contract — Account, subscription, ERP Mobile delivery, enabled modules;
+	•	Legal obligation — tax/accounting records, responses to authorities;
+	•	Legitimate interest — security, fraud prevention, technical support, aggregated improvements;
+	•	Consent — only where required (e.g. optional marketing notifications, exact GPS location where employment law requires it).
+
+6. DATA SUBJECT RIGHTS — DETAILS
+
+6.1. Right of access (Art. 15)
+You can obtain confirmation of whether we process you and a copy of Account data, plus information on purposes, recipients, retention and rights. We will avoid harming the rights of other users or other client companies.
+
+6.2. Right to rectification (Art. 16)
+Correct from the Application (profile, company, master data) or request correction by email if you cannot edit yourself.
+
+6.3. Right to erasure (Art. 17)
+You may request deletion when data is no longer necessary for the purposes, you withdraw consent without another basis, you object and there are no overriding legitimate grounds, or data was processed unlawfully.
+
+Common exceptions: retention for tax obligations (e.g. invoices 10 years), establishing/exercising a legal claim. Account deletion may be delayed until these exceptions are clarified; we will inform you.
+
+6.4. Restriction of processing (Art. 18)
+You may request restriction when you contest accuracy, processing is unlawful and you prefer restriction over erasure, or you await verification of legitimate interest after objection.
+
+6.5. Portability (Art. 20)
+For data you provided and we process automatically on a contractual basis, you may request export in a structured format (JSON, CSV, Excel), where technically feasible. Generated documents can be downloaded from ERP modules.
+
+6.6. Objection (Art. 21)
+You may object to processing based on legitimate interest. We will stop processing except for overriding legitimate grounds or legal claims.
+
+6.7. Automated decisions (Art. 22)
+We do not make decisions based solely on automated processing that produce significant legal effects on you, except for transparent application of access rules, subscription or RBAC permissions.
+
+6.8. Complaint
+You have the right to lodge a complaint with ANSPDCP. Please contact us first — we resolve most requests directly.
+
+7. PROCEDURE FOR EXERCISING RIGHTS
+
+1. Send email to ERPMobile@dateconta.ro.
+2. Recommended subject: “GDPR — [access / rectification / erasure / portability / objection]”.
+3. Include: name, account email, description of request, any useful documents.
+4. Identity verification: we may request additional confirmation to avoid disclosing data to third parties.
+5. Response time: without undue delay, maximum one month; extendable by two months in complex cases (we will inform you).
+6. Free of charge: yes, as a rule. Manifestly unfounded or excessive repetitive requests may be refused or charged under Art. 12 GDPR.
+
+IMPORTANT: If the request concerns data of an employee or customer that only you entered, we may direct you to act as controller (or give us clear instructions to delete from your Account). We cannot delete third-party data without context and legal basis.
+
+8. YOUR OBLIGATIONS AS CONTROLLER
+
+If you enter personal data of employees, customers or collaborators in ERP Mobile, you must, among other things:
+	•	have a legal basis (contract, legal obligation, legitimate interest, etc.);
+	•	inform data subjects (information notice, contract, invoice);
+	•	not enter excessive data (e.g. national ID only if necessary; otherwise use the permitted placeholder);
+	•	respond to their GDPR requests; we assist you technically (export/deletion from Account) based on your instructions;
+	•	correctly configure user permissions and recipients of documents sent from the Application.
+
+9. SECURITY MEASURES (DETAILS)
+
+Transport — HTTPS/TLS 1.3, SSL Pinning between iOS App and Supabase API
+Authentication — hashed passwords (salt & hash), optional MFA, local Face ID / Touch ID
+Authorization — ERP role-based RBAC, logical multi-tenant isolation per company
+iOS Application — validations, local cache in Keychain, iOS permissions requested only when needed
+Infrastructure — Supabase (EU), backups, error monitoring
+Organizational — limited internal access, support procedures, incident response
+
+10. PERSONAL DATA BREACH
+
+1. Detection / internal or user reporting.
+2. Risk assessment for data subject rights.
+3. ANSPDCP notification within 72 hours when required (Art. 33).
+4. Informing data subjects when risk is high (Art. 34).
+5. Documenting the incident and remediation measures.
+
+If you notice an incident: ERPMobile@dateconta.ro, subject “Security / breach”.
+
+11. SUBPROCESSORS
+
+We use subprocessors such as:
+	•	Supabase — database hosting and authentication (EU-oriented);
+	•	Resend — transactional email (e.g. password reset, notifications);
+	•	Apple — APNs (push notifications), TestFlight/App Store Connect (diagnostics);
+	•	Analytics/crash reporting services — stability monitoring (e.g. Crashlytics, Sentry), where enabled.
+
+We select providers with adequate contractual guarantees. Material changes will be reflected in Privacy and this policy.
+
+12. TRANSFERS OUTSIDE THE EEA
+
+We prefer the European Economic Area. If a subprocessor transfers data outside the EEA, we ensure adequate safeguards (adequacy decision, EU Standard Contractual Clauses, EU-U.S. Data Privacy Framework, as applicable).
+
+13. SPECIAL CATEGORIES OF DATA (ART. 9)
+
+We do not request or want data on health, ethnic origin, sexual orientation or other special categories, except what you voluntarily enter in HR modules (e.g. medical records) as controller. Please limit entry to what is legally necessary. If unjustified data appears accidentally, we will delete it upon notification.
+
+14. CHILDREN
+
+ERP Mobile is a B2B tool for professionals and companies. The service is not aimed at minors under 16. We do not intentionally create Accounts for children.
+
+15. RETENTION AFTER ACCOUNT CLOSURE
+
+	•	on deletion request: we remove / anonymize Account data that is no longer necessary;
+	•	we retain records required by law (e.g. tax documents, subscription billing);
+	•	backups may contain residual data for a short period until rotation.
+
+16. RELATIONSHIP WITH TERMS
+
+Use of the Application implies acceptance of the Terms. This GDPR Policy does not reduce mandatory data subject rights and does not replace your obligations as controller towards employees and end customers.
+
+17. UPDATES
+
+We update this document when processing, ERP Mobile modules or law changes. The current version is the one displayed in the Application, with the date at the beginning of the document. For major changes we may notify in-app or to the Account email.
+
+18. CONTACT AND AUTHORITY
+
+Account controller: DATECONTA.RO — ERPMobile@dateconta.ro · +40.786.500.005
+ANSPDCP: Gheorghe Magheru Blvd. 28-30, Sector 1, Bucharest — www.dataprotection.ro
+Application technical support: ERPMobile@dateconta.ro (attach version from bottom bar)

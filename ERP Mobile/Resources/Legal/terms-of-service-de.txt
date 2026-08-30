@@ -1,0 +1,95 @@
+„ERP Mobile“ (iOS) NUTZUNGSBEDINGUNGEN FÜR MOBILE APPS
+Letzte Aktualisierung: 5. Juni 2026
+Bitte lesen Sie diese Allgemeinen Geschäftsbedingungen („Vereinbarung“, „Bedingungen“) sorgfältig durch, bevor Sie die mobile Anwendung ERP Mobile für iOS (die „Anwendung“) herunterladen, installieren oder nutzen, die von DATECONTA.RO mit Sitz in Bukarest/Rumänien, im Folgenden als „Anbieter“ bezeichnet, entwickelt, besessen und betrieben wird.
+Durch das Herunterladen, die Installation, den Zugriff oder die Nutzung der Anwendung erklären Sie (als „Benutzer“ oder „Kunde“, eine natürliche oder juristische Person, die im Rahmen ihrer Geschäftstätigkeit handelt) Ihr ausdrückliches und eindeutiges Einverständnis mit der Einhaltung dieser Bedingungen. Wenn Sie diesen Bedingungen nicht zustimmen, dürfen Sie die Anwendung nicht herunterladen, installieren oder verwenden und müssen sie sofort von Ihrem Apple-Gerät löschen.
+1. DEFINITIONEN UND INTERPRETATION
+In diesem Dokument haben die folgenden Begriffe die unten angegebene Bedeutung, sofern der Kontext nichts anderes erfordert:
+ERP Mobile-Anwendung: Die für das Betriebssystem iOS (iPhone, iPad) angepasste Softwareanwendung, einschließlich aller vom Lieferanten bereitgestellten Updates, Upgrades und Zusatzmodule.
+Benutzerkonto: Das durch Anmeldeinformationen (Benutzername und Passwort/Biometrie) gesicherte individuelle Profil, das einem Mitarbeiter oder Mitarbeiter des Kunden für den Zugriff auf das ERP-System zugewiesen wird.
+Kunde: Die juristische oder gewerbliche Person, die mit dem Anbieter einen Hauptdienstleistungs-/Abonnementvertrag zur Nutzung der ERP-Plattform abgeschlossen hat.
+Kundendaten: Alle Informationen, Finanzdaten, Kundenlisten, Bestände, Dokumente oder andere Materialien, die von Benutzern über die Anwendung eingegeben, hochgeladen oder verarbeitet werden.
+Apple App Store: Die von Apple Inc. betriebene digitale Vertriebsplattform, über die die Anwendung verfügbar gemacht wird.
+2. LIZENZGEWÄHRUNG UND NUTZUNGSBESCHRÄNKUNGEN
+2.1. Begrenzte Lizenz
+Vorbehaltlich der strikten Einhaltung dieser Vereinbarung und der Zahlung des entsprechenden Abonnements durch den Kunden gewährt der Anbieter dem Kunden und seinen autorisierten Benutzern eine nicht ausschließliche, nicht übertragbare, widerrufliche und begrenzte Lizenz zum Herunterladen, Installieren und Verwenden der Anwendung auf kompatiblen Mobilgeräten, die sich im Besitz des Kunden befinden oder von ihm kontrolliert werden, ausschließlich für interne Geschäftszwecke.
+2.2. Extreme Nutzungsbeschränkungen
+Dem Nutzer ist es strengstens untersagt, direkt oder über Dritte:
+Kopieren, Modifizieren, Anpassen, Übersetzen oder Erstellen abgeleiteter Werke auf der Grundlage der Anwendung;
+Den Quellcode der Anwendung zurückzuentwickeln, zu dekompilieren, zu disassemblieren oder auf andere Weise zu versuchen, ihn zu ermitteln;
+Die Anwendung an Dritte vermieten, verleihen, weiterverkaufen, unterlizenzieren oder verteilen, die nicht unter den Rahmenvertrag fallen;
+Sicherheitsfunktionen oder digitale Rechteverwaltungssysteme (DRM), die für diese Anwendung in das iOS-System integriert sind, zu umgehen, zu deaktivieren oder zu beeinträchtigen;
+Die Anwendung für illegale, betrügerische Zwecke zu nutzen oder Material mit schädlichem Inhalt (Viren, Malware) zu speichern/übertragen.
+3. KONTOERSTELLUNG, SICHERHEIT UND ZUGRIFF
+3.1. Registrierung und Anmeldeinformationen
+Um die Anwendung nutzen zu können, muss der Benutzer über ein aktives Konto verfügen, das vom benannten Administrator des Kunden auf der zentralen ERP-Plattform erstellt wurde. Der Nutzer verpflichtet sich, wahrheitsgemäße, vollständige und aktuelle Informationen bereitzustellen.
+3.2. Verantwortung für Sicherheit
+Der Kunde und einzelne Benutzer sind direkt und ausschließlich verantwortlich für:
+Benutzer-ID, Passwörter und biometrische Authentifizierungsmethoden vertraulich behandeln (FaceID / TouchID).
+Alle unter diesem Konto ausgeführten Aktivitäten.
+Sofortige Benachrichtigung des Anbieters, wenn der Verdacht einer Kontokompromittierung oder eines unbefugten Zugriffs besteht.
+WICHTIGER HINWEIS ZUR GERÄTESICHERHEIT: Der Anbieter haftet nicht für Verluste oder Schäden, die durch die Verwendung der Anwendung auf einem nicht autorisierten modifizierten iOS-Gerät (Betrieb vom Typ Jailbreak) verursacht werden. Die Nutzung der Anwendung auf Geräten mit Jailbreak ist strengstens untersagt, da sie die nativen Sicherheitsprotokolle von iOS außer Kraft setzt und Kundendaten großen Sicherheitsrisiken aussetzt.
+4. GEISTIGES EIGENTUM UND URHEBERRECHT
+4.1. Eigentum des Lieferanten
+
+Die Anwendung, einschließlich, aber nicht beschränkt auf ihr Design, ihre grafische Benutzeroberfläche, ihre UX/UI-Elemente, ihren Quellcode, ihre Datenbanken, Marken, Logos, ihre Modulstruktur und ihr verwendetes Know-how, sind ausschließliches geistiges Eigentum des Anbieters (oder seiner Lizenzgeber) und durch nationale und internationale Urheberrechte und Gesetze zum Schutz des geistigen Eigentums geschützt. Nichts in diesem Dokument stellt eine Übertragung dieser Rechte auf den Kunden oder Benutzer dar.
+4.2. Eigentum an den vom Kunden eingegebenen Daten
+Der Kunde behält alle geistigen Eigentumsrechte und Urheberrechte an allen in die Anwendung eingegebenen Kundendaten. Durch die Nutzung der Anwendung gewährt der Kunde dem Anbieter eine weltweite, begrenzte und kostenlose Lizenz zum Hosten, Übertragen, Verarbeiten und Anzeigen von Kundendaten, ausschließlich zum Zweck der Bereitstellung der ERP-Dienste und der Gewährleistung der technischen Funktionalität der Anwendung.
+5. VERFÜGBARKEIT, SUPPORT UND UPDATES
+5.1. Serviceebene (SLA)
+Der Anbieter wird wirtschaftlich angemessene Anstrengungen unternehmen, um die Verfügbarkeit der Anwendung 24 Stunden am Tag, 7 Tage die Woche sicherzustellen. Der Zugang kann jedoch aus folgenden Gründen vorübergehend unterbrochen sein:
+Geplante Wartungsarbeiten (in der Regel mindestens 24 Stunden im Voraus bekannt gegeben);
+Kritische Sicherheitsupdates oder dringende Fehlerbehebungen;
+Technische Ausfälle der Cloud-Infrastruktur oder der vom Anbieter unabhängigen Telekommunikationsnetze;
+Apples Änderungen am iOS-Ökosystem, die sofortige technische Anpassungen erfordern.
+5.2. Systemaktualisierungen (Updates & Upgrades)
+Der Anbieter veröffentlicht regelmäßig Updates für die Anwendung über App Store, um Fehler zu beheben, die Leistung zu verbessern oder neue Module einzuführen.
+Der Benutzer verpflichtet sich, die neuesten Versionen der Anwendung zu installieren, um einen optimalen und sicheren Betrieb zu gewährleisten.
+Der Anbieter übernimmt keine Gewähr für die Kompatibilität der Anwendung mit älteren Versionen des Betriebssystems iOS (in der Regel werden nur die aktuelle Version von iOS und die letzten beiden vorherigen Hauptversionen unterstützt).
+6. GEWÄHRLEISTUNGSAUSSCHLUSS UND HAFTUNGSBESCHRÄNKUNG
+6.1. Bereitstellung des Dienstes „wie besehen“ (As Is)
+DIE ANWENDUNG WIRD „WIE BESEHEN“ UND „WIE VERFÜGBAR“ ZUR VERFÜGUNG GESTELLT, OHNE JEGLICHE AUSDRÜCKLICHE ODER STILLSCHWEIGENDE GEWÄHRLEISTUNGEN. DER ANBIETER LEHNT AUSDRÜCKLICH ALLE STILLSCHWEIGENDEN GEWÄHRLEISTUNGEN DER MARKTGÄNGIGKEIT, DER EIGNUNG FÜR EINEN BESTIMMTEN ZWECK, DER RICHTIGKEIT DER EXTRAHIERTEN FINANZ- ODER KOMMERZIELLEN DATEN UND DER NICHTVERLETZUNG VON RECHTEN DRITTER AB.
+6.2. Beschränkung der finanziellen Haftung
+SOWEIT NACH GELTENDEM RECHT ZULÄSSIG, IST DER LIEFERANT IN KEINEM FALL HAFTBAR FÜR INDIREKTE, ZUFÄLLIGE, BESONDERE, STRAF- ODER FOLGESCHÄDEN, EINSCHLIESSLICH, ABER NICHT BESCHRÄNKT AUF:
+Verlust von Gewinn, Einkommen oder Umsatz;
+Datenverlust, Betriebsunterbrechung oder Verlust von Geschäftsmöglichkeiten;
+Fehlerhafte Management- oder Finanzentscheidungen, die auf der Grundlage der von der Anwendung generierten Berichte getroffen wurden;
+Steuerstrafen oder Bußgelder, die dem Kunden von den Behörden aufgrund fehlerhafter Datenverarbeitung auferlegt werden.
+IN ALLEN FÄLLEN ÜBERSTEIGT DIE GESAMTHAFTUNG DES LIEFERANTEN FÜR JEGLICHE ANSPRÜCHE, DIE SICH AUS DIESEN BEDINGUNGEN ERGEBEN ODER MIT IHNEN IN ZUSAMMENHANG STEHEN, DEN GESAMTZAHL, den der KUNDE IN DEN LETZTEN 6 (SECHS) MONATEN VOR DEM EREIGNIS, DAS DIE HAFTUNG BEGRÜNDET, FÜR DAS NUTZERABONNEMENT AN DEN LIEFERANTEN GEZAHLT HAT.
+7. Datenschutz und Privatsphäre
+7.1. GDPR und personenbezogene Daten
+Durch die Nutzung der Anwendung kann der Anbieter bestimmte personenbezogene Daten der Benutzer verarbeiten (Name, E-Mail, IP-Adressen, Zugriffsprotokolle, Geolokalisierungsdaten, wenn das ERP-Modul dies anfordert). Das Rechtsverhältnis hinsichtlich der Verarbeitung personenbezogener Daten richtet sich nach der Datenschutzerklärung und dem Datenverarbeitungsvertrag (DPA), der dem Hauptvertrag zwischen dem Kunden und dem Anbieter gemäß der Verordnung (EU) 2016/679 (GDPR) beigefügt ist.
+7.2. Vertraulichkeit von Geschäftsinformationen
+Der Anbieter erkennt an, dass die im ERP gespeicherten Informationen streng vertraulich sind. Der Anbieter implementiert fortschrittliche technische und organisatorische Maßnahmen (End-to-End-Verschlüsselung bei der Übertragung, verschlüsselte Speicherung auf sicheren Servern, regelmäßige Audits), um die Weitergabe von Geschäftsinformationen an Dritte zu verhindern.
+8. AUSSETZUNG UND KÜNDIGUNG DES VERTRAGS
+8.1. Sperrung des Zugangs
+
+Der Anbieter behält sich das Recht vor, den Zugriff auf die Anwendung für jedes Benutzerkonto oder für den gesamten Kunden in den folgenden Fällen sofort und ohne vorherige Ankündigung zu sperren:
+Verzögerung der Zahlung des Abonnements um mehr als 15 Tage ab dem Fälligkeitsdatum;
+Schwerwiegender oder wiederholter Verstoß gegen Nutzungsbeschränkungen (unerlaubte Unterlizenzierung, Hacking-Versuche, Reverse Engineering);
+Nutzung der Anwendung in einer Weise, die die Stabilität der Server oder die Sicherheit des Netzwerks des Anbieters gefährdet.
+8.2. Kündigung auf Initiative des Kunden
+Der Kunde kann die Nutzung der Anwendung gemäß den Kündigungsklauseln im Rahmendienstvertrag beenden. Bei Beendigung des Vertrags erlischt das Recht auf Zugriff auf die Anwendung sofort und die Benutzer sind verpflichtet, die Anwendung von allen iOS-eigenen Geräten zu löschen.
+9. SPEZIFISCHE BESTIMMUNGEN FÜR DAS APPLE-ÖKOSYSTEM (iOS)
+In Übereinstimmung mit den von Apple Inc. auferlegten Regeln für über App Store verteilte Anwendungen erkennen Kunde und Benutzer Folgendes an und stimmen diesem zu:
+Art des Vertrags: Dieses Dokument wird ausschließlich zwischen dem Lieferanten und dem Kunden/Benutzer geschlossen. Apple Inc. ist keine Vertragspartei dieser Vereinbarung und übernimmt keine Verpflichtung oder Haftung im Zusammenhang mit der Anwendung oder deren Inhalt.
+Wartung und Support: Der Anbieter ist allein für die Bereitstellung von Wartungs- und Supportdiensten für die Anwendung verantwortlich. Apple ist nicht verpflichtet, Wartungsdienste für die Anwendung bereitzustellen.
+Garantien in App Store: Im Falle einer Nichtkonformität der Anwendung mit den geltenden Garantien kann der Benutzer Apple benachrichtigen und Apple erstattet dem Benutzer den Kaufpreis der Anwendung (falls zutreffend). Soweit gesetzlich zulässig, hat Apple keine weiteren Gewährleistungsverpflichtungen in Bezug auf die Anwendung.
+Ansprüche auf geistiges Eigentum: Wenn ein Dritter behauptet, dass die Anwendung seine geistigen Eigentumsrechte verletzt, ist der Anbieter und nicht Apple für die Untersuchung, Verteidigung, Lösung und Erledigung eines solchen Anspruchs verantwortlich.
+Einhaltung der Exportbestimmungen: Der Benutzer versichert und garantiert, dass er sich nicht in einem Land befindet, das einem Embargo der US-Regierung unterliegt. oder als Land bezeichnet, das „Terrorismus unterstützt“ und nicht auf einer Liste verbotener oder eingeschränkter Parteien der US-Regierung steht.
+Drittbegünstigter: Apple und die Tochtergesellschaften von Apple sind Drittbegünstigte dieser Vereinbarung. Durch die Annahme dieser Bedingungen hat Apple das Recht (und es wird davon ausgegangen, dass Apple das Recht akzeptiert hat), diese Vereinbarung Ihnen gegenüber als Drittbegünstigter durchzusetzen.
+10. ÄNDERUNG DER BEDINGUNGEN
+Der Anbieter hat das Recht, diese Allgemeinen Geschäftsbedingungen jederzeit einseitig zu ändern, um Gesetzesänderungen, technologischen Änderungen oder der Weiterentwicklung der Funktionalität der ERP-Anwendung Rechnung zu tragen.
+Änderungen treten innerhalb von [z. B. 15 Tagen] nach Benachrichtigung der Benutzer in Kraft (Benachrichtigung per E-Mail oder durch eine In-App-Benachrichtigung innerhalb der iOS-Anwendung).
+Die fortgesetzte Nutzung der Anwendung nach Ablauf der Kündigungsfrist stellt eine stillschweigende und vollständige Annahme der neuen Geschäftsbedingungen dar.
+11. ANWENDBARES RECHT UND STREITBEILEGUNG
+11.1. Anwendbares Recht
+Diese Vereinbarung und alle ihre Rechtswirkungen unterliegen den Gesetzen Rumäniens.
+11.2. Streitbeilegung
+Alle Streitigkeiten, Kontroversen oder Ansprüche, die sich aus oder im Zusammenhang mit diesen Allgemeinen Geschäftsbedingungen ergeben, einschließlich im Hinblick auf deren Gültigkeit, Auslegung, Durchsetzung oder Beendigung, werden zwischen den Vertretern der Parteien gütlich beigelegt. Ist innerhalb von 30 Tagen nach Auftreten der Streitigkeit keine gütliche Einigung möglich, wird die Streitigkeit zur ausschließlichen Entscheidung den zuständigen Gerichten am Hauptsitz des Lieferanten vorgelegt.
+12. SCHLUSSBESTIMMUNGEN
+
+Sollte eine Bestimmung dieser Bedingungen von einem Gericht für ungültig, rechtswidrig oder nicht durchsetzbar erklärt werden, wird diese Bestimmung geändert, um die ursprüngliche Absicht der Parteien im vollen Umfang des Gesetzes widerzuspiegeln, und die Gültigkeit und Durchsetzbarkeit der übrigen Bestimmungen wird in keiner Weise beeinträchtigt. Dieses Dokument stellt die gesamte Vereinbarung zwischen dem Benutzer und dem Anbieter hinsichtlich der Nutzung der Anwendung auf dem iOS-System dar und ersetzt alle vorherigen schriftlichen oder mündlichen Vereinbarungen zu diesem Thema (jedoch nicht den zwischen dem Kunden und dem Anbieter unterzeichneten Haupthandelsvertrag für ERP-Dienste).
+Bei Fragen, Supportanfragen oder Hinweisen im Zusammenhang mit diesen Bedingungen können Sie uns unter folgender Adresse kontaktieren:
+E-Mail: ERPMobile@dateconta.ro
+Telefon: +40.786.500.005
+Durch die weitere Nutzung der ERP Mobile-Anwendung bestätigen Sie, dass Sie alle oben genannten Klauseln gelesen und verstanden haben und damit einverstanden sind, rechtlich an sie gebunden zu sein.

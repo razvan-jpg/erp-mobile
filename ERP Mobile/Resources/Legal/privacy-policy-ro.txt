@@ -1,0 +1,152 @@
+PRIVACY
+Ultima actualizare: 15 August 2026
+
+Versiunea din 15 August 2026 reflectă modulul CRM (tichete suport), Ghidul Ajutor integrat, istoricul local Ce este nou și procesarea datelor prin infrastructura cloud Supabase (UE).
+
+Această Politică de confidențialitate descrie modul în care DATECONTA.RO (denumită în continuare "Compania", "Noi" sau "Operatorul"), cu sediul în Bucuresti, colectează, utilizează, stochează, partajează și protejează datele cu caracter personal atunci când utilizați aplicația mobilă iOS - ERP MOBILE (denumită în continuare "Aplicația" sau "ERP Mobile").
+
+Vă rugăm să citiți cu atenție acest document. Prin descărcarea, instalarea, crearea unui cont și utilizarea Aplicației, înțelegeți și acceptați practicile descrise în această Politică de confidențialitate. Dacă nu sunteți de acord cu acești termeni, vă rugăm să nu instalați și să nu utilizați Aplicația.
+
+1. PRINCIPIILE FUNDAMENTALE ALE PRELUCRĂRII DATELOR
+
+În calitate de furnizor al unei soluții ERP (Enterprise Resource Planning) Mobile, recunoaștem importanța critică a datelor de business și a datelor cu caracter personal introduse în sistemul nostru. Prelucrarea datelor se realizează în conformitate cu:
+	•	Regulamentul (UE) 2016/679 (GDPR) privind protecția persoanelor fizice în ceea ce privește prelucrarea datelor cu caracter personal.
+	•	Legea nr. 190/2018 privind măsuri de punere în aplicare a GDPR în România.
+	•	Ghidurile de revizuire ale Apple App Store (App Store Review Guidelines), în special Secțiunea 5.1 privind Confidențialitatea și Securitatea Datelor.
+
+2. ROLUL NOSTRU: OPERATOR VS. ÎMPUTERNICIT (DATA PROCESSOR)
+
+Este esențial să se facă distincția între cele două moduri în care datele sunt gestionate în cadrul Aplicației ERP Mobile:
+	•	Noi ca Operator (Data Controller): Suntem operatori pentru datele colectate în scopul administrării relației comerciale cu compania dumneavoastră (date de facturare ale clientului persoană juridică, datele de contact ale administratorilor/reprezentanților legali, datele contului de utilizator Master).
+	•	Noi ca Împuternicit (Data Processor): Pentru toate datele de business introduse de utilizatori în modulele ERP (datele angajaților clienților noștri, datele clienților finali ai utilizatorului, facturi, salarii, stocuri, fișe medicale, etc.), Clientul nostru (Angajatorul/Compania dumneavoastră) este Operatorul de date, iar Noi suntem doar un Împuternicit care oferă infrastructura tehnică. Această politică reglementează ambele aspecte, însă drepturile angajaților cu privire la datele introduse în ERP de către companie trebuie exercitate direct către angajator.
+
+3. CATEGORIILE DE DATE COLECTATE ȘI MODALITATEA DE COLECTARE
+
+Aplicația colectează mai multe tipuri de informații, în funcție de modulele ERP activate și de permisiunile acordate pe dispozitivul iOS:
+
+A. Date furnizate în mod direct de utilizator
+	•	Date de autentificare și profil: Nume, prenume, adresă de e-mail profesională, număr de telefon, denumirea companiei angajatoare, funcția/rolul în companie, poză de profil (opțional), parolă criptată securizat (salt & hash).
+	•	Date de business introduse în module:
+	◦	Modul Vânzări/CRM: Date de contact ale clienților (nume, adrese de livrare, coduri fiscale), tichete suport (subiect, mesaje, status).
+	◦	Modul HR/Salarizare: Date de identificare ale angajaților, CNP, pontaj, detalii salariale, conturi bancare.
+	◦	Modul Financiar/Contabilitate: Facturi, chitanțe, tranzacții bancare, registre de casă.
+
+B. Date colectate automat prin utilizarea Aplicației pe iOS
+	•	Informații despre dispozitiv: Modelul de iPhone/iPad, versiunea sistemului de operare iOS, identificatori unici de dispozitiv (UUID, IDFV - Identifier for Vendors), limba setată, fusul orar și informații despre rețeaua mobilă/Wi-Fi.
+	•	Date de log și diagnostic (Crash Logs): În cazul unei erori a Aplicației, colectăm automat rapoarte de eroare (prin instrumente cum ar fi Apple Crashlytics) care conțin starea sistemului în momentul prăbușirii, pentru a remedia bug-urile.
+	•	Date de utilizare (Analytics): Acțiuni efectuate în aplicație (ex: ecrane vizualizate, butoane apăsate, timpul petrecut într-un modul), colectate în mod anonimizat sau pseudonimizat.
+
+C. Permisiuni iOS utilizate și Justificarea lor (App Permissions)
+
+În conformitate cu politicile Apple, Aplicația va solicita acces la anumite funcții iOS doar în momentul în care utilizarea lor este strict necesară pentru îndeplinirea unei acțiuni din ERP:
+
+Permisiune iOS — Justificare Tehnică și Operațională
+
+Locație (Curentă / În Fundal) — Utilizată exclusiv pentru modulele de teren: pontaj geolocalizat (Clock-in/Clock-out), urmărirea rutelor agenților de vânzări sau livratorilor. Nu urmărim locația în fundal fără acordul explicit și setarea prealabilă din ERP.
+
+Cameră Foto — Pentru scanarea codurilor de bare/QR în gestiunea stocurilor, scanarea documentelor/bonurilor fiscale pentru deconturi și atașarea lor direct în contabilitate.
+
+Fotografii / Galerie (Photos Library) — Pentru a permite utilizatorului să încarce contracte, imagini ale produselor din stoc sau documente PDF deja salvate pe dispozitiv.
+
+Notificări Push (Apple APNs) — Pentru alerte critice de sistem: aprobări de fluxuri (workflow-uri), notificări de stoc limitat, mesaje interne între departamente sau task-uri noi alocate.
+
+Face ID / Touch ID — Pentru securizarea accesului local în aplicație, oferind o metodă rapidă și sigură de autentificare biometrică. Datele biometrice nu părăsesc niciodată enclava securizată a dispozitivului (Secure Enclave Apple); noi primim doar un răspuns de tip succes/eșec.
+
+4. SCOPURILE PRELUCRĂRII ȘI TEMEIURILE JURIDICE
+
+Prelucrăm datele cu caracter personal în baza următoarelor temeiuri juridice din GDPR:
+
+1. Executarea unui contract (Art. 6 alin. 1 lit. b din GDPR)
+	•	Furnizarea funcționalităților complete ale Aplicației ERP Mobile conform Termenilor și Condițiilor semnate cu compania dumneavoastră.
+	•	Crearea, administrarea și securizarea conturilor de utilizator.
+	•	Procesarea operațiunilor efectuate în cadrul modulelor ERP (generare facturi, procesare salarii, managementul stocurilor).
+
+2. Îndeplinirea unei obligații legale (Art. 6 alin. 1 lit. c din GDPR)
+	•	Păstrarea înregistrărilor financiar-contabile conform legislației fiscale din România.
+	•	Asigurarea măsurilor de securitate cibernetică și raportarea eventualelor breșe de securitate către Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP).
+
+3. Interesul legitim al Operatorului (Art. 6 alin. 1 lit. f din GDPR)
+	•	Optimizarea performanței Aplicației iOS, rezolvarea problemelor tehnice și îmbunătățirea experienței utilizatorului (UI/UX).
+	•	Prevenirea fraudelor, a utilizării abuzive sau a atacurilor cibernetice asupra infrastructurii Cloud ERP.
+	•	Constatarea, exercitarea sau apărarea unui drept în instanță în cazul unor litigii comerciale.
+
+4. Consimțământul utilizatorului (Art. 6 alin. 1 lit. a din GDPR)
+	•	Trimiterea de notificări de tip marketing (dacă este cazul) sau accesarea anumitor senzori ai telefonului (cum ar fi localizarea GPS exactă, acolo unde legislația muncii impune consimțământul expres pentru monitorizarea flotei/angajaților).
+
+5. PĂSTRAREA ȘI STOCAREA DATELOR (RETENȚIA DATELOR)
+
+Datele dumneavoastră sunt stocate în medii cloud securizate situate pe teritoriul Uniunii Europene (ex: AWS Frankfurt / Microsoft Azure Dublin / Google Cloud), asigurând conformitatea deplină cu standardele de suveranitate a datelor.
+
+Perioada de retenție diferă în funcție de tipul datelor:
+	•	Datele contului de utilizator: Sunt păstrate pe întreaga durată a contractului comercial dintre DATECONTA.RO și Client, plus o perioadă de 36 de luni de la rezilierea contractului, pentru istoricul auditului tehnic și rezolvarea eventualelor dispute.
+	•	Datele financiar-contabile introduse în ERP: Sunt păstrate timp de 10 ani, în conformitate cu reglementările Codului Fiscal din România privind arhivarea documentelor justificative.
+	•	Datele de localizare (GPS): Dacă sunt colectate pentru pontaj sau rute, sunt stocate pentru o perioadă de maximum 30 de zile (sau conform politicii interne de HR a angajatorului dumneavoastră), după care sunt șterse automat sau anonimizate.
+	•	Rapoartele de crash (iOS Diagnostic): Sunt păstrate pentru maximum 90 de zile, fiind utilizate strict pentru debugging.
+
+6. DEZVĂLUIREA ȘI PARTAJAREA DATELOR
+
+Nu vindem, nu închiriem și nu tranzacționăm datele cu caracter personal către terțe părți. Datele pot fi transmise sau accesate de următoarele categorii de destinatari, sub reguli stricte de confidențialitate:
+
+1. Furnizori de servicii Cloud și Infrastructură IT: Furnizorii de hosting, baze de date și servicii de securitate (ex: AWS, Google Cloud, Microsoft Azure).
+
+2. Furnizori de instrumente integrate (Third-Party SDKs):
+	◦	Apple Inc.: Pentru procesarea notificărilor push (APNs) și diagnosticarea erorilor prin TestFlight/App Store Connect.
+	◦	Servicii de Analytics/Crash Reporting: (ex: Firebase Crashlytics, Sentry) utilizate exclusiv pentru monitorizarea stabilității aplicației.
+
+3. Autorități publice și instituții ale statului: (ANAF, instanțe judecătorești, organe de poliție) doar în baza unei obligații legale exprese și în limitele legii.
+
+4. Integrare cu terți la cererea Clientului: Dacă activați integrări API din ERP-ul mobil cu bănci (Open Banking), curieri (FAN Courier, DPD etc.) sau marketplace-uri (eMAG), datele necesare vor fi transmise către acești parteneri conform instrucțiunilor dumneavoastră.
+
+Transferuri Internaționale de Date
+
+Dacă unii dintre subîmputerniciții noștri tehnici își au sediul în afara Spațiului Economic European (SEE), cum ar fi în SUA, ne asigurăm că transferurile de date sunt protejate prin Clauze Contractuale Standard (SCCs) aprobate de Comisia Europeană și, acolo unde este aplicabil, prin cadrul EU-U.S. Data Privacy Framework.
+
+7. MĂSURI DE SECURITATE CONFORM STANDARDELOR APPLE ȘI ENISA
+
+Securitatea datelor de business este prioritatea noastră absolută. Am implementat măsuri tehnice și organizatorice avansate, inclusiv, dar fără a se limita la:
+	•	Criptare în Tranzit (Data in Transit): Toate comunicațiile dintre Aplicația iOS și serverele noastre API se realizează prin protocoale securizate HTTPS cu criptare TLS 1.3 și tehnici de SSL Pinning pentru a preveni atacurile de tip Man-in-the-Middle (MitM).
+	•	Criptare în Repaus (Data at Rest): Baza de date centrală este criptată utilizând algoritmul AES-256. Datele salvate local pe dispozitivul iOS (cache-ul aplicației) sunt stocate în iOS Keychain și sunt protejate prin criptarea nativă oferită de Apple la nivel de hardware.
+	•	Controlul Accesului: Autentificare multifactor (MFA/2FA) obligatorie sau opțională pentru utilizatori, politici stricte de parole și control al accesului bazat pe roluri (RBAC - Role-Based Access Control).
+	•	Audituri de Securitate: Realizăm periodic teste de penetrare (Pen-Testing) și scanări de vulnerabilități pe infrastructura ERP.
+	•	Izolarea Datelor (Multi-Tenancy): Datele fiecărei companii client sunt izolate logic sau fizic în baze de date separate, prevenind riscul scurgerii de date între clienți diferiți.
+
+8. DREPTURILE PERSOANELOR VIZATE (CONFORM GDPR)
+
+În conformitate cu GDPR, beneficiați de următoarele drepturi specifice. Menționăm din nou că, dacă sunteți angajat al unui client ERP, este posibil să fie necesar să vă adresați direct angajatorului dumneavoastră pentru exercitarea acestor drepturi, deoarece acesta controlează baza de date operatională.
+
+	•	Dreptul de acces (Art. 15): Puteți solicita o confirmare a faptului că datele dumneavoastră sunt prelucrate și o copie a acestora.
+	•	Dreptul la rectificare (Art. 16): Puteți solicita corectarea datelor inexacte sau completarea celor incomplete (multe dintre acestea pot fi modificate direct din profilul utilizatorului din Aplicație).
+	•	Dreptul la ștergerea datelor („dreptul de a fi uitat”) (Art. 17): Puteți solicita ștergerea datelor în anumite condiții (ex: datele nu mai sunt necesare scopului, v-ați retras consimțământul). Acest drept nu se aplică datelor pe care suntem obligați legal să le păstrăm (ex: facturi).
+	•	Dreptul la restricționarea prelucrării (Art. 18): Puteți cere blocarea temporară a prelucrării datelor în anumite cazuri.
+	•	Dreptul la portabilitatea datelor (Art. 20): Puteți cere exportul datelor dumneavoastră într-un format structurat, utilizat în mod curent și lizibil automat (ex: JSON, CSV, Excel).
+	•	Dreptul de opoziție (Art. 21): Vă puteți opune prelucrărilor bazate pe interesul nostru legitim din motive legate de situația dumneavoastră particulară.
+	•	Dreptul de a nu fi supus unei decizii individuale automatizate (Art. 22): Aplicația noastră nu utilizează algoritmi de profiling sau decizii 100% automatizate care să producă efecte juridice asupra dumneavoastră.
+
+Pentru a vă exercita oricare dintre aceste drepturi, puteți trimite o cerere scrisă, semnată și datată, la adresa de e-mail: ERPMobile@dateconta.ro. Vom răspunde solicitării dumneavoastră în termen de maximum 45 de zile.
+
+De asemenea, aveți dreptul de a depune o plângere la autoritatea națională de supraveghere:
+
+Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP)
+B-dul G-ral. Gheorghe Magheru 28-30, Sector 1, Cod poștal 010336, București, România
+www.dataprotection.ro | anspdcp@dataprotection.ro
+
+9. CONFIDENȚIALITATEA MINORILOR
+
+Aplicația ERP MOBILE este un instrument software de tip Business-to-Business (B2B) destinat exclusiv profesioniștilor, companiilor și utilizării în cadru comercial sau de angajare. Aplicația nu este adresată și nu este concepută pentru a colecta cu bună știință date de la persoane cu vârsta sub 18 ani (sau sub 16 ani, în funcție de jurisdicție). În cazul în care descoperim că au fost introduse din eroare date ale unui minor fără acordul părinților, le vom șterge imediat din sistemele noastre.
+
+10. ACTUALIZĂRI ALE ACESTEI POLITICI
+
+Ne rezervăm dreptul de a actualiza și modifica această Politică de confidențialitate periodic, pentru a reflecta schimbările de legislație, cerințele noi ale Apple App Store sau modificările aduse modulelor și funcționalităților ERP-ului nostru.
+
+În cazul unor modificări substanțiale, vă vom notifica prin intermediul unui ecran de alertă în interiorul Aplicației la următoarea deschidere (In-App Notification) sau prin e-mail, solicitându-vă revizuirea și, după caz, acceptarea noilor termeni înainte de a continua utilizarea Aplicației. Continuarea utilizării după intrarea în vigoare a modificărilor constituie acceptarea implicită a acestora.
+
+11. DATE DE CONTACT
+
+Pentru orice întrebări, clarificări sau solicitări legate de această Politică de confidențialitate sau de modul în care Aplicația iOS ERP Mobile gestionează datele dumneavoastră, vă rugăm să ne contactați la:
+
+	•	Denumire Completă: DATECONTA.RO
+	•	În atenția: Responsabilului cu Protecția Datelor (DPO)
+	•	E-mail dedicat: ERPMobile@dateconta.ro
+	•	Telefon: +40.786.500.005
+
+Această Politică de confidențialitate a fost redactată pentru a asigura transparența și conformitatea.

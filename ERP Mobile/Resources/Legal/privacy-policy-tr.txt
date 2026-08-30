@@ -1,0 +1,150 @@
+GİZLİLİK POLİTİKASI
+Son güncelleme: 5 Haziran 2026
+
+Bu Gizlilik Politikası, Bükreş merkezli DATECONTA.RO'nin (bundan sonra "Şirket", "Biz" veya "Operatör" olarak anılacaktır) iOS - ERP MOBILE (bundan sonra "Uygulama" veya "ERP Mobile" olarak anılacaktır) mobil uygulamasını kullandığınızda kişisel verileri nasıl topladığını, kullandığını, sakladığını, paylaştığını ve koruduğunu açıklamaktadır.
+
+Lütfen bu belgeyi dikkatlice okuyun. Uygulamayı indirerek, kurarak, hesap oluşturarak ve kullanarak bu Gizlilik Politikasında açıklanan uygulamaları anlıyor ve kabul ediyorsunuz. Bu şartları kabul etmiyorsanız lütfen Uygulamayı kurmayın veya kullanmayın.
+
+1. VERİ İŞLEMENİN TEMEL İLKELERİ
+
+Mobil ERP (Kurumsal Kaynak Planlama) çözümü sağlayıcısı olarak, sistemimize girilen iş verilerinin ve kişisel verilerin kritik öneminin farkındayız. Veri işleme aşağıdakilere uygun olarak gerçekleştirilir:
+	• Kişisel verilerin işlenmesiyle ilgili olarak gerçek kişilerin korunmasına ilişkin Yönetmelik (AB) 2016/679 (GDPR).
+	• Kanun no. Romanya'da GDPR uygulamaya yönelik tedbirlere ilişkin 190/2018.
+	• Apple App Store İnceleme Yönergeleri, özellikle Gizlilik ve Veri Güvenliği ile ilgili Bölüm 5.1.
+
+2. ROLÜMÜZ: OPERATÖR VS. GÜÇLENDİRİLMİŞ (VERİ İŞLEMCİSİ)
+
+ERP Mobile Uygulaması içerisinde verilerin yönetildiği iki yöntem arasında ayrım yapmak önemlidir:
+	• Operatör (Veri Sorumlusu) Olarak Biz: Şirketinizle olan ticari ilişkinin yönetilmesi amacıyla toplanan verilerin (tüzel kişi müşterinin fatura verileri, yöneticilerin/yasal temsilcilerin iletişim verileri, Ana kullanıcı hesap verileri) operatörüyüz.
+	• Yetkili Olarak Biz (Veri İşleyicisi): ERP modüllerine kullanıcılar tarafından girilen tüm iş verileri (müşterilerimizin çalışanlarının verileri, son kullanıcının müşterilerinin verileri, faturalar, maaşlar, stoklar, tıbbi kayıtlar vb.) için Müşterimiz (İşvereniniz/Şirketiniz) Veri Operatörü olup, Biz sadece teknik altyapıyı sağlayan Yetkili Acenteyiz. Bu politika her iki hususu da düzenlemektedir ancak şirket tarafından ERP'ye girilen verilere ilişkin çalışan hakları doğrudan işverenle birlikte kullanılmalıdır.
+
+3. TOPLANAN VERİLERİN KATEGORİLERİ VE TOPLAMA YÖNTEMİ
+
+Uygulama, etkinleştirilen ERP modüllerine ve iOS cihazında verilen izinlere bağlı olarak çeşitli türde bilgiler toplar:
+
+A. Doğrudan kullanıcı tarafından sağlanan veriler
+	• Kimlik doğrulama ve profil verileri: Ad, ad, mesleki e-posta adresi, telefon numarası, işveren şirketin adı, şirketteki görev/rol, profil resmi (isteğe bağlı), şifrelenmiş güvenli parola (tuz ve karma).
+	• Modüllere girilen iş verileri:
+	◦ Satış Modülü/CRM: Müşteri iletişim verileri (isimler, teslimat adresleri, vergi kodları).
+	◦ Modül HR/Bordro: Çalışan kimlik verileri, CNP, zaman, maaş ayrıntıları, banka hesapları.
+	◦ Finans/Muhasebe Modülü: Faturalar, makbuzlar, banka işlemleri, yazar kasalar.
+
+B. iOS Üzerindeki Uygulamanın Kullanımı Yoluyla Otomatik Olarak Toplanan Veriler
+	• Cihaz bilgileri: iPhone/iPad modeli, işletim sistemi sürümü iOS, benzersiz cihaz tanımlayıcıları (UUID, IDFV - Satıcılar için Tanımlayıcı), dil seti, saat dilimi ve hücresel/Wi-Fi ağ bilgileri.
+	• Günlük ve tanılama verileri (Kilitlenme Günlükleri): Bir Uygulama hatası durumunda, hataları düzeltmek için, çökme anındaki sistemin durumunu içeren kilitlenme raporlarını (Apple Crashlytics gibi araçlar aracılığıyla) otomatik olarak toplarız.
+	• Kullanım verileri (Analitik): Uygulamada gerçekleştirilen eylemler (örneğin: görüntülenen ekranlar, basılan düğmeler, bir modülde geçirilen süre), anonim olarak veya takma ad kullanılarak toplanır.
+
+C. Kullanılan iOS İzinleri ve Gerekçeleri (Uygulama İzinleri)
+
+Apple politikalarına uygun olarak Uygulama, belirli iOS işlevlerine yalnızca bunların kullanımının bir ERP eylemi gerçekleştirmek için kesinlikle gerekli olduğu durumlarda erişim isteyecektir:
+
+İzin iOS — Teknik ve Operasyonel Gerekçe
+
+Konum (Geçerli / Arka Plan) — Yalnızca saha modülleri için kullanılır: coğrafi konumlu zaman işleyişi (Giriş/Saat Çıkışı), satış temsilcilerinin veya teslimatçıların rotalarının takibi. Açık izin olmadan ve ERP'de önceden ayarlama yapılmadan arka planda konumu takip etmiyoruz.
+
+Kamera — Envanter yönetiminde barkodları/QR'leri taramak, ekstreler için vergi belgelerini/makbuzlarını taramak ve bunları doğrudan muhasebeye eklemek için.
+
+Fotoğraflar / Galeri (Fotoğraf Kitaplığı) — Kullanıcının sözleşmeleri, stok ürün resimlerini veya cihazda önceden kayıtlı olan PDF belgelerini yüklemesine izin vermek için.
+
+Anında Bildirimler (Apple APNs) — Kritik sistem uyarıları için: iş akışı onayları, sınırlı stok bildirimleri, departmanlar arasındaki dahili mesajlar veya yeni atanan görevler.
+
+Face ID / Touch ID — Hızlı ve güvenli bir biyometrik kimlik doğrulama yöntemi sağlayarak uygulamaya yerel erişimi güvence altına almak için. Biyometrik veriler hiçbir zaman cihazın güvenli bölgesinden (Secure Enclave Apple) ayrılmaz; yalnızca başarı/başarısızlık yanıtı alırız.
+
+4. İŞLEME AMAÇLARI VE HUKUKİ DAYANAĞI
+
+Kişisel verileri GDPR'de aşağıdaki yasal gerekçelere dayanarak işleriz:
+
+1. Bir sözleşmenin imzalanması (Mad. 6 paragraf 1, bent b, GDPR)
+	• Şirketinizle imzalanan Şartlar ve Koşullar uyarınca ERP Mobile Uygulamasının tam işlevselliğinin sağlanması.
+	• Kullanıcı hesaplarının oluşturulması, yönetilmesi ve güvenliğinin sağlanması.
+	• ERP modülleri içerisinde gerçekleştirilen operasyonların işlenmesi (fatura oluşturma, maaş işleme, stok yönetimi).
+
+2. Yasal bir yükümlülüğün yerine getirilmesi (Mad. 6 paragraf 1, c harfi, GDPR)
+	• Mali muhasebe kayıtlarını Romanya mali mevzuatına göre tutmak.
+	• Siber güvenlik tedbirlerinin sağlanması ve olası güvenlik ihlallerinin Kişisel Verilerin İşlenmesine İlişkin Ulusal Denetleyici Otoriteye (ANSPDCP) raporlanması.
+
+3. Operatörün meşru menfaati (GDPR Madde 6 paragraf 1 f harfi)
+	• iOS Uygulamasının performansının optimize edilmesi, teknik sorunların çözülmesi ve kullanıcı deneyiminin iyileştirilmesi (UI/UX).
+	• Bulut ERP altyapısına yönelik dolandırıcılık, kötüye kullanım veya siber saldırıların önlenmesi.
+	• Ticari uyuşmazlıklarda bir hakkın tesisi, kullanılması veya mahkemede savunulması.
+
+4. Kullanıcı onayı (GDPR Madde 6 paragraf 1 harf a)
+	• Pazarlama türü bildirimler göndermek (varsa) veya belirli telefon sensörlerine erişim (örneğin iş kanununun filo/çalışan izleme için açık onay gerektirdiği tam GPS konumu).
+
+5. VERİLERİN SAKLANMASI VE SAKLANMASI (VERİ SAKLAMA)
+
+Verileriniz, Avrupa Birliği topraklarında bulunan güvenli bulut ortamlarında (örneğin: AWS Frankfurt / Microsoft Azure Dublin / Google Cloud) depolanır ve veri egemenliği standartlarına tam uyum sağlanır.
+
+Saklama süresi veri türüne bağlı olarak farklılık gösterir:
+	• Kullanıcı hesabı verileri: Teknik denetim geçmişi ve olası anlaşmazlıkların çözümü için DATECONTA.RO ile Müşteri arasındaki ticari sözleşmenin tüm süresi boyunca ve ayrıca sözleşmenin feshinden sonraki 36 aylık süre boyunca saklanır.
+	• ERP'ye girilen mali muhasebe verileri: Romanya Mali Kanununun destekleyici belgelerin arşivlenmesine ilişkin düzenlemelerine uygun olarak 10 yıl süreyle saklanır.
+	• Konum verileri (GPS): Zaman işleyişi veya rotalar için toplanırsa, maksimum 30 gün süreyle (veya işvereninizin dahili HR politikasına göre) saklanır ve sonrasında otomatik olarak silinir veya anonim hale getirilir.
+	• Kilitlenme raporları (iOS Teşhis): Maksimum 90 gün boyunca saklanırlar ve yalnızca hata ayıklama amacıyla kullanılırlar.
+
+6. VERİLERİN AÇIKLANMASI VE PAYLAŞIMI
+
+Kişisel verileri üçüncü taraflara satmıyor, kiralamıyor veya takas etmiyoruz. Veriler, sıkı gizlilik kuralları kapsamında aşağıdaki alıcı kategorileri tarafından iletilebilir veya bunlara erişilebilir:
+
+1. Bulut hizmetleri ve BT Altyapısı Sağlayıcıları: Barındırma, veritabanları ve güvenlik hizmetleri sağlayıcıları (örneğin: AWS, Google Cloud, Microsoft Azure).
+
+2. Entegre araç sağlayıcıları (Üçüncü Taraf SDK'lar):
+	◦ Apple Inc.: Anlık bildirimleri (APNs) işlemek ve TestFlight/App Store Connect aracılığıyla hataları teşhis etmek için.
+	◦ Analitik/Çökme Raporlama hizmetleri: (ör.: Firebase Crashlytics, Sentry) yalnızca uygulamanın kararlılığını izlemek için kullanılır.
+
+3. Kamu otoriteleri ve devlet kurumları: (ANAF, mahkemeler, polis teşkilatları) yalnızca açık bir yasal yükümlülük temelinde ve yasanın sınırları dahilinde.
+
+4. Müşterinin talebi üzerine üçüncü taraflarla entegrasyon: Mobil ERP'den bankalar (Open Banking), kuryeler (FAN Courier, DPD, vb.) veya pazaryerleri (eMAG) ile API entegrasyonlarını etkinleştirirseniz, talimatlarınız doğrultusunda gerekli veriler bu ortaklara iletilecektir.
+
+Uluslararası Veri Aktarımları
+
+Teknik alt yüklenicilerimizden bazılarının SUA gibi Avrupa Ekonomik Alanı (SEE) dışında yerleşik olması durumunda, veri aktarımlarının Avrupa Komisyonu tarafından onaylanan Standart Sözleşme Maddeleri (SCCs) ve uygulanabilir olduğunda EU-U.S. Data Privacy Framework çerçevesi tarafından korunmasını sağlarız.
+
+7. APPLE VE ENISA STANDARTLARINA GÖRE GÜVENLİK ÖNLEMLERİ
+
+İş verilerinin güvenliği mutlak önceliğimizdir. Aşağıdakiler dahil ancak bunlarla sınırlı olmamak üzere gelişmiş teknik ve organizasyonel önlemler uyguladık:
+	• Aktarım Halinde Şifreleme (Aktarım Halindeki Veriler): iOS Uygulaması ile API sunucularımız arasındaki tüm iletişimler, Ortadaki Adam saldırılarını (MitM) önlemek için TLS 1.3 şifreleme ve SSL Sabitleme tekniklerine sahip güvenli HTTPS protokolleri aracılığıyla yapılır.
+	• Dinlenme Halinde Şifreleme (Durma Halindeki Veriler): Merkezi veritabanı AES-256 algoritması kullanılarak şifrelenir. iOS cihazında (uygulama önbelleği) yerel olarak kaydedilen veriler iOS Anahtar Zincirinde depolanır ve Apple'ın yerel donanım düzeyinde şifrelemesiyle korunur.
+	• Erişim Kontrolü: Kullanıcılar için çok faktörlü kimlik doğrulama (MFA/2FA), zorunlu veya isteğe bağlı, katı şifre politikaları ve rol tabanlı erişim kontrolü (RBAC - Rol Tabanlı Erişim Kontrolü).
+	• Güvenlik Denetimleri: ERP altyapısı üzerinde periyodik olarak sızma testleri (Pen-Testing) ve zafiyet taramaları gerçekleştiriyoruz.
+	• Veri İzolasyonu (Çoklu Kiralama): Her müşteri firmanın verileri mantıksal veya fiziksel olarak ayrı veritabanlarında izole edilerek, farklı müşteriler arasında veri sızıntısı riski önlenir.
+
+8. İLGİLİ KİŞİLERİN HAKLARI (GDPR UYARINCA)
+
+GDPR uyarınca aşağıdaki özel haklara sahipsiniz. Yine, bir ERP müşterisinin çalışanıysanız, operasyonel veritabanını kontrol ettikleri için bu hakları kullanmak için doğrudan işvereninizle iletişime geçmeniz gerekebilir.
+
+	• Erişim hakkı (Mad. 15): Verilerinizin işlendiğine dair teyit ve bir kopyasını talep edebilirsiniz.
+	• Düzeltme hakkı (Mad. 16): Yanlış verilerin düzeltilmesini veya eksik verilerin tamamlanmasını talep edebilirsiniz (bunların çoğu doğrudan Uygulamadaki kullanıcı profilinden değiştirilebilir).
+	• Verileri silme hakkı ("unutulma hakkı") (Mad. 17): Belirli koşullar altında verilerin silinmesini talep edebilirsiniz (örneğin: verilerin amaç için artık gerekli olmaması, onayınızı geri çekmeniz). Bu hak, yasal olarak saklamakla yükümlü olduğumuz veriler (örn. faturalar) için geçerli değildir.
+	• İşlemeyi kısıtlama hakkı (Mad. 18): Belirli durumlarda veri işlemenin geçici olarak engellenmesini talep edebilirsiniz.
+	• Veri taşınabilirliği hakkı (Mad. 20): Verilerinizin yapılandırılmış, yaygın olarak kullanılan ve makine tarafından okunabilir bir formatta (örneğin: JSON, CSV, Excel) dışa aktarılmasını talep edebilirsiniz.
+	• İtiraz hakkı (Mad. 21): Özel durumunuzla ilgili nedenlerden dolayı meşru menfaatimize dayanarak işlemeye itiraz edebilirsiniz.
+	• Bireysel otomatik karara tabi olmama hakkı (Mad. 22): Uygulamamız, sizin üzerinizde hukuki sonuç doğuran profil oluşturma algoritmaları veya %100 otomatik kararlar kullanmamaktadır.
+
+Bu haklardan herhangi birini kullanmak için yazılı, imzalı ve tarihli talebinizi ERPMobile@dateconta.ro e-posta adresine gönderebilirsiniz. Talebinize maksimum 45 gün içerisinde cevap vereceğiz.
+
+Ayrıca ulusal denetim makamına şikayette bulunma hakkına da sahipsiniz:
+
+Kişisel Verilerin İşlenmesinin Denetlenmesine İlişkin Ulusal Kurum (ANSPDCP)
+G-ral Bulvarı. Gheorghe Magheru 28-30, Sektör 1, Posta Kodu 010336, Bükreş, Romanya
+www.dataprotection.ro | anspdcp@dataprotection.ro
+
+9. KÜÇÜKLERİN GİZLİLİĞİ
+
+ERP MOBILE uygulaması, yalnızca profesyonel, kurumsal ve ticari veya istihdam amaçlı kullanıma yönelik bir İşletmeler Arası (B2B) yazılım aracıdır. Uygulama, 18 yaşın altındaki (veya yargı yetkisine bağlı olarak 16 yaşın altındaki) kişilere yönelik değildir ve onlardan bilerek veri toplamak için tasarlanmamıştır. Reşit olmayan bir kişinin verilerinin yanlışlıkla ebeveyn izni olmadan girildiğini tespit edersek, bu verileri sistemlerimizden derhal sileriz.
+
+10. BU POLİTİKADAKİ GÜNCELLEMELER
+
+Mevzuattaki değişiklikleri, yeni Apple App Store gerekliliklerini veya ERP modüllerimiz ve işlevlerimizdeki değişiklikleri yansıtacak şekilde bu Gizlilik Politikasını düzenli aralıklarla güncelleme ve değiştirme hakkını saklı tutuyoruz.
+
+Önemli değişiklikler olması durumunda, Uygulamayı bir sonraki açışınızda Uygulama içindeki bir uyarı ekranı aracılığıyla (Uygulama İçi Bildirim) veya e-posta yoluyla sizi bilgilendireceğiz ve Uygulamayı kullanmaya devam etmeden önce yeni şartları incelemenizi ve gerekiyorsa kabul etmenizi isteyeceğiz. Değişiklikler yürürlüğe girdikten sonra kullanmaya devam etmeniz, bunları zımnen kabul ettiğiniz anlamına gelir.
+
+11. İLETİŞİM VERİLERİ
+
+Bu Gizlilik Politikasıyla veya iOS ERP Mobile Uygulamasının verilerinizi nasıl işlediğiyle ilgili her türlü soru, açıklama veya talep için lütfen bizimle şu adresten iletişime geçin:
+
+	• Tam Ad: DATECONTA.RO
+	• Dikkat: Veri Koruma Görevlisi (DPO)
+	• Özel e-posta: ERPMobile@dateconta.ro
+	• Telefon: +40.786.500.005
+
+Bu Gizlilik Politikası, şeffaflığı ve uyumluluğu sağlamak amacıyla hazırlanmıştır.

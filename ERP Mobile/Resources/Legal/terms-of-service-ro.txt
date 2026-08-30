@@ -1,0 +1,94 @@
+TERMENI ȘI CONDIȚII DE UTILIZARE A APLICAȚIEI MOBILE „ERP Mobile” (iOS)
+Ultima actualizare: 15 August 2026
+
+Versiunea din 15 August 2026 include modulul CRM (tichete suport), Ghid Ajutor, Ce este nou local și accesul la documentația legală (Privacy, Termeni) din tab-ul Ajutor.
+Vă rugăm să citiți cu atenție acești Termeni și Condiții („Contractul”, „Termenii”) înainte de a descărca, instala sau utiliza aplicația mobilă ERP Mobile pentru iOS („Aplicația”), dezvoltată, deținută și administrată de DATECONTA.RO, cu sediul în București / România, numită în continuare „Furnizorul”.
+Prin descărcarea, instalarea, accesarea sau utilizarea Aplicației, dumneavoastră (în calitate de „Utilizator” sau „Client”, persoană fizică sau juridică care acționează în cadrul activității sale comerciale) vă exprimați acordul expres și neechivoc de a respecta acești Termeni. Dacă nu sunteți de acord cu acești Termeni, nu aveți dreptul de a descărca, instala sau utiliza Aplicația și trebuie să o ștergeți imediat de pe dispozitivul dumneavoastră Apple.
+1. DEFINIȚII ȘI INTERPRETARE
+În cuprinsul prezentului document, următorii termeni vor avea înțelesul specificat mai jos, cu excepția cazului în care contextul cere altfel:
+Aplicația ERP Mobile: Aplicația software adaptată pentru sistemul de operare iOS (iPhone, iPad), inclusiv toate actualizările, upgrade-urile și modulele adiționale furnizate de Furnizor.
+Cont de Utilizator: Profilul individual securizat prin credențiale (username și parolă/biometrie) alocat unui angajat sau colaborator al Clientului pentru accesarea sistemului ERP.
+Client: Persoana juridică sau entitatea comercială care a încheiat un contract de servicii/abonament principal cu Furnizorul pentru utilizarea platformei ERP.
+Datele Clientului: Toate informațiile, datele financiare, listele de clienți, stocurile, documentele sau alte materiale introduse, încărcate sau procesate prin intermediul Aplicației de către Utilizatori.
+Apple App Store: Platforma de distribuție digitală operată de Apple Inc., prin intermediul căreia Aplicația este pusă la dispoziție.
+2. ACORDAREA LICENȚEI ȘI RESTRIȚII DE UTILIZARE
+2.1. Licența Limitată
+Sub rezerva respectării stricte a prezentului Contract și a plății abonamentului aferent de către Client, Furnizorul acordă Clientului și Utilizatorilor săi autorizați o licență neexclusivă, netransferabilă, revocabilă și limitată de a descărca, instala și utiliza Aplicația pe dispozitive mobile compatibile proprietate personală sau aflată în controlul Clientului, exclusiv în scopuri interne de business.
+2.2. Restricții Extreme de Utilizare
+Utilizatorului îi este strict interzis, direct sau prin intermediul unor terți:
+Să copieze, modifice, adapteze, traducă sau să creeze opere derivate bazate pe Aplicație;
+Să aplice procedee de inginerie inversă (reverse engineering), decompileze, dezasambleze sau să încerce în orice alt mod să descopere codul sursă al Aplicației;
+Să închirieze, împrumute, revândă, sublicențieze sau să distribuie Aplicația către terțe părți care nu sunt acoperite de contractul principal;
+Să eludeze, dezactiveze sau să interfereze cu elementele de securitate sau sistemele de management al drepturilor digitale (DRM) integrate în sistemul iOS pentru această Aplicație;
+Să folosească Aplicația în scopuri ilegale, frauduloase sau pentru a stoca/transmite materiale cu conținut dăunător (viruși, malware).
+3. CREAREA CONTURILOR, SECURITATEA ȘI ACCESUL
+3.1. Înregistrare și Credențiale
+Pentru a utiliza Aplicația, Utilizatorul trebuie să dețină un cont activ creat în platforma centrală ERP de către administratorul desemnat al Clientului. Utilizatorul se obligă să furnizeze informații exacte, complete și actualizate.
+3.2. Responsabilitatea pentru Securitate
+Clientul și Utilizatorii individuali sunt direct și exclusiv responsabili pentru:
+Păstrarea confidențialității ID-ului de utilizator, a parolelor și a metodelor de autentificare biometrică (FaceID / TouchID).
+Toate activitățile desfășurate sub contul respectiv.
+Anunțarea imediată a Furnizorului în cazul în care suspectează compromiterea unui cont sau un acces neautorizat.
+NOTĂ IMPORTANTĂ PRIVIND SECURITATEA DISPOZITIVELOR: Furnizorul nu va fi tras la răspundere pentru nicio pierdere sau daună cauzată de utilizarea Aplicației pe un dispozitiv iOS modificat neautorizat (operațiune de tip Jailbreak). Utilizarea Aplicației pe dispozitive cu Jailbreak este strict interzisă, deoarece anulează protocoalele de securitate native ale iOS și expune Datele Clientului la riscuri majore de securitate.
+4. PROPRIETATE INTELECTUALĂ ȘI DREPTURI DE AUTOR
+4.1. Proprietatea Furnizorului
+Aplicația, inclusiv dar fără a se limita la designul său, interfața grafică, elementele UX/UI, codul sursă, bazele de date, mărcile comerciale, logo-urile, structura modulelor și know-how-ul utilizat, reprezintă proprietatea intelectuală exclusivă a Furnizorului (sau a licențiatorilor săi) și sunt protejate de legislația națională și internațională privind drepturile de autor și proprietatea intelectuală. Nimic din prezentul document nu constituie un transfer al acestor drepturi către Client sau Utilizator.
+4.2. Proprietatea asupra Datelor introduse de Client
+Clientul păstrează toate drepturile de proprietate intelectuală și drepturile de autor asupra tuturor Datelor Clientului introduse în Aplicație. Prin utilizarea Aplicației, Clientul acordă Furnizorului o licență mondială, limitată și gratuită de a găzdui, transmite, procesa și afișa Datele Clientului, exclusiv în scopul furnizării Serviciilor ERP și al asigurării funcționalității tehnice a Aplicației.
+5. DISPONIBILITATE, SUPORT ȘI ACTUALIZĂRI (UPDATES)
+5.1. Nivelul de Serviciu (SLA)
+Furnizorul va depune eforturi comerciale rezonabile pentru a asigura disponibilitatea Aplicației 24 de ore din 24, 7 zile din 7. Cu toate acestea, accesul poate fi întrerupt temporar din cauza:
+Lucrărilor de mentenanță programate (anunțate de regulă cu minimum 24 de ore înainte);
+Actualizărilor critice de securitate sau remedierii unor erori urgente;
+Unor defecțiuni tehnice ale infrastructurii cloud sau ale rețelelor de telecomunicații independente de Furnizor;
+Modificărilor aduse de Apple în ecosistemul iOS care necesită ajustări tehnice imediate.
+5.2. Actualizări de Sistem (Updates & Upgrades)
+Furnizorul va lansa periodic actualizări ale Aplicației prin intermediul App Store pentru a remedia erori, a îmbunătăți performanța sau a introduce noi module.
+Utilizatorul este de acord să instaleze versiunile cele mai recente ale Aplicației pentru a asigura funcționarea optimă și securizată.
+Furnizorul nu garantează compatibilitatea Aplicației cu versiuni mai vechi ale sistemului de operare iOS (de regulă, se oferă suport doar pentru versiunea curentă de iOS și ultimele două versiuni anterioare majore).
+6. EXCLUDEREA GARANȚIEI ȘI LIMITAREA RĂSPUNDERII
+6.1. Furnizarea Serviciului „Ca atare” (As Is)
+APLICAȚIA ESTE FURNIZATĂ „CA ATARE” ȘI „ÎN MĂSURA DISPONIBILITĂȚII”, FĂRĂ NICIUN FEL DE GARANȚII EXPRESE SAU IMPLICITE. FURNIZORUL EXCLUDE ÎN MOD EXPRES TOATE GARANȚIILE IMPLICITE PRIVIND VANDABILITATEA, POTRIVIREA PENTRU UN ANUMIT SCOP, ACURATEȚEA DATELOR FINANCIARE SAU COMERCIALE EXTRASE ȘI NEÎNCĂLCAREA DREPTURILOR UNOR TERȚI.
+6.2. Limitarea Răspunderii Financiare
+ÎN MAXIMA MĂSURĂ PERMISĂ DE LEGEA APLICABILĂ, FURNIZORUL NU VA FI RĂSPUNZĂTOR ÎN NICIO CIRCUMSTANȚĂ PENTRU DAUNE INDIRECTE, INCIDENTALE, SPECIALE, PUNITIVE SAU DE CONSECINȚĂ, INCLUSIV DAR FĂRĂ A SE LIMITA LA:
+Pierderi de profituri, venituri sau cifră de afaceri;
+Pierderi de date, întreruperea activității comerciale sau pierderea de oportunități comerciale;
+Decizii manageriale sau financiare eronate luate pe baza rapoartelor generate de Aplicație;
+Penalități fiscale sau amenzi aplicate Clientului de către autorități ca urmare a operării incorecte a datelor.
+ÎN TOATE CAZURILE, RĂSPUNDEREA TOTALĂ A FURNIZORULUI PENTRU ORICE PRETENȚIE REZULTATĂ DIN SAU ÎN LEGĂTURĂ CU ACEȘTI TERMENI NU VA DEPĂȘI SUMA TOTALĂ PLĂTITĂ DE CLIENT CĂTRE FURNIZOR PENTRU ABONAMENTUL DE UTILIZARE ÎN ULTIMELE 6 (ȘASE) LUNI ANTERIOARE EVENIMENTULUI CARE A GENERAT RĂSPUNDEREA.
+7. PROTECȚIA DATELOR ȘI CONFIDENȚIALITATEA
+7.1. GDPR și Datele cu Caracter Personal
+Prin utilizarea Aplicației, Furnizorul poate procesa anumite date cu caracter personal ale Utilizatorilor (nume, e-mail, adrese IP, loguri de acces, date de geolocație dacă modulul ERP o cere). Raportul juridic privind prelucrarea datelor cu caracter personal este guvernat de documentul Privacy și de Acordul de Prelucrare a Datelor (DPA) anexat la contractul principal dintre Client și Furnizor, în conformitate cu Regulamentul (UE) 2016/679 (GDPR).
+7.2. Confidențialitatea Informațiilor de Business
+Furnizorul recunoaște că informațiile stocate în ERP sunt strict confidențiale. Furnizorul implementează măsuri tehnice și organizatorice avansate (criptare end-to-end în tranzit, stocare criptată pe servere securizate, audituri periodice) pentru a preveni scurgerea de informații de business către terți.
+8. SUSPENDAREA ȘI ÎNCETAREA CONTRACTULUI
+8.1. Suspendarea Accesului
+Furnizorul își rezervă dreptul de a suspenda imediat și fără notificare prealabilă accesul la Aplicație pentru orice Cont de Utilizator sau pentru întregul Client în următoarele cazuri:
+Întârzierea plății abonamentului cu mai mult de 15 zile de la data scadenței;
+Încălcarea gravă sau repetată a restricțiilor de utilizare (sublicențiere neautorizată, tentative de hacking, reverse engineering);
+Utilizarea Aplicației într-un mod care periclitează stabilitatea serverelor sau securitatea rețelei Furnizorului.
+8.2. Încetarea din Inițiativa Clientului
+Clientul poate renunța la utilizarea Aplicației în conformitate cu clauzele de reziliere din contractul principal de servicii. La încetarea contractului, dreptul de acces la Aplicație încetează imediat, iar Utilizatorii au obligația de a șterge Aplicația de pe toate dispozitivele iOS deținute.
+9. DISPOZIȚII SPECIFICE PENTRU ECOSISTEMUL APPLE (iOS)
+În conformitate cu regulile impuse de Apple Inc. pentru aplicațiile distribuite prin App Store, Clientul și Utilizatorul recunosc și acceptă următoarele:
+Natura Contractului: Prezentul document este încheiat exclusiv între Furnizor și Client/Utilizator. Apple Inc. nu este parte la acest Contract și nu are nicio obligație sau răspundere legată de Aplicație sau de conținutul acesteia.
+Mentenanță și Suport: Furnizorul este singurul responsabil pentru furnizarea serviciilor de mentenanță și suport pentru Aplicație. Apple nu are nicio obligație de a furniza servicii de mentenanță pentru Aplicație.
+Garanții în App Store: În cazul oricărei neconformități a Aplicației cu garanțiile aplicabile, Utilizatorul poate notifica Apple, iar Apple va rambursa prețul de achiziție al Aplicației (dacă este cazul) către Utilizator. În măsura maximă permisă de legea aplicabilă, Apple nu va avea nicio altă obligație de garanție cu privire la Aplicație.
+Pretenții Privind Proprietatea Intelectuală: În cazul în care un terț pretinde că Aplicația încalcă drepturile sale de proprietate intelectuală, Furnizorul, și nu Apple, va fi responsabil pentru investigarea, apărarea, soluționarea și descărcarea oricărei astfel de pretenții.
+Conformitatea cu Reglementările Exporturilor: Utilizatorul declară și garantează că nu se află într-o țară supusă unui embargo al guvernului S.U.A. sau desemnată ca o țară care „susține terorismul” și că nu se află pe nicio listă de părți interzise sau restricționate a guvernului S.U.A.
+Beneficiar Terț: Apple și subsidiarele Apple sunt beneficiari terți ai acestui Contract. Prin acceptarea acestor Termeni, Apple va avea dreptul (și se va considera că a acceptat dreptul) de a pune în executare acest Contract împotriva dumneavoastră în calitate de beneficiar terț.
+10. MODIFICAREA TERMENILOR
+Furnizorul are dreptul de a modifica unilateral acești Termeni și Condiții în orice moment, pentru a reflecta modificările legislative, schimbările tehnologice sau evoluția funcționalităților Aplicației ERP.
+Modificările vor deveni aplicabile în termen de [ex: 15 zile] de la notificarea Utilizatorilor (notificare transmisă prin e-mail sau printr-o alertă de tip in-app în interiorul Aplicației iOS).
+Continuarea utilizării Aplicației după expirarea termenului de notificare constituie acceptarea tacită și deplină a noilor Termeni și Condiții.
+11. LEGEA APLICABILĂ ȘI SOLUȚIONAREA LITIGIILOR
+11.1. Legea Aplicabilă
+Prezentul Contract și toate efectele sale juridice sunt guvernate, interpretate și puse în executare în conformitate cu legile din România.
+11.2. Soluționarea Litigiilor
+Orice litigiu, controversă sau pretenție rezultată din sau în legătură cu acești Termeni și Condiții, inclusiv cu privire la validitatea, interpretarea, executarea sau desființarea acestora, va fi soluționat pe cale amiabilă între reprezentanții părților. În cazul în care soluționarea amiabilă nu este posibilă în termen de 30 de zile de la apariția disputei, litigiul va fi supus spre soluționare exclusivă instanțelor judecătorești competente de la sediul Furnizorului.
+12. DISPOZIȚII FINALE
+Dacă orice clauză din acești Termeni este declarată nulă, ilegală sau inaplicabilă de către o instanță judecătorească, respectiva clauză va fi modificată pentru a reflecta intenția inițială a părților în limitele legii, iar validitatea și aplicabilitatea celorlalte clauze nu vor fi afectate în niciun fel. Prezentul document constituie întregul acord dintre Utilizator și Furnizor cu privire la utilizarea Aplicației pe sistemul iOS, înlocuind orice înțelegeri anterioare scrise sau verbale pe acest subiect (fără a substitui însă contractul comercial principal de servicii ERP semnat între Client și Furnizor).
+Pentru orice întrebări, solicitări de suport sau notificări legate de acești Termeni, ne puteți contacta la:
+E-mail: ERPMobile@dateconta.ro
+Telefon: +40.786.500.005
+Prin continuarea utilizării Aplicației ERP Mobile, confirmați că ați citit, înțeles și agreat să fiți legat juridic de toate clauzele de mai sus.

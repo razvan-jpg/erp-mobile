@@ -1,0 +1,150 @@
+ADATVÉDELMI IRÁNYELV
+Utolsó frissítés: 2026. június 5
+
+Ez az adatvédelmi szabályzat leírja, hogy a bukaresti székhelyű DATECONTA.RO (a továbbiakban: "Vállalat", "Mi" vagy "Üzemeltető") hogyan gyűjti, használja, tárolja, megosztja és védi a személyes adatokat, amikor Ön a iOS - ERP MOBILE mobilalkalmazást (a továbbiakban: "__"KEEP" vagy "__"KEEP2) használja.
+
+Kérjük, figyelmesen olvassa el ezt a dokumentumot. Az Alkalmazás letöltésével, telepítésével, fiók létrehozásával és használatával Ön megérti és elfogadja a jelen Adatvédelmi szabályzatban leírt gyakorlatot. Ha nem fogadja el ezeket a feltételeket, kérjük, ne telepítse és ne használja az Alkalmazást.
+
+1. AZ ADATFELDOLGOZÁS ALAPELVEI
+
+Mobil ERP (Enterprise Resource Planning) megoldás szolgáltatójaként felismerjük a rendszerünkbe bevitt üzleti adatok és személyes adatok kritikus fontosságát. Az adatkezelés az alábbiak szerint történik:
+	• (EU) 2016/679 (GDPR) rendelet a természetes személyek személyes adatok kezelése tekintetében történő védelméről.
+	• törvény 1. sz. A GDPR romániai végrehajtására vonatkozó intézkedésekről szóló 190/2018.
+	• Az Apple App Store felülvizsgálati irányelvei, különösen az adatvédelemről és adatbiztonságról szóló 5.1. szakasz.
+
+2. SZEREPÜNK: OPERÁTOR VS. EMPOWERED (ADATKEZELŐ)
+
+Lényeges különbséget tenni az adatok kezelésének két módja között a ERP Mobile alkalmazáson belül:
+	• Mi, mint Üzemeltető (Adatkezelő): Üzemeltetői vagyunk az Ön cégével fennálló kereskedelmi kapcsolat kezelése céljából gyűjtött adatoknak (jogi személy ügyfél számlázási adatai, ügyintézők/jogi képviselők elérhetőségei, törzsfelhasználói fiók adatai).
+	• Mi, mint felhatalmazott (Adatfeldolgozó): A felhasználók által az ERP-modulokba bevitt összes üzleti adat esetében (ügyfeleink alkalmazottainak adatai, végfelhasználói ügyfelei adatai, számlák, fizetések, készletek, orvosi nyilvántartások stb.) Ügyfelünk (az Ön Munkáltatója/Vállalata) az Adatkezelő, mi pedig csak a műszaki infrastruktúrát biztosító Meghatalmazott ügynök vagyunk. Ez a szabályzat mindkét szempontot szabályozza, de a munkavállalói jogokat a vállalat által az ERP-be bevitt adatokkal kapcsolatban közvetlenül a munkáltatóval kell gyakorolni.
+
+3. A GYŰJTETT ADATOK KATEGÓRIÁI ÉS A GYŰJTÉS MÓDJA
+
+Az alkalmazás többféle információt gyűjt az engedélyezett ERP moduloktól és a iOS eszközön megadott engedélyektől függően:
+
+V. Közvetlenül a felhasználó által megadott adatok
+	• Hitelesítési és profiladatok: Név, keresztnév, szakmai e-mail cím, telefonszám, a foglalkoztató cég neve, beosztás/szerep a cégnél, profilkép (opcionális), titkosított biztonságos jelszó (salt & hash).
+	• A modulokban megadott üzleti adatok:
+	◦ Értékesítési modul/CRM: Ügyfél elérhetőségi adatai (nevek, szállítási címek, adószámok).
+	◦ HR modul/Bérszámfejtés: Munkavállalói azonosító adatok, CNP, idő, fizetési adatok, bankszámlák.
+	◦ Pénzügyi/Számviteli modul: Számlák, nyugták, banki tranzakciók, pénztárgépek.
+
+B. Az alkalmazás használatával automatikusan gyűjtött adatok iOS
+	• Eszközinformáció: iPhone/iPad modell, operációs rendszer verziója iOS, egyedi eszközazonosítók (UUID, IDFV – Eladók azonosítója), nyelvkészlet, időzóna és mobil/Wi-Fi hálózati információk.
+	• Napló- és diagnosztikai adatok (összeomlási naplók): Alkalmazáshiba esetén automatikusan összeomlási jelentéseket gyűjtünk (például az Apple Crashlytics segítségével), amelyek a rendszer összeomláskori állapotát tartalmazzák a hibák kijavítása érdekében.
+	• Használati adatok (Analytics): Az alkalmazásban végrehajtott műveletek (pl. megtekintett képernyők, megnyomott gombok, modulban eltöltött idő), névtelenül gyűjtött vagy álnéven gyűjtött műveletek.
+
+C. A iOS használt engedélyek és azok indoklása (alkalmazásengedélyek)
+
+Az Apple irányelveinek megfelelően az Alkalmazás csak akkor kér hozzáférést bizonyos iOS funkciókhoz, ha azok használata feltétlenül szükséges egy ERP-művelet végrehajtásához:
+
+Engedély iOS — Műszaki és működési indoklás
+
+Helyszín (Jelenlegi / Háttér) – Kizárólag terepi modulokhoz használható: földrajzi hely szerinti időmérő (Clock-in/Clock-out), az értékesítési ügynökök vagy a kézbesítők útvonalának nyomon követése. Nem követjük nyomon a tartózkodási helyet a háttérben kifejezett hozzájárulás és az ERP előzetes beállítása nélkül.
+
+Kamera — Vonalkódok/QR-ek szkenneléséhez a készletkezelésben, adóbizonylatok/nyugták szkenneléséhez kimutatásokhoz és közvetlenül a könyveléshez csatolásához.
+
+Fényképek / Galéria (Fotókönyvtár) — Lehetővé teszi a felhasználó számára az eszközön már elmentett szerződések, raktári termékképek vagy PDF dokumentumok feltöltését.
+
+Push értesítések (Apple APNs) – Kritikus rendszerriasztásokhoz: munkafolyamat-jóváhagyások, korlátozott készletértesítések, részlegek közötti belső üzenetek vagy újonnan kiosztott feladatok.
+
+Face ID / Touch ID – Az alkalmazáshoz való helyi hozzáférés biztosítása, gyors és biztonságos biometrikus hitelesítési módszert biztosítva. A biometrikus adatok soha nem hagyják el az eszköz biztonságos enklávéját (Secure Enclave Apple); csak siker/kudarc választ kapunk.
+
+4. FELDOLGOZÁS CÉLJA ÉS JOGI ALAPJA
+
+Személyes adatokat az alábbi jogalapok alapján kezelünk a GDPR-ban:
+
+1. Szerződés teljesítése (GDPR. 6. cikk (1) bekezdés b) pont)
+	• A ERP Mobile Alkalmazás teljes funkcionalitásának biztosítása az Ön cégével aláírt Általános Szerződési Feltételek szerint.
+	• Felhasználói fiókok létrehozása, kezelése és biztosítása.
+	• Az ERP modulokon belül végzett műveletek feldolgozása (számlakészítés, bérfeldolgozás, készletkezelés).
+
+2. Jogi kötelezettség teljesítése (GDPR. 6. cikk (1) bekezdés c) pont)
+	• Pénzügyi-számviteli nyilvántartás vezetése a román fiskális jogszabályok szerint.
+	• Kiberbiztonsági intézkedések biztosítása és az esetleges biztonsági incidensek bejelentése a Személyes Adatok Feldolgozásának Nemzeti Felügyeletének (ANSPDCP).
+
+3. Az Üzemeltető jogos érdeke (GDPR. 6. cikk 1. bekezdés f) pont)
+	• A iOS Alkalmazás teljesítményének optimalizálása, technikai problémák megoldása és a felhasználói élmény javítása (UI/UX).
+	• A Cloud ERP infrastruktúrát ért csalások, visszaélések vagy számítógépes támadások megelőzése.
+	• Jog megállapítása, gyakorlása vagy bíróság előtti védelme kereskedelmi viták esetén.
+
+4. Felhasználói hozzájárulás (a GDPR. 6. cikk, 1. bekezdés a) pontja)
+	• Marketing jellegű értesítések küldése (adott esetben) vagy bizonyos telefonérzékelők elérése (például pontos GPS hely, ahol a munkajog kifejezett hozzájárulást ír elő a flotta/alkalmazott megfigyeléséhez).
+
+5. AZ ADATOK MEGŐRZÉSE ÉS TÁROLÁSA (ADATTÁROLÁS)
+
+Adatait az Európai Unió területén található biztonságos felhőkörnyezetben tároljuk (pl.: AWS Frankfurt / Microsoft Azure Dublin / Google Cloud), biztosítva az adatszuverenitási szabványoknak való teljes megfelelést.
+
+A megőrzési időszak az adatok típusától függően változik:
+	• Felhasználói fiók adatai: A DATECONTA.RO és az Ügyfél között létrejött kereskedelmi szerződés teljes időtartama alatt, plusz a szerződés megszűnését követő 36 hónapig megőrzik műszaki ellenőrzési előzmények és az esetleges viták megoldása céljából.
+	• Az ERP-be bevitt pénzügyi-számviteli adatok: 10 évig őrzik meg Románia adótörvénykönyvének az igazoló dokumentumok archiválására vonatkozó előírásai szerint.
+	• Helymeghatározási adatok (GPS): Ha időméréshez vagy útvonalakhoz gyűjtik, legfeljebb 30 napig tárolják (vagy a munkáltató belső HR szabályzata szerint), majd automatikusan törlődnek vagy anonimizálják.
+	• Összeomlási jelentések (iOS Diagnosztikai): Legfeljebb 90 napig őrzik meg őket, és szigorúan hibakeresésre használják.
+
+6. ADATOK NYILVÁNTARTÁSA ÉS MEGOSZTÁSA
+
+Személyes adatokat nem adunk el, nem adunk bérbe vagy adunk át harmadik félnek. Az adatokat a címzettek alábbi kategóriái továbbíthatják vagy hozzáférhetnek szigorú titoktartási szabályok betartásával:
+
+1. Felhőszolgáltatások és informatikai infrastruktúra szolgáltatói: Tárhely, adatbázisok és biztonsági szolgáltatások szolgáltatói (pl.: AWS, Google Cloud, Microsoft Azure).
+
+2. Integrált eszközök (harmadik féltől származó SDK-k) szolgáltatói:
+	◦ Apple Inc.: A push értesítések (APNs) feldolgozása és a hibák diagnosztizálása az TestFlight/App Store Connect segítségével.
+	◦ Analytics/Crash Reporting szolgáltatások: (pl.: Firebase Crashlytics, Sentry) kizárólag az alkalmazás stabilitásának figyelésére szolgálnak.
+
+3. Hatóságok és állami intézmények: (ANAF, bíróságok, rendőri szervek) csak kifejezett jogszabályi kötelezettség alapján és a jogszabályi keretek között.
+
+4. Integráció harmadik felekkel az Ügyfél kérésére: Ha engedélyezi az API-integrációkat a mobil ERP-ből bankokkal (Open Banking), futárokkal (FAN Courier, DPD stb.) vagy piacterekkel (eMAG), akkor a szükséges adatokat az Ön utasításai szerint továbbítjuk ezeknek a partnereknek.
+
+Nemzetközi adatátvitel
+
+Ha egyes műszaki alvállalkozóink székhelye az Európai Gazdasági Térségen (SEE) kívül található, például a SUA-ban, akkor biztosítjuk, hogy az adattovábbítást az Európai Bizottság által jóváhagyott Általános Szerződési Feltételek (SCCs), illetve adott esetben a EU-U.S. Data Privacy Framework keretrendszer védjék.
+
+7. BIZTONSÁGI INTÉZKEDÉSEK AZ APPLE ÉS az ENISA SZABVÁNYAI SZERINT
+
+Az üzleti adatok biztonsága abszolút prioritásunk. Speciális technikai és szervezési intézkedéseket vezettünk be, többek között, de nem kizárólagosan:
+	• Titkosítás átvitel közben (Adatok továbbítása): A iOS Alkalmazás és API-szervereink közötti minden kommunikáció biztonságos HTTPS protokollon keresztül történik TLS 1.3 titkosítással és SSL rögzítési technikákkal a Man-in-the-Middle támadások (___KEEP26) megelőzése érdekében.
+	• Titkosítás nyugalmi állapotban (Data at Rest): A központi adatbázis titkosítása a AES-256 algoritmussal történik. A iOS eszközön (alkalmazás-gyorsítótár) helyileg mentett adatokat a iOS kulcstartó tárolja, és az Apple natív hardverszintű titkosítása védi őket.
+	• Hozzáférés-vezérlés: Többtényezős hitelesítés (MFA/2FA) kötelező vagy választható a felhasználók számára, szigorú jelszószabályzat és szerepkör-alapú hozzáférés-szabályozás (RBAC - Szerep alapú hozzáférés-vezérlés).
+	• Biztonsági auditok: Időnként behatolási teszteket (Pen-Testing) és sebezhetőségi vizsgálatokat végzünk az ERP infrastruktúrán.
+	• Adatok elkülönítése (Multi-Tenancy): Az egyes ügyfélcégek adatai logikailag vagy fizikailag külön adatbázisokban vannak elkülönítve, megelőzve a különböző ügyfelek közötti adatszivárgás kockázatát.
+
+8. AZ ÉRINTETT SZEMÉLYEK JOGAI (A GDPR SZERINT)
+
+A GDPR értelmében Ön a következő konkrét jogokkal rendelkezik. Ha Ön egy ERP-ügyfél alkalmazottja, akkor előfordulhat, hogy közvetlenül a munkáltatójához kell fordulnia e jogok gyakorlásához, mivel ők irányítják az operatív adatbázist.
+
+	• Hozzáférés joga (15. cikk): Kérhet igazolást az adatai kezelésének tényéről, és annak másolatát.
+	• Helyesbítéshez való jog (16. cikk): Kérheti a pontatlan adatok helyesbítését, vagy a hiányos adatok kiegészítését (amelyek közül sok közvetlenül módosítható az Alkalmazásban található felhasználói profilból).
+	• Az adatok törléséhez való jog ("az elfelejtéshez való jog") (17. cikk): Ön bizonyos feltételek mellett kérheti az adatok törlését (pl.: az adatok a célhoz már nem szükségesek, Ön visszavonta hozzájárulását). Ez a jog nem vonatkozik azokra az adatokra, amelyeket törvényileg kötelesek vagyunk megőrizni (pl. számlák).
+	• Adatkezelés korlátozásának joga (18. cikk): Ön bizonyos esetekben kérheti az adatkezelés ideiglenes zárolását.
+	• Adathordozhatósághoz való jog (20. cikk): Kérheti adatainak strukturált, általánosan használt és géppel olvasható formátumban történő exportálását (pl.: JSON, CSV, Excel).
+	• Tiltakozáshoz való jog (21. cikk): Ön kifogásolhatja a jogos érdekünkön alapuló adatkezelést az Ön konkrét helyzetével kapcsolatos okokból.
+	• Az egyéni automatizált döntés hatályának mellőzése (22. cikk): Alkalmazásunk nem használ profilalkotási algoritmusokat vagy 100%-ban automatizált döntéseket, amelyek jogi következményekkel járnak Önre nézve.
+
+E jogok gyakorlásához írásos, aláírt és dátummal ellátott kérelmet küldhet a ERPMobile@dateconta.ro e-mail címre. Kérésére legfeljebb 45 napon belül válaszolunk.
+
+Önnek joga van panaszt benyújtani a nemzeti felügyeleti hatósághoz is:
+
+Nemzeti Személyes Adatok Feldolgozását Felügyelő Hatóság (ANSPDCP)
+G-ral Blvd. Gheorghe Magheru 28-30, 1. szektor, irányítószám 010336, Bukarest, Románia
+www.dataprotection.ro | anspdcp@dataprotection.ro
+
+9. KISORÚAK ADATVÉDELME
+
+A ERP MOBILE alkalmazás egy Business-to-Business (B2B) szoftvereszköz, amelyet kizárólag professzionális, vállalati és kereskedelmi vagy foglalkoztatási használatra terveztek. Az Alkalmazás nem 18 éven aluli (illetve joghatóságtól függően 16 éven aluli) személyektől szándékosan adatgyűjtésre irányul, és nem is arra szolgál. Ha azt észleljük, hogy kiskorú adatait tévedésből, szülői beleegyezés nélkül adták meg, azt haladéktalanul töröljük rendszerünkből.
+
+10. EZEN SZABÁLYZAT FRISSÍTÉSEI
+
+Fenntartjuk magunknak a jogot arra, hogy rendszeresen frissítsük és módosítsuk ezt az Adatvédelmi szabályzatot, hogy tükrözze a jogszabályok változásait, az Apple App Store új követelményeit, illetve az ERP-moduljaink és funkcióink változásait.
+
+Lényeges változtatások esetén az Alkalmazáson belüli figyelmeztető képernyőn értesítjük, amikor legközelebb megnyitja azt (Alkalmazáson belüli értesítés) vagy e-mailben, és kérjük, hogy az Alkalmazás használatának folytatása előtt tekintse át és szükség esetén fogadja el az új feltételeket. A változtatások életbe lépése utáni további használat az Ön hallgatólagos elfogadását jelenti.
+
+11. ELÉRHETŐSÉGI ADATOK
+
+Ha bármilyen kérdése, pontosítása vagy kérése van a jelen Adatvédelmi szabályzattal, vagy azzal kapcsolatban, hogy a iOS ERP Mobile hogyan kezeli az Ön adatait, kérjük, lépjen kapcsolatba velünk a következő címen:
+
+	• Teljes név: DATECONTA.RO
+	• Figyelem: adatvédelmi tisztviselő (DPO)
+	• Dedikált e-mail: ERPMobile@dateconta.ro
+	• Telefon: +40.786.500.005
+
+Ez az adatvédelmi szabályzat az átláthatóság és a megfelelőség biztosítása érdekében készült.
