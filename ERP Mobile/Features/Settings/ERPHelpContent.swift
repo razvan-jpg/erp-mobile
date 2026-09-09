@@ -296,6 +296,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_utilities_b4"),
                     L10n.tr("help.section_utilities_b5"),
                     L10n.tr("help.section_utilities_b6"),
+                    L10n.tr("help.section_utilities_b7"),
                 ],
                 screenshotAssetNames: [
                     "HelpUtilitiesMenu",

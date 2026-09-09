@@ -29,6 +29,16 @@ struct UtilitiesRootView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink(destination: ZettaScanImportView()) {
+                        utilityButtonLabel(
+                            title: L10n.tr("utilities.zetta_scan.title"),
+                            subtitle: L10n.tr("utilities.zetta_scan.subtitle"),
+                            systemImage: "doc.viewfinder"
+                        )
+                        .settingsMenuButtonChrome()
+                    }
+                    .buttonStyle(.plain)
+
                     NavigationLink(destination: MT940UtilityView()) {
                         utilityButtonLabel(
                             title: L10n.tr("utilities.mt940.title"),

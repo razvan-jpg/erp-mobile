@@ -21,8 +21,16 @@ enum CashRegisterManualEntryStore {
     }
 
     static func append(_ entry: CashRegisterManualEntry, companyId: UUID) {
+        upsert(entry, companyId: companyId)
+    }
+
+    static func upsert(_ entry: CashRegisterManualEntry, companyId: UUID) {
         var entries = load(companyId: companyId)
-        entries.append(entry)
+        if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+            entries[index] = entry
+        } else {
+            entries.append(entry)
+        }
         entries.sort { lhs, rhs in
             if lhs.date != rhs.date { return lhs.date < rhs.date }
             return lhs.documentNumber.localizedCaseInsensitiveCompare(rhs.documentNumber) == .orderedAscending

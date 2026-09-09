@@ -134,17 +134,8 @@ private struct PaymentUpdate: Encodable {
 enum ClientService {
     private static let client = SupabaseManager.client
 
-    private static let dateOnlyFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
     private static func dateString(_ date: Date) -> String {
-        dateOnlyFormatter.string(from: date)
+        SupabaseDecoding.dateOnlyString(from: date)
     }
 
     private static func doubleAmount(_ value: Decimal) -> Double {
@@ -487,13 +478,40 @@ enum ClientService {
 
     // MARK: - Invoices
 
-    static func fetchInvoices() async throws -> [ClientInvoiceRow] {
-        let rows: [ClientInvoiceRow] = try await client
-            .from("client_invoices")
-            .select("*, client:clients(denumire)")
-            .execute()
-            .value
+    static func fetchInvoices(
+        dateFilter: InvoiceListDateFilter = .none
+    ) async throws -> [ClientInvoiceRow] {
+        let rows: [ClientInvoiceRow] = try await SupabasePaging.fetchAll { from, to in
+            var query = client
+                .from("client_invoices")
+                .select("*, client:clients(denumire)")
+            query = applyDateFilter(query, dateFilter)
+            return try await query
+                .order("created_at", ascending: false)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
         return rows.sorted(by: compareInvoiceRowsByDueDate)
+    }
+
+    private static func applyDateFilter(
+        _ query: PostgrestFilterBuilder,
+        _ dateFilter: InvoiceListDateFilter
+    ) -> PostgrestFilterBuilder {
+        switch dateFilter {
+        case .none:
+            return query
+        case .created(let start, let end):
+            return query
+                .gte("created_at", value: InvoiceListDateFilter.timestampString(start))
+                .lt("created_at", value: InvoiceListDateFilter.timestampString(end))
+        case .invoiceDate(let start, let end):
+            return query
+                .gte("data_factura", value: InvoiceListDateFilter.dateOnlyString(start))
+                .lte("data_factura", value: InvoiceListDateFilter.dateOnlyString(end))
+        }
     }
 
     static func fetchInvoiceRow(id: UUID) async throws -> ClientInvoiceRow {
@@ -678,6 +696,16 @@ enum ClientService {
             .from("client_payments")
             .select("*, client:clients(denumire), invoice:client_invoices(numar_factura)")
             .order("data_plata", ascending: false)
+            .execute()
+            .value
+    }
+
+    static func fetchCashPayments() async throws -> [ClientPaymentRow] {
+        try await client
+            .from("client_payments")
+            .select("*, client:clients(denumire), invoice:client_invoices(numar_factura)")
+            .eq("metoda_plata", value: PaymentMethod.numerar.rawValue)
+            .order("data_plata", ascending: true)
             .execute()
             .value
     }

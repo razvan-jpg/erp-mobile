@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 30 august 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · August 30, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 9 septembrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · September 9, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.033",
+            targetVersionLabel: "1.0.049",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
@@ -37,6 +37,206 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.048", "09.09.2026",
+                ro: [
+                    "Z-uri scanate → import Zetta: Excel-ul și PDF-urile sunt pe firma citită de pe Z, nu pe societatea din bara de jos. Fiecare PDF are data Z-ului. Salvare separată: un PDF cu toate, PDF-uri per Z, sau Excel.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Scanned Z reports → Zetta import: Excel and PDFs use the firm read from the Z, not the company in the status bar. Each PDF has the Z date. Save separately: one PDF with all, PDFs per Z, or Excel.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.047", "09.09.2026",
+                ro: [
+                    "Utilitare Zetta: Excel-ul și PDF-urile se creează pe societatea activă, nu pe firma tipărită pe Z-ul scanat.",
+                    "Z-uri scanate: salvare separată — un PDF cu toate Z-urile, câte un PDF per Z (cu data Z-ului), sau Excel-ul.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Zetta utilities: Excel and PDFs are created for the active company, not the firm printed on the scanned Z.",
+                    "Scanned Z reports: save separately — one PDF with all Z reports, one PDF per Z (with the Z date), or the Excel file.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.046", "09.09.2026",
+                ro: [
+                    "Utilitare: Z-uri scanate → import Zetta — încărcați poze sau PDF-uri cu Rapoarte Z; aplicația le citește pe modelul Raport_Z_model.pdf și creează fișierul de import Zetta.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Utilities: Scanned Z reports → Zetta import — upload Z report photos or PDFs; the app reads them using Raport_Z_model.pdf and builds the Zetta import file.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.045", "08.09.2026",
+                ro: [
+                    "Registru de casă: documentele create manual rămân în listă; dacă goliți registrele generate, la generare se pun din nou.",
+                    "Filtru săptămâna curentă / luna curentă / toate și căutare în documente.",
+                    "Tip nou: depunere numerar în bancă. La plata furnizor alegeți furnizorul din listă.",
+                    "Manual Ajutor: Registru de casă actualizat.",
+                ],
+                en: [
+                    "Cash register: manual documents stay in the list; if you clear generated registers, Generate puts them back.",
+                    "Filter current week / current month / all, plus document search.",
+                    "New type: cash deposit to bank. Supplier payments let you pick the supplier from the list.",
+                    "Help manual: Cash register updated.",
+                ]
+            ),
+            release(
+                "1.0.044", "08.09.2026",
+                ro: [
+                    "Registru de casă: chitanțele adăugate manual nu mai dispar din listă și intră la Încasări / Plăți pe ziua documentului.",
+                    "Facturile din Furnizori nu sunt operațiuni de casă — pentru Plăți folosiți Adaugă chitanță sau plata cu metoda Numerar.",
+                    "Manual Ajutor: Registru de casă actualizat.",
+                ],
+                en: [
+                    "Cash register: manual receipts no longer disappear from the list and go to Receipts / Payments on the document date.",
+                    "Supplier invoices are not cash operations — for Payments use Add receipt or a payment with method Cash.",
+                    "Help manual: Cash register updated.",
+                ]
+            ),
+            release(
+                "1.0.043", "08.09.2026",
+                ro: [
+                    "Registru de casă: sold inițial la începutul perioadei — îl completați o dată; dacă ați generat luna anterioară, soldul final se preia automat pe prima zi.",
+                    "Pe Mac, Salvare și Trimitere din previzualizarea PDF nu mai deschid un ecran alb.",
+                    "Manual Ajutor: Registru de casă actualizat.",
+                ],
+                en: [
+                    "Cash register: opening balance at the start of the period — enter it once; if you generated the previous month, the closing balance is taken automatically on the first day.",
+                    "On Mac, Save and Send from the PDF preview no longer open a blank screen.",
+                    "Help manual: Cash register updated.",
+                ]
+            ),
+            release(
+                "1.0.042", "08.09.2026",
+                ro: [
+                    "Registru de casă: ultima zi din listă nu mai rămâne sub bara de jos — puteți derula și deschide PDF-ul.",
+                    "După generare vedeți toate zilele din perioada aleasă, nu doar luna curentă.",
+                    "Operațiunile manuale, plățile numerar furnizori și încasările numerar clienți intră în registru pe ziua de pe document.",
+                    "Manual Ajutor: Registru de casă actualizat.",
+                ],
+                en: [
+                    "Cash register: the last day in the list is no longer hidden under the bottom bar — you can scroll and open the PDF.",
+                    "After generating you see every day in the selected period, not only the current month.",
+                    "Manual operations, cash supplier payments and cash client collections go into the register on the document date.",
+                    "Help manual: Cash register updated.",
+                ]
+            ),
+            release(
+                "1.0.041", "08.09.2026",
+                ro: [
+                    "Registru de casă: operațiunile nu mai dispar din listă când generați registrul. Rămân toate, cu data pe rând, și intră în registru pe ziua documentului.",
+                    "Plățile numerar din Furnizori apar în aceeași listă (nu doar în PDF).",
+                    "Manual Ajutor: Registru de casă actualizat.",
+                ],
+                en: [
+                    "Cash register: operations no longer disappear from the list when you generate the register. They all stay, with the date on each row, and go into the register on the document day.",
+                    "Cash supplier payments appear in the same list (not only in the PDF).",
+                    "Help manual: Cash register updated.",
+                ]
+            ),
+            release(
+                "1.0.040", "08.09.2026",
+                ro: [
+                    "Data de pe document rămâne exact ziua introdusă: factură, NIR, scadență, registru de casă, inventar. Nu se mai mută cu o zi înapoi.",
+                    "Documentele deja salvate cu ziua greșită nu se modifică singure — deschideți-le și puneți din nou data corectă.",
+                    "Manual Ajutor: actualizat pentru datele de document.",
+                ],
+                en: [
+                    "The date on a document stays the day you enter: invoice, GRN, due date, cash register, inventory. It is no longer shifted one day earlier.",
+                    "Documents already saved on the wrong day are not changed automatically — open them and set the correct date again.",
+                    "Help manual: updated for document dates.",
+                ]
+            ),
+            release(
+                "1.0.039", "08.09.2026",
+                ro: [
+                    "Clienți / Utilitare → Zetta: corectat crash-ul la derulare pe ecranul de import (tragere fișiere). Puteți derula lista fără să se închidă aplicația.",
+                ],
+                en: [
+                    "Clients / Utilities → Zetta: fixed a crash when scrolling the import screen (file drop). You can scroll the list without the app quitting.",
+                ]
+            ),
+            release(
+                "1.0.038", "08.09.2026",
+                ro: [
+                    "Clienți → Zetta: același câmp ca la Utilitare — sus introduceți numărul primei note contabile, iar Excel-ul numerotează de acolo.",
+                    "Manual Ajutor: Zetta actualizat pentru numerotarea notelor și la Clienți.",
+                ],
+                en: [
+                    "Clients → Zetta: the same field as in Utilities — enter the first accounting note number at the top, and Excel numbers from there.",
+                    "Help manual: Zetta updated for accounting note numbering in Clients as well.",
+                ]
+            ),
+            release(
+                "1.0.037", "08.09.2026",
+                ro: [
+                    "Utilitare → Creare fișier import ZETTA: sus introduceți numărul primei note contabile. În Excel, Nr. înreg. începe de acolo (ex. 1543, 1544…), câte un număr per Raport Z.",
+                    "Manual Ajutor: Utilitare actualizat pentru numerotarea notelor contabile.",
+                ],
+                en: [
+                    "Utilities → Create ZETTA import file: enter the first accounting note number at the top. In Excel, Nr. inreg. starts from there (e.g. 1543, 1544…), one number per Z report.",
+                    "Help manual: Utilities updated for accounting note numbering.",
+                ]
+            ),
+            release(
+                "1.0.036", "06.09.2026",
+                ro: [
+                    "Lista facturi: implicit vedeți facturile create sau importate azi, indiferent de data de pe factură.",
+                    "Intervalul de dată (1–31 august etc.) folosește data facturii, doar când îl activați.",
+                    "Lista, preview-ul de import e-Factura și salvarea NIR sunt mai rapide — se încarcă doar ce e nevoie, nu toată baza.",
+                    "Manual Ajutor: Furnizori actualizat pentru filtrul implicit și intervalul după data facturii.",
+                ],
+                en: [
+                    "Invoice list: by default you see invoices created or imported today, regardless of the date on the invoice.",
+                    "The date range (1–31 August etc.) uses the invoice date, only when you turn it on.",
+                    "The list, e-Invoice import preview and GRN save are faster — only what you need is loaded, not the whole database.",
+                    "Help manual: Suppliers updated for the default filter and invoice-date range.",
+                ]
+            ),
+            release(
+                "1.0.035", "05.09.2026",
+                ro: [
+                    "Lista facturi: se încarcă toate facturile (nu doar primele ~20) și filtrele (azi, luna, interval) folosesc data facturii, nu data importului.",
+                    "La interval 1–31 august vedeți toate facturile din august, cu numărul afișat în listă. La fel la facturile clienți.",
+                    "Manual Ajutor: Furnizori actualizat pentru filtrele după data facturii.",
+                ],
+                en: [
+                    "Invoice list: all invoices are loaded (not just the first ~20) and filters (today, month, date range) use the invoice date, not the import date.",
+                    "A 1–31 August range shows every August invoice, with the count in the list. Same for client invoices.",
+                    "Help manual: Suppliers updated for invoice-date filters.",
+                ]
+            ),
+            release(
+                "1.0.034", "05.09.2026",
+                ro: [
+                    "Import e-Factura: dacă ați șters NIR-ul și factura a rămas, reimportul nu o mai omite ca duplicat — puteți genera din nou NIR-ul.",
+                    "Manual Ajutor: Furnizori actualizat pentru reimport după ștergerea NIR.",
+                ],
+                en: [
+                    "e-Invoice import: if you deleted the GRN and the invoice remained, reimport no longer skips it as a duplicate — you can create the GRN again.",
+                    "Help manual: Suppliers updated for reimport after deleting a GRN.",
+                ]
+            ),
+            release(
+                "1.0.033", "31.08.2026",
+                ro: [
+                    "Import e-Factura: dacă articolul există deja (același cod furnizor sau cod de bare), se reia produsul existent — factura nu mai pică cu eroare de duplicat.",
+                    "Dacă importul eșuează pe parcurs, factura incompletă se șterge automat ca să puteți reîncărca fișierul.",
+                    "Manual Ajutor: Furnizori actualizat pentru reutilizarea articolelor la import.",
+                ],
+                en: [
+                    "e-Invoice import: if the item already exists (same supplier code or barcode), the existing product is reused — the invoice no longer fails with a duplicate error.",
+                    "If import fails mid-way, the incomplete invoice is deleted automatically so you can reload the file.",
+                    "Help manual: Suppliers updated for reusing items on import.",
+                ]
+            ),
             release(
                 "1.0.032", "30.08.2026",
                 ro: [

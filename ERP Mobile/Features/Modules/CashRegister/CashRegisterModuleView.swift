@@ -92,6 +92,7 @@ struct CashRegisterModuleView: View {
             }
             .padding()
         }
+        .appScrollBottomPadding()
     }
 
     private var periodSection: some View {
@@ -112,6 +113,20 @@ struct CashRegisterModuleView: View {
                     AppDatePicker(selection: $viewModel.toDate)
                 }
             }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.tr("module.cash_register.opening_balance_field"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+                TextField(
+                    L10n.tr("module.cash_register.opening_balance_placeholder"),
+                    text: $viewModel.openingBalanceText
+                )
+                .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
+                Text(L10n.tr("module.cash_register.opening_balance_hint"))
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondary)
+            }
         }
         .padding()
         .background(Color(.secondarySystemBackground))
@@ -131,6 +146,12 @@ struct CashRegisterModuleView: View {
             }
             .buttonStyle(.bordered)
             .disabled(viewModel.dailyPages.isEmpty)
+
+            Button(L10n.tr("module.cash_register.clear_registers")) {
+                viewModel.clearGeneratedRegisters()
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.dailyPages.isEmpty)
         }
     }
 
@@ -146,17 +167,30 @@ struct CashRegisterModuleView: View {
                 .buttonStyle(.bordered)
             }
 
-            if viewModel.manualEntries.isEmpty {
+            Picker(L10n.tr("module.cash_register.manual_filter"), selection: $viewModel.manualListFilter) {
+                ForEach(CashRegisterManualListFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            TextField(L10n.tr("module.cash_register.search_documents"), text: $viewModel.manualListSearch)
+
+            if !viewModel.hasAnyManualDocuments {
                 Text(L10n.tr("module.cash_register.manual_empty"))
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondary)
+            } else if !viewModel.hasVisibleManualDocuments {
+                Text(L10n.tr("module.cash_register.manual_filter_empty"))
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondary)
             } else {
-                ForEach(viewModel.manualEntries) { entry in
+                ForEach(viewModel.filteredManualEntries) { entry in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.explanation)
                                 .font(.subheadline.weight(.medium))
-                            Text("\(viewModel.kindLabel(entry.kind)) · \(entry.documentNumber)")
+                            Text("\(SupplierFormatting.date(entry.date)) · \(viewModel.kindLabel(entry.kind)) · \(entry.documentNumber)")
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondary)
                         }
@@ -169,6 +203,36 @@ struct CashRegisterModuleView: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.borderless)
+                    }
+                    .padding(.vertical, 4)
+                }
+                ForEach(viewModel.filteredCashPayments) { payment in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.cashPaymentExplanation(payment))
+                                .font(.subheadline.weight(.medium))
+                            Text("\(SupplierFormatting.date(payment.dataPlata)) · \(L10n.tr("module.cash_register.kind_plata_furnizor")) · \(viewModel.cashPaymentDocumentNumber(payment))")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
+                        }
+                        Spacer()
+                        Text(CashRegisterJournalFormatting.amount(payment.suma))
+                            .font(.subheadline.monospacedDigit())
+                    }
+                    .padding(.vertical, 4)
+                }
+                ForEach(viewModel.filteredClientCashPayments) { payment in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.clientCashPaymentExplanation(payment))
+                                .font(.subheadline.weight(.medium))
+                            Text("\(SupplierFormatting.date(payment.dataPlata)) · \(L10n.tr("module.cash_register.kind_incasare_client")) · \(viewModel.clientCashPaymentDocumentNumber(payment))")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
+                        }
+                        Spacer()
+                        Text(CashRegisterJournalFormatting.amount(payment.suma))
+                            .font(.subheadline.monospacedDigit())
                     }
                     .padding(.vertical, 4)
                 }

@@ -8,7 +8,6 @@ struct PDFDocumentPreviewSheet: View {
 
     @State private var showPrintSheet = false
     @State private var showShareSheet = false
-    @State private var showSavePicker = false
     @State private var temporaryURL: URL?
     @State private var exportErrorMessage: String?
 
@@ -53,24 +52,13 @@ struct PDFDocumentPreviewSheet: View {
                 onFinish: { showPrintSheet = false }
             )
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let temporaryURL {
-                ActivityShareSheet(
-                    items: [temporaryURL],
-                    excludedActivityTypes: nil,
-                    onFinish: { showShareSheet = false }
-                )
-            }
-        }
-#if targetEnvironment(macCatalyst)
-        .sheet(isPresented: $showSavePicker) {
-            if let temporaryURL {
-                PDFLocalSaveDocumentPicker(
-                    sourceURL: temporaryURL,
-                    onFinish: { showSavePicker = false }
-                )
-                .ignoresSafeArea()
-            }
+#if !targetEnvironment(macCatalyst)
+        .sheet(isPresented: $showShareSheet, onDismiss: { showShareSheet = false }) {
+            ActivityShareSheet(
+                items: [temporaryURL].compactMap { $0 },
+                excludedActivityTypes: nil,
+                onFinish: { showShareSheet = false }
+            )
         }
 #endif
         .alert(L10n.tr("common.error"), isPresented: Binding(
@@ -118,28 +106,29 @@ struct PDFDocumentPreviewSheet: View {
 
     private func savePDF() {
         prepareTemporaryFile()
+        guard let url = temporaryURL else {
+            exportErrorMessage = L10n.tr("module.cash_register.preview_failed")
+            return
+        }
 #if targetEnvironment(macCatalyst)
-        guard temporaryURL != nil else {
-            exportErrorMessage = L10n.tr("module.cash_register.preview_failed")
-            return
-        }
-        showSavePicker = true
+        let suggested = title.lowercased().hasSuffix(".pdf") ? title : "\(title).pdf"
+        _ = DocumentExportSupport.saveOnMac(from: url, suggestedName: suggested)
 #else
-        guard temporaryURL != nil else {
-            exportErrorMessage = L10n.tr("module.cash_register.preview_failed")
-            return
-        }
         showShareSheet = true
 #endif
     }
 
     private func sharePDF() {
         prepareTemporaryFile()
-        guard temporaryURL != nil else {
+        guard let url = temporaryURL else {
             exportErrorMessage = L10n.tr("module.cash_register.preview_failed")
             return
         }
+#if targetEnvironment(macCatalyst)
+        DocumentExportSupport.shareOnMac(url: url)
+#else
         showShareSheet = true
+#endif
     }
 }
 

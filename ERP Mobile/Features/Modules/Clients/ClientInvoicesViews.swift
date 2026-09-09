@@ -1,40 +1,5 @@
 import SwiftUI
 
-private enum InvoiceEntryPeriodFilter: CaseIterable, Identifiable {
-    case today
-    case last5Days
-    case thisMonth
-    case all
-
-    var id: Self { self }
-
-    var label: String {
-        switch self {
-        case .today: return L10n.tr("invoices.period_today")
-        case .last5Days: return L10n.tr("invoices.period_last_5_days")
-        case .thisMonth: return L10n.tr("invoices.period_this_month")
-        case .all: return L10n.tr("invoices.period_all")
-        }
-    }
-
-    func includes(entryDate: Date, calendar: Calendar = .current) -> Bool {
-        let entryDay = calendar.startOfDay(for: entryDate)
-        let today = calendar.startOfDay(for: Date())
-
-        switch self {
-        case .today:
-            return calendar.isDate(entryDay, inSameDayAs: today)
-        case .last5Days:
-            guard let start = calendar.date(byAdding: .day, value: -4, to: today) else { return false }
-            return entryDay >= start && entryDay <= today
-        case .thisMonth:
-            return calendar.isDate(entryDay, equalTo: today, toGranularity: .month)
-        case .all:
-            return true
-        }
-    }
-}
-
 struct ClientInvoicesListView: View {
     let access: ModuleAccessRights
     let onChanged: () async -> Void
@@ -50,7 +15,7 @@ struct ClientInvoicesListView: View {
     @State private var selectedInvoiceIds = Set<UUID>()
     @State private var showBulkDeleteConfirm = false
     @State private var statusFilter: InvoiceStatus?
-    @State private var entryPeriodFilter: InvoiceEntryPeriodFilter = .today
+    @State private var entryPeriodFilter: InvoiceListPeriodFilter = .today
     @State private var filterInvoiceNumber = ""
     @State private var filterClientName = ""
     @State private var filterDateIntervalEnabled = false
@@ -65,13 +30,17 @@ struct ClientInvoicesListView: View {
             || filterDateIntervalEnabled
     }
 
-    private func entryDate(for invoice: ClientInvoiceRow) -> Date {
-        invoice.createdAt ?? invoice.dataFactura
+    private var listDateQueryKey: String {
+        if filterDateIntervalEnabled {
+            return "invoice|\(filterDateFrom.timeIntervalSince1970)|\(filterDateTo.timeIntervalSince1970)"
+        }
+        return "created|\(String(describing: entryPeriodFilter))"
     }
 
     private var filteredInvoices: [ClientInvoiceRow] {
         invoices.filter { invoice in
-            if !entryPeriodFilter.includes(entryDate: entryDate(for: invoice)) {
+            if !filterDateIntervalEnabled,
+               !entryPeriodFilter.includes(createdAt: invoice.createdAt) {
                 return false
             }
 
@@ -103,9 +72,11 @@ struct ClientInvoicesListView: View {
     }
 
     private var displayedInvoices: [ClientInvoiceRow] {
-        guard entryPeriodFilter != .all else { return filteredInvoices }
-        return filteredInvoices.sorted { lhs, rhs in
-            entryDate(for: lhs) > entryDate(for: rhs)
+        filteredInvoices.sorted { lhs, rhs in
+            if lhs.dataFactura != rhs.dataFactura {
+                return lhs.dataFactura > rhs.dataFactura
+            }
+            return lhs.numarFactura.localizedStandardCompare(rhs.numarFactura) == .orderedAscending
         }
     }
 
@@ -122,7 +93,7 @@ struct ClientInvoicesListView: View {
             VStack(spacing: 8) {
                 HStack {
                     Menu {
-                        ForEach(InvoiceEntryPeriodFilter.allCases) { period in
+                        ForEach(InvoiceListPeriodFilter.allCases) { period in
                             Button(period.label) { entryPeriodFilter = period }
                         }
                     } label: {
@@ -162,6 +133,11 @@ struct ClientInvoicesListView: View {
 
                 Toggle(L10n.tr("invoices.filter_date_interval"), isOn: $filterDateIntervalEnabled)
                     .font(.subheadline)
+                    .onChange(of: filterDateIntervalEnabled) { enabled in
+                        if enabled {
+                            entryPeriodFilter = .all
+                        }
+                    }
 
                 if filterDateIntervalEnabled {
                     HStack(spacing: 12) {
@@ -198,6 +174,7 @@ struct ClientInvoicesListView: View {
                     )
                 } else {
                     List {
+                        Section {
                         ForEach(displayedInvoices) { invoice in
                             ClientInvoiceRowView(
                                 invoice: invoice,
@@ -212,6 +189,12 @@ struct ClientInvoicesListView: View {
                             )
                         }
                         .onDelete(perform: access.canDelete && !isSelectionMode ? deleteItems : { _ in })
+                        } header: {
+                            Text(L10n.tr("invoices.list_count", displayedInvoices.count))
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.secondary)
+                                .textCase(nil)
+                        }
                     }
                     .appScrollBottomPadding()
                 }
@@ -255,6 +238,9 @@ struct ClientInvoicesListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadInvoices() }
         .appRefreshable { await loadInvoices() }
+        .onChange(of: listDateQueryKey) { _ in
+            Task { await loadInvoices() }
+        }
         .onChange(of: displayedInvoices.map(\.id)) { _ in
             pruneInvoiceSelection()
         }
@@ -298,7 +284,14 @@ struct ClientInvoicesListView: View {
         isLoading = true
         errorMessage = nil
         do {
-            invoices = try await ClientService.fetchInvoices()
+            invoices = try await ClientService.fetchInvoices(
+                dateFilter: InvoiceListDateFilter.listQuery(
+                    period: entryPeriodFilter,
+                    intervalEnabled: filterDateIntervalEnabled,
+                    intervalFrom: filterDateFrom,
+                    intervalTo: filterDateTo
+                )
+            )
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -1,5 +1,31 @@
 import Foundation
 
+protocol SupplierInvoiceDuplicateRecord {
+    var id: UUID { get }
+    var supplierId: UUID { get }
+    var numarFactura: String { get }
+    var dataFactura: Date { get }
+    var sumaTotala: Decimal { get }
+}
+
+struct SupplierInvoiceDuplicateRef: Decodable, Sendable, SupplierInvoiceDuplicateRecord {
+    let id: UUID
+    let supplierId: UUID
+    let numarFactura: String
+    let dataFactura: Date
+    @SupabaseDecimal var sumaTotala: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case supplierId = "supplier_id"
+        case numarFactura = "numar_factura"
+        case dataFactura = "data_factura"
+        case sumaTotala = "suma_totala"
+    }
+}
+
+extension SupplierInvoiceRow: SupplierInvoiceDuplicateRecord {}
+
 enum SupplierInvoiceDuplicateCheck {
     static func normalizeInvoiceNumber(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -63,7 +89,7 @@ enum SupplierInvoiceDuplicateCheck {
     }
 
     static func duplicateKeys(
-        for invoice: SupplierInvoiceRow,
+        for invoice: some SupplierInvoiceDuplicateRecord,
         supplierCuiById: [UUID: String]
     ) -> [String] {
         duplicateKeys(
@@ -76,7 +102,7 @@ enum SupplierInvoiceDuplicateCheck {
     }
 
     static func duplicateKeySet(
-        from invoices: [SupplierInvoiceRow],
+        from invoices: [some SupplierInvoiceDuplicateRecord],
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
     ) -> Set<String> {
@@ -88,12 +114,12 @@ enum SupplierInvoiceDuplicateCheck {
         )
     }
 
-    static func isDuplicate(
+    static func isDuplicate<Invoice: SupplierInvoiceDuplicateRecord>(
         supplier: Supplier,
         number: String,
         issueDate: Date,
         totalAmount: Decimal,
-        existingInvoices: [SupplierInvoiceRow],
+        existingInvoices: [Invoice],
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
     ) -> Bool {
@@ -108,29 +134,69 @@ enum SupplierInvoiceDuplicateCheck {
         ) != nil
     }
 
-    static func findDuplicate(
+    static func findDuplicate<Invoice: SupplierInvoiceDuplicateRecord>(
         supplier: Supplier,
         number: String,
         issueDate: Date,
         totalAmount: Decimal,
-        existingInvoices: [SupplierInvoiceRow],
+        existingInvoices: [Invoice],
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
-    ) -> SupplierInvoiceRow? {
+    ) -> Invoice? {
+        findExistingInvoice(
+            supplierId: supplier.id,
+            supplierCUI: EFacturaInvoiceParser.normalizeCUI(supplier.cui),
+            number: number,
+            issueDate: issueDate,
+            totalAmount: totalAmount,
+            existingInvoices: existingInvoices,
+            suppliers: suppliers,
+            excludingInvoiceId: excludingInvoiceId
+        )
+    }
+
+    static func findExistingInvoice<Invoice: SupplierInvoiceDuplicateRecord>(
+        supplierId: UUID,
+        supplierCUI: String?,
+        number: String,
+        issueDate: Date,
+        totalAmount: Decimal,
+        existingInvoices: [Invoice],
+        suppliers: [Supplier],
+        excludingInvoiceId: UUID? = nil
+    ) -> Invoice? {
         let supplierCuiById = supplierCuiMap(from: suppliers)
         let candidateKeys = Set(
             duplicateKeys(
-                for: supplier,
+                supplierId: supplierId,
+                supplierCUI: supplierCUI,
                 number: number,
                 issueDate: issueDate,
                 totalAmount: totalAmount
             )
         )
+        let normalizedNumber = normalizeInvoiceNumber(number)
 
-        return existingInvoices.first { invoice in
+        if let match = existingInvoices.first(where: { invoice in
             if invoice.id == excludingInvoiceId { return false }
             let keys = duplicateKeys(for: invoice, supplierCuiById: supplierCuiById)
             return keys.contains { candidateKeys.contains($0) }
+        }) {
+            return match
+        }
+
+        return existingInvoices.first { invoice in
+            if invoice.id == excludingInvoiceId { return false }
+            guard normalizeInvoiceNumber(invoice.numarFactura) == normalizedNumber else {
+                return false
+            }
+            if invoice.supplierId == supplierId {
+                return true
+            }
+            if let supplierCUI, supplierCuiById[invoice.supplierId] == supplierCUI {
+                return true
+            }
+            return false
         }
     }
 

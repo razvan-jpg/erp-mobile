@@ -15,9 +15,15 @@ struct EFacturaImportPreviewItem: Identifiable, Sendable {
     let isCreditNote: Bool
     let errorMessage: String?
     var createNIR: Bool
+    var existingInvoiceId: UUID? = nil
+    var hasExistingNIR: Bool = false
+
+    var canAttachNIR: Bool {
+        errorMessage == nil && existingInvoiceId != nil && !hasExistingNIR && !isCreditNote
+    }
 
     var canImport: Bool {
-        errorMessage == nil && !isDuplicate
+        errorMessage == nil && (!isDuplicate || canAttachNIR)
     }
 }
 
@@ -39,6 +45,7 @@ struct EFacturaImportFailure: Sendable {
 enum EFacturaImportError: LocalizedError {
     case companyCUIMissing
     case buyerCUIMissing
+    case invalidXML
     case buyerMismatch(companyName: String, buyerName: String, companyCUI: String, buyerCUI: String)
 
     var errorDescription: String? {
@@ -47,6 +54,8 @@ enum EFacturaImportError: LocalizedError {
             return L10n.tr("invoices.import_error_company_cui_missing")
         case .buyerCUIMissing:
             return L10n.tr("invoices.import_error_buyer_cui_missing")
+        case .invalidXML:
+            return L10n.tr("invoices.import_error_invalid_xml")
         case .buyerMismatch(let companyName, let buyerName, let companyCUI, let buyerCUI):
             return L10n.tr(
                 "invoices.import_error_buyer_mismatch",
@@ -81,11 +90,17 @@ enum SupplierInvoiceEFacturaImport {
     }
 
     static func previewFiles(urls: [URL], company: Company) async -> [EFacturaImportPreviewItem] {
+        async let parsedSourcesTask = parsePreviewSources(urls)
         let suppliers: [Supplier]
-        let existingInvoices: [SupplierInvoiceRow]
+        let existingInvoices: [SupplierInvoiceDuplicateRef]
+        let invoiceIdsWithNIR: Set<UUID>
         do {
-            suppliers = try await SupplierService.fetchSuppliers()
-            existingInvoices = try await SupplierService.fetchInvoices()
+            async let suppliersTask = SupplierService.fetchSuppliers()
+            async let invoicesTask = SupplierService.fetchInvoiceDuplicateIndex()
+            async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: company.id)
+            suppliers = try await suppliersTask
+            existingInvoices = try await invoicesTask
+            invoiceIdsWithNIR = try await nirTask
         } catch {
             return urls.enumerated().map { index, url in
                 EFacturaImportPreviewItem(
@@ -107,6 +122,7 @@ enum SupplierInvoiceEFacturaImport {
             }
         }
 
+        let parsedSources = await parsedSourcesTask
         var supplierCache = suppliers
         var importedKeys = SupplierInvoiceDuplicateCheck.duplicateKeySet(
             from: existingInvoices,
@@ -115,13 +131,17 @@ enum SupplierInvoiceEFacturaImport {
         var previewSupplierIds: [String: UUID] = [:]
 
         var items: [EFacturaImportPreviewItem] = []
-        items.reserveCapacity(urls.count)
-        for (index, url) in sortedURLsByIssueDate(urls).enumerated() {
+        items.reserveCapacity(parsedSources.count)
+        for source in sortedPreviewSourcesByIssueDate(parsedSources) {
             let item = previewFile(
-                url: url,
-                previewId: previewItemID(for: url, index: index),
+                url: source.url,
+                previewId: previewItemID(for: source.url, index: source.index),
+                parsed: source.parsed,
+                parseErrorMessage: source.errorMessage,
                 company: company,
                 suppliers: &supplierCache,
+                existingInvoices: existingInvoices,
+                invoiceIdsWithNIR: invoiceIdsWithNIR,
                 importedKeys: &importedKeys,
                 previewSupplierIds: &previewSupplierIds
             )
@@ -130,17 +150,61 @@ enum SupplierInvoiceEFacturaImport {
         return sortedPreviewItemsByIssueDate(items)
     }
 
-    private static func sortedURLsByIssueDate(_ urls: [URL]) -> [URL] {
-        urls.sorted { lhs, rhs in
-            let lhsDate = issueDate(from: lhs) ?? .distantFuture
-            let rhsDate = issueDate(from: rhs) ?? .distantFuture
+    private struct PreviewFileSource: Sendable {
+        let index: Int
+        let url: URL
+        let parsed: EFacturaParsedInvoice?
+        let errorMessage: String?
+    }
+
+    private static func parsePreviewSources(_ urls: [URL]) async -> [PreviewFileSource] {
+        await withTaskGroup(of: PreviewFileSource.self) { group in
+            var iterator = urls.enumerated().makeIterator()
+            let concurrency = min(8, max(urls.count, 1))
+
+            func enqueueNext() {
+                guard let (index, url) = iterator.next() else { return }
+                group.addTask {
+                    do {
+                        let data = try readFileData(from: url)
+                        let parsed = try EFacturaInvoiceParser.parse(data: data)
+                        return PreviewFileSource(index: index, url: url, parsed: parsed, errorMessage: nil)
+                    } catch {
+                        return PreviewFileSource(
+                            index: index,
+                            url: url,
+                            parsed: nil,
+                            errorMessage: error.localizedDescription
+                        )
+                    }
+                }
+            }
+
+            for _ in 0..<concurrency {
+                enqueueNext()
+            }
+
+            var sources: [PreviewFileSource] = []
+            sources.reserveCapacity(urls.count)
+            for await source in group {
+                sources.append(source)
+                enqueueNext()
+            }
+            return sources
+        }
+    }
+
+    private static func sortedPreviewSourcesByIssueDate(_ sources: [PreviewFileSource]) -> [PreviewFileSource] {
+        sources.sorted { lhs, rhs in
+            let lhsDate = lhs.parsed?.issueDate ?? .distantFuture
+            let rhsDate = rhs.parsed?.issueDate ?? .distantFuture
             if lhsDate != rhsDate {
                 return lhsDate < rhsDate
             }
-            if lhs.lastPathComponent != rhs.lastPathComponent {
-                return lhs.lastPathComponent.localizedCaseInsensitiveCompare(rhs.lastPathComponent) == .orderedAscending
+            if lhs.url.lastPathComponent != rhs.url.lastPathComponent {
+                return lhs.url.lastPathComponent.localizedCaseInsensitiveCompare(rhs.url.lastPathComponent) == .orderedAscending
             }
-            return lhs.path.localizedCaseInsensitiveCompare(rhs.path) == .orderedAscending
+            return lhs.index < rhs.index
         }
     }
 
@@ -154,14 +218,6 @@ enum SupplierInvoiceEFacturaImport {
             }
             return lhs.fileName.localizedCaseInsensitiveCompare(rhs.fileName) == .orderedAscending
         }
-    }
-
-    private static func issueDate(from url: URL) -> Date? {
-        guard let data = try? readFileData(from: url),
-              let parsed = try? EFacturaInvoiceParser.parse(data: data) else {
-            return nil
-        }
-        return parsed.issueDate
     }
 
     private static func previewItemID(for url: URL, index: Int) -> String {
@@ -184,7 +240,7 @@ enum SupplierInvoiceEFacturaImport {
         var pendingNIRInvoiceIds: [UUID] = []
         var pendingCreditNoteOffsetInvoiceIds: [UUID] = []
 
-        for item in items where item.isDuplicate {
+        for item in items where item.isDuplicate && !item.canAttachNIR {
             if let label = item.duplicateLabel {
                 skippedDuplicates.append(label)
             } else {
@@ -230,12 +286,18 @@ enum SupplierInvoiceEFacturaImport {
         }
 
         let suppliers: [Supplier]
-        let existingInvoices: [SupplierInvoiceRow]
+        let existingInvoices: [SupplierInvoiceDuplicateRef]
+        let invoiceIdsWithNIR: Set<UUID>
         var products: [Product]
         do {
-            suppliers = try await SupplierService.fetchSuppliers()
-            existingInvoices = try await SupplierService.fetchInvoices()
-            products = try await ProductService.fetchProducts(companyId: company.id)
+            async let suppliersTask = SupplierService.fetchSuppliers()
+            async let invoicesTask = SupplierService.fetchInvoiceDuplicateIndex()
+            async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: company.id)
+            async let productsTask = ProductService.fetchProducts(companyId: company.id)
+            suppliers = try await suppliersTask
+            existingInvoices = try await invoicesTask
+            invoiceIdsWithNIR = try await nirTask
+            products = try await productsTask
         } catch {
             failures.append(contentsOf: importableItems.map {
                 EFacturaImportFailure(fileName: $0.fileName, message: error.localizedDescription)
@@ -273,6 +335,8 @@ enum SupplierInvoiceEFacturaImport {
                     createNIR: item.createNIR,
                     createdBy: createdBy,
                     suppliers: &supplierCache,
+                    existingInvoices: existingInvoices,
+                    invoiceIdsWithNIR: invoiceIdsWithNIR,
                     products: &products,
                     importedKeys: &importedKeys,
                     linesImportedCount: &linesImportedCount,
@@ -305,15 +369,38 @@ enum SupplierInvoiceEFacturaImport {
     private static func previewFile(
         url: URL,
         previewId: String,
+        parsed: EFacturaParsedInvoice?,
+        parseErrorMessage: String?,
         company: Company,
         suppliers: inout [Supplier],
+        existingInvoices: [some SupplierInvoiceDuplicateRecord],
+        invoiceIdsWithNIR: Set<UUID>,
         importedKeys: inout Set<String>,
         previewSupplierIds: inout [String: UUID]
     ) -> EFacturaImportPreviewItem {
         let fileName = url.lastPathComponent
+        if let parseErrorMessage {
+            return EFacturaImportPreviewItem(
+                id: previewId,
+                fileURL: url,
+                fileName: fileName,
+                invoiceNumber: "—",
+                supplierName: "—",
+                issueDate: Date(),
+                totalAmount: .zero,
+                currency: "RON",
+                lineCount: 0,
+                isDuplicate: false,
+                duplicateLabel: nil,
+                isCreditNote: false,
+                errorMessage: parseErrorMessage,
+                createNIR: false
+            )
+        }
         do {
-            let data = try readFileData(from: url)
-            let parsed = try EFacturaInvoiceParser.parse(data: data)
+            guard let parsed else {
+                throw EFacturaImportError.invalidXML
+            }
             try validateBuyer(parsed, company: company)
 
             let issueDate = parsed.issueDate ?? Date()
@@ -342,7 +429,19 @@ enum SupplierInvoiceEFacturaImport {
                 issueDate: issueDate,
                 totalAmount: totalAmount
             )
-            let isDuplicate = duplicateKeys.contains(where: { importedKeys.contains($0) })
+            let existingInvoice = SupplierInvoiceDuplicateCheck.findExistingInvoice(
+                supplierId: resolvedSupplier.id,
+                supplierCUI: resolvedSupplier.cui,
+                number: parsed.invoiceNumber,
+                issueDate: issueDate,
+                totalAmount: totalAmount,
+                existingInvoices: existingInvoices,
+                suppliers: suppliers
+            )
+            let hasExistingNIR = existingInvoice.map { invoiceIdsWithNIR.contains($0.id) } ?? false
+            let isDuplicate = existingInvoice != nil
+                || duplicateKeys.contains(where: { importedKeys.contains($0) })
+            let canAttachNIR = existingInvoice != nil && !hasExistingNIR && !parsed.isCreditNote
 
             let item = EFacturaImportPreviewItem(
                 id: previewId,
@@ -355,10 +454,12 @@ enum SupplierInvoiceEFacturaImport {
                 currency: currency,
                 lineCount: parsed.lines.count,
                 isDuplicate: isDuplicate,
-                duplicateLabel: isDuplicate ? duplicateLabel : nil,
+                duplicateLabel: isDuplicate && !canAttachNIR ? duplicateLabel : nil,
                 isCreditNote: parsed.isCreditNote,
                 errorMessage: nil,
-                createNIR: !isDuplicate && !parsed.isCreditNote
+                createNIR: !parsed.isCreditNote && (!isDuplicate || canAttachNIR),
+                existingInvoiceId: existingInvoice?.id,
+                hasExistingNIR: hasExistingNIR
             )
 
             if item.canImport {
@@ -486,6 +587,8 @@ enum SupplierInvoiceEFacturaImport {
         createNIR: Bool,
         createdBy: UUID?,
         suppliers: inout [Supplier],
+        existingInvoices: [some SupplierInvoiceDuplicateRecord],
+        invoiceIdsWithNIR: Set<UUID>,
         products: inout [Product],
         importedKeys: inout Set<String>,
         linesImportedCount: inout Int,
@@ -517,12 +620,35 @@ enum SupplierInvoiceEFacturaImport {
             totalAmount: totalAmount,
             currency: currency
         )
-        if SupplierInvoiceDuplicateCheck.duplicateKeys(
+        let existingInvoice = SupplierInvoiceDuplicateCheck.findExistingInvoice(
+            supplierId: supplier.id,
+            supplierCUI: EFacturaInvoiceParser.normalizeCUI(supplier.cui),
+            number: parsed.invoiceNumber,
+            issueDate: issueDate,
+            totalAmount: totalAmount,
+            existingInvoices: existingInvoices,
+            suppliers: suppliers
+        )
+        let duplicateKeys = SupplierInvoiceDuplicateCheck.duplicateKeys(
             for: supplier,
             number: parsed.invoiceNumber,
             issueDate: issueDate,
             totalAmount: totalAmount
-        ).contains(where: { importedKeys.contains($0) }) {
+        )
+        if let existingInvoice {
+            if createNIR,
+               !parsed.isCreditNote,
+               !invoiceIdsWithNIR.contains(existingInvoice.id),
+               !pendingNIRInvoiceIds.contains(existingInvoice.id) {
+                for key in duplicateKeys {
+                    importedKeys.insert(key)
+                }
+                pendingNIRInvoiceIds.append(existingInvoice.id)
+                return .imported
+            }
+            return .duplicate(duplicateLabel)
+        }
+        if duplicateKeys.contains(where: { importedKeys.contains($0) }) {
             return .duplicate(duplicateLabel)
         }
 
@@ -544,68 +670,73 @@ enum SupplierInvoiceEFacturaImport {
             createdBy: createdBy
         )
 
-        if !parsed.lines.isEmpty {
-            var lineInputs: [SupplierService.InvoiceLineCreateInput] = []
-            lineInputs.reserveCapacity(parsed.lines.count)
+        do {
+            if !parsed.lines.isEmpty {
+                var lineInputs: [SupplierService.InvoiceLineCreateInput] = []
+                lineInputs.reserveCapacity(parsed.lines.count)
 
-            for (index, line) in parsed.lines.enumerated() {
-                let productResult = try await ProductService.findOrCreateProduct(
-                    companyId: company.id,
-                    cod: line.sellerCode,
-                    codBare: line.barcode,
-                    denumire: line.name,
-                    descriere: line.description,
-                    unitateMasura: line.unitCode,
-                    cpv: line.cpv,
-                    products: &products
-                )
-                if productResult.created {
-                    productsCreatedCount += 1
+                for (index, line) in parsed.lines.enumerated() {
+                    let productResult = try await ProductService.findOrCreateProduct(
+                        companyId: company.id,
+                        cod: line.sellerCode,
+                        codBare: line.barcode,
+                        denumire: line.name,
+                        descriere: line.description,
+                        unitateMasura: line.unitCode,
+                        cpv: line.cpv,
+                        products: &products
+                    )
+                    if productResult.created {
+                        productsCreatedCount += 1
+                    }
+
+                    let unitPrice = line.unitPrice ?? .zero
+                    let lineTotal = line.lineTotal ?? SupplierFormatting.roundAmount(unitPrice * line.quantity)
+                    let lineTax = SupplierFormatting.roundAmount(line.lineTax ?? .zero)
+                    let vatRate = line.lineTaxPercent ?? InvoiceLineVAT.vatRate(amount: lineTax, lineTotal: lineTotal)
+                    lineInputs.append(
+                        SupplierService.InvoiceLineCreateInput(
+                            productId: productResult.product.id,
+                            numarLinie: index + 1,
+                            denumire: line.name,
+                            cantitate: line.quantity,
+                            pretUnitar: unitPrice,
+                            sumaLinie: lineTotal,
+                            sumaTva: lineTax,
+                            cotaTva: vatRate,
+                            unitateMasura: line.unitCode
+                        )
+                    )
                 }
 
-                let unitPrice = line.unitPrice ?? .zero
-                let lineTotal = line.lineTotal ?? SupplierFormatting.roundAmount(unitPrice * line.quantity)
-                let lineTax = SupplierFormatting.roundAmount(line.lineTax ?? .zero)
-                let vatRate = line.lineTaxPercent ?? InvoiceLineVAT.vatRate(amount: lineTax, lineTotal: lineTotal)
-                lineInputs.append(
-                    SupplierService.InvoiceLineCreateInput(
-                        productId: productResult.product.id,
-                        numarLinie: index + 1,
-                        denumire: line.name,
-                        cantitate: line.quantity,
-                        pretUnitar: unitPrice,
-                        sumaLinie: lineTotal,
-                        sumaTva: lineTax,
-                        cotaTva: vatRate,
-                        unitateMasura: line.unitCode
-                    )
+                try await SupplierService.createInvoiceLines(
+                    companyId: company.id,
+                    invoiceId: invoice.id,
+                    lines: lineInputs
                 )
+                linesImportedCount += lineInputs.count
             }
 
-            try await SupplierService.createInvoiceLines(
-                companyId: company.id,
-                invoiceId: invoice.id,
-                lines: lineInputs
-            )
-            linesImportedCount += lineInputs.count
-        }
+            for key in SupplierInvoiceDuplicateCheck.duplicateKeys(
+                for: supplier,
+                number: parsed.invoiceNumber,
+                issueDate: issueDate,
+                totalAmount: totalAmount
+            ) {
+                importedKeys.insert(key)
+            }
 
-        for key in SupplierInvoiceDuplicateCheck.duplicateKeys(
-            for: supplier,
-            number: parsed.invoiceNumber,
-            issueDate: issueDate,
-            totalAmount: totalAmount
-        ) {
-            importedKeys.insert(key)
-        }
+            if createNIR {
+                pendingNIRInvoiceIds.append(invoice.id)
+            } else if parsed.isCreditNote {
+                pendingCreditNoteOffsetInvoiceIds.append(invoice.id)
+            }
 
-        if createNIR {
-            pendingNIRInvoiceIds.append(invoice.id)
-        } else if parsed.isCreditNote {
-            pendingCreditNoteOffsetInvoiceIds.append(invoice.id)
+            return .imported
+        } catch {
+            try? await SupplierService.deleteInvoice(id: invoice.id)
+            throw error
         }
-
-        return .imported
     }
 
     private static func resolvedDocumentTaxAmount(from parsed: EFacturaParsedInvoice) -> Decimal {

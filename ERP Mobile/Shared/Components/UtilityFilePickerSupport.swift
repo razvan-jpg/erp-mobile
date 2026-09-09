@@ -19,6 +19,20 @@ enum UtilityFilePickerSupport {
         .fileURL, .pdf, .plainText, .commaSeparatedText, .text, .data, .content, .item
     ]
 
+    static let zReportScanTypes: [UTType] = {
+        var types: [UTType] = [.pdf, .jpeg, .png, .image, .data, .item]
+        for ext in ["heic", "heif", "tif", "tiff", "jpg"] {
+            if let type = UTType(filenameExtension: ext) {
+                types.append(type)
+            }
+        }
+        return types
+    }()
+
+    static let zReportScanDropTypes: [UTType] = [
+        .fileURL, .pdf, .jpeg, .png, .heic, .heif, .tiff, .image, .data, .item
+    ]
+
     /// Citește URL-uri din drag & drop (Mac / Mac Catalyst / iPad).
     static func loadURLsFromDropProviders(
         _ providers: [NSItemProvider],
@@ -237,6 +251,7 @@ struct UtilityFileDropZoneView: View {
     let subtitle: String
     let buttonTitle: String
     let contentTypes: [UTType]
+    var dropTypes: [UTType] = UtilityFilePickerSupport.bankStatementDropTypes
     let onImportURLs: ([URL]) -> Void
 
     @State private var isTargeted = false
@@ -273,14 +288,20 @@ struct UtilityFileDropZoneView: View {
                         )
                 )
         )
-        .onDrop(of: UtilityFilePickerSupport.bankStatementDropTypes, isTargeted: $isTargeted) { providers in
-            guard !providers.isEmpty else { return false }
-            UtilityFilePickerSupport.loadURLsFromDropProviders(providers) { urls in
-                if !urls.isEmpty {
-                    onImportURLs(urls)
+        .overlay {
+            SafeItemDropCatcher(
+                typeIdentifiers: dropTypes.map(\.identifier),
+                onTargetedChange: { isTargeted = $0 },
+                onDrop: { providers in
+                    guard !providers.isEmpty else { return false }
+                    UtilityFilePickerSupport.loadURLsFromDropProviders(providers) { urls in
+                        if !urls.isEmpty {
+                            onImportURLs(urls)
+                        }
+                    }
+                    return true
                 }
-            }
-            return true
+            )
         }
     }
 }

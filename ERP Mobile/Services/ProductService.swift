@@ -203,26 +203,46 @@ enum ProductService {
         inStockSheet: Bool? = nil,
         hasRecipe: Bool? = nil
     ) async throws -> [Product] {
-        var query = client
-            .from("products")
-            .select()
-            .eq("company_id", value: companyId.uuidString)
-            .eq("is_active", value: true)
+        return try await SupabasePaging.fetchAll { from, to in
+            var query = client
+                .from("products")
+                .select()
+                .eq("company_id", value: companyId.uuidString)
+                .eq("is_active", value: true)
 
-        if let inCatalog {
-            query = query.eq("in_catalog", value: inCatalog)
-        }
-        if let inStockSheet {
-            query = query.eq("in_stock_sheet", value: inStockSheet)
-        }
-        if let hasRecipe {
-            query = query.eq("has_recipe", value: hasRecipe)
-        }
+            if let inCatalog {
+                query = query.eq("in_catalog", value: inCatalog)
+            }
+            if let inStockSheet {
+                query = query.eq("in_stock_sheet", value: inStockSheet)
+            }
+            if let hasRecipe {
+                query = query.eq("has_recipe", value: hasRecipe)
+            }
 
-        return try await query
-            .order("denumire", ascending: true)
-            .execute()
-            .value
+            return try await query
+                .order("denumire", ascending: true)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
+    }
+
+    static func fetchProducts(ids: [UUID]) async throws -> [Product] {
+        let uniqueIds = Array(Set(ids))
+        guard !uniqueIds.isEmpty else { return [] }
+        var all: [Product] = []
+        for chunk in uniqueIds.chunked(into: 200) {
+            let rows: [Product] = try await client
+                .from("products")
+                .select()
+                .in("id", values: chunk.map(\.uuidString))
+                .execute()
+                .value
+            all.append(contentsOf: rows)
+        }
+        return all
     }
 
     static func fetchProduct(id: UUID) async throws -> Product {
@@ -609,14 +629,16 @@ enum ProductService {
             purchaseUnit = invoiceUnit
             factorConversie = 1
         }
-        let trimmedCod = cod?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCod = emptyToNil(cod)
         let trimmedBarcode = normalizedBarcode(codBare)
 
         if !isGarantieProduct {
-            if let trimmedCod, !trimmedCod.isEmpty,
-               let match = products.first(where: {
-                   $0.cod?.caseInsensitiveCompare(trimmedCod) == .orderedSame
-               }) {
+            if let match = try await existingProduct(
+                companyId: companyId,
+                cod: trimmedCod,
+                barcode: nil,
+                products: &products
+            ) {
                 let enriched = try await enrichProductFromImport(
                     product: match,
                     codBare: trimmedBarcode,
@@ -625,10 +647,12 @@ enum ProductService {
                 return (enriched, false)
             }
 
-            if let trimmedBarcode, !trimmedBarcode.isEmpty,
-               let match = products.first(where: {
-                   $0.codBare?.caseInsensitiveCompare(trimmedBarcode) == .orderedSame
-               }) {
+            if let match = try await existingProduct(
+                companyId: companyId,
+                cod: nil,
+                barcode: trimmedBarcode,
+                products: &products
+            ) {
                 return (match, false)
             }
         }
@@ -657,7 +681,7 @@ enum ProductService {
 
         let payload = ProductInsert(
             companyId: companyId,
-            cod: isGarantieProduct ? nil : emptyToNil(trimmedCod),
+            cod: isGarantieProduct ? nil : trimmedCod,
             codBare: isGarantieProduct ? nil : emptyToNil(trimmedBarcode),
             denumire: effectiveName,
             descriere: isGarantieProduct ? nil : emptyToNil(descriere),
@@ -674,19 +698,121 @@ enum ProductService {
             pretVanzare: 0,
             imagineUrl: nil
         )
-        let rows: [Product] = try await client
-            .from("products")
-            .insert(payload)
-            .select()
-            .execute()
-            .value
-        guard let product = rows.first else { throw ServiceError.invalidResponse }
-        products.append(product)
-        return (product, true)
+        do {
+            let rows: [Product] = try await client
+                .from("products")
+                .insert(payload)
+                .select()
+                .execute()
+                .value
+            guard let product = rows.first else { throw ServiceError.invalidResponse }
+            remember(product, in: &products)
+            return (product, true)
+        } catch {
+            guard isProductUniqueConstraintViolation(error),
+                  let existing = try await existingProduct(
+                    companyId: companyId,
+                    cod: isGarantieProduct ? nil : trimmedCod,
+                    barcode: isGarantieProduct ? nil : trimmedBarcode,
+                    products: &products
+                  ) else {
+                throw error
+            }
+            let enriched = try await enrichProductFromImport(
+                product: existing,
+                codBare: trimmedBarcode,
+                products: &products
+            )
+            return (enriched, false)
+        }
     }
 
     nonisolated static func shouldSkipNIRProductKindUpdate(lineName: String) -> Bool {
         isGarantieProductName(lineName)
+    }
+
+    nonisolated static func isProductUniqueConstraintViolation(_ error: Error) -> Bool {
+        if let postgrest = error as? PostgrestError, postgrest.code == "23505" {
+            return true
+        }
+        let text = [
+            (error as? PostgrestError)?.code,
+            (error as? PostgrestError)?.message,
+            (error as? PostgrestError)?.detail,
+            error.localizedDescription
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
+        .lowercased()
+        return text.contains("duplicate key")
+            || text.contains("unique constraint")
+            || text.contains("idx_products_company_cod")
+            || text.contains("idx__products_company_cod")
+    }
+
+    private static func existingProduct(
+        companyId: UUID,
+        cod: String?,
+        barcode: String?,
+        products: inout [Product]
+    ) async throws -> Product? {
+        if let cod, !cod.isEmpty {
+            if let match = products.first(where: {
+                $0.cod?.caseInsensitiveCompare(cod) == .orderedSame
+            }) {
+                return match
+            }
+            if let match = try await findProductByCode(companyId: companyId, code: cod) {
+                remember(match, in: &products)
+                return match
+            }
+        }
+
+        if let barcode, !barcode.isEmpty {
+            if let match = products.first(where: {
+                $0.codBare?.caseInsensitiveCompare(barcode) == .orderedSame
+            }) {
+                return match
+            }
+            if let match = try await findProductByBarcodeAnyStatus(companyId: companyId, barcode: barcode) {
+                remember(match, in: &products)
+                return match
+            }
+        }
+
+        return nil
+    }
+
+    private static func findProductByCode(companyId: UUID, code: String) async throws -> Product? {
+        let rows: [Product] = try await client
+            .from("products")
+            .select()
+            .eq("company_id", value: companyId.uuidString)
+            .eq("cod", value: code)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
+    private static func findProductByBarcodeAnyStatus(companyId: UUID, barcode: String) async throws -> Product? {
+        let rows: [Product] = try await client
+            .from("products")
+            .select()
+            .eq("company_id", value: companyId.uuidString)
+            .eq("cod_bare", value: barcode)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
+    private static func remember(_ product: Product, in products: inout [Product]) {
+        if let index = products.firstIndex(where: { $0.id == product.id }) {
+            products[index] = product
+        } else {
+            products.append(product)
+        }
     }
 
     private static func normalizedUnit(_ value: String) -> String {
@@ -714,18 +840,23 @@ enum ProductService {
         }
 
         let payload = ProductImportEnrichment(codBare: codBare)
-        let rows: [Product] = try await client
-            .from("products")
-            .update(payload)
-            .eq("id", value: product.id.uuidString)
-            .select()
-            .execute()
-            .value
-        guard let updated = rows.first else { return product }
-        if let index = products.firstIndex(where: { $0.id == updated.id }) {
-            products[index] = updated
+        do {
+            let rows: [Product] = try await client
+                .from("products")
+                .update(payload)
+                .eq("id", value: product.id.uuidString)
+                .select()
+                .execute()
+                .value
+            guard let updated = rows.first else { return product }
+            remember(updated, in: &products)
+            return updated
+        } catch {
+            if isProductUniqueConstraintViolation(error) {
+                return product
+            }
+            throw error
         }
-        return updated
     }
 
     private static func emptyToNil(_ value: String?) -> String? {

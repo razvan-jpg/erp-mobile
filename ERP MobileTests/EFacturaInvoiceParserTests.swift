@@ -336,12 +336,7 @@ struct EFacturaInvoiceParserTests {
         let parsed = try EFacturaInvoiceParser.parse(data: Data(xml.utf8))
         let issueDate = try #require(parsed.issueDate)
 
-        let stored = DateFormatter()
-        stored.calendar = Calendar(identifier: .gregorian)
-        stored.locale = Locale(identifier: "en_US_POSIX")
-        stored.timeZone = TimeZone(secondsFromGMT: 0)
-        stored.dateFormat = "yyyy-MM-dd"
-        #expect(stored.string(from: issueDate) == "2026-07-25")
+        #expect(SupabaseDecoding.dateOnlyString(from: issueDate) == "2026-07-25")
         #expect(SupplierFormatting.date(issueDate) == "25/07/2026")
     }
 }

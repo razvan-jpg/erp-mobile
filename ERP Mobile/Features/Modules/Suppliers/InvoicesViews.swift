@@ -1,40 +1,5 @@
 import SwiftUI
 
-private enum InvoiceEntryPeriodFilter: CaseIterable, Identifiable {
-    case today
-    case last5Days
-    case thisMonth
-    case all
-
-    var id: Self { self }
-
-    var label: String {
-        switch self {
-        case .today: return L10n.tr("invoices.period_today")
-        case .last5Days: return L10n.tr("invoices.period_last_5_days")
-        case .thisMonth: return L10n.tr("invoices.period_this_month")
-        case .all: return L10n.tr("invoices.period_all")
-        }
-    }
-
-    func includes(entryDate: Date, calendar: Calendar = .current) -> Bool {
-        let entryDay = calendar.startOfDay(for: entryDate)
-        let today = calendar.startOfDay(for: Date())
-
-        switch self {
-        case .today:
-            return calendar.isDate(entryDay, inSameDayAs: today)
-        case .last5Days:
-            guard let start = calendar.date(byAdding: .day, value: -4, to: today) else { return false }
-            return entryDay >= start && entryDay <= today
-        case .thisMonth:
-            return calendar.isDate(entryDay, equalTo: today, toGranularity: .month)
-        case .all:
-            return true
-        }
-    }
-}
-
 struct InvoicesListView: View {
     let access: ModuleAccessRights
     let onChanged: () async -> Void
@@ -54,7 +19,7 @@ struct InvoicesListView: View {
     @State private var selectedInvoiceIds = Set<UUID>()
     @State private var showBulkDeleteConfirm = false
     @State private var statusFilter: InvoiceStatus?
-    @State private var entryPeriodFilter: InvoiceEntryPeriodFilter = .today
+    @State private var entryPeriodFilter: InvoiceListPeriodFilter = .today
     @State private var filterInvoiceNumber = ""
     @State private var filterSupplierName = ""
     @State private var filterDateIntervalEnabled = false
@@ -86,13 +51,17 @@ struct InvoicesListView: View {
             || filterDateIntervalEnabled
     }
 
-    private func entryDate(for invoice: SupplierInvoiceRow) -> Date {
-        invoice.createdAt ?? invoice.dataFactura
+    private var listDateQueryKey: String {
+        if filterDateIntervalEnabled {
+            return "invoice|\(filterDateFrom.timeIntervalSince1970)|\(filterDateTo.timeIntervalSince1970)"
+        }
+        return "created|\(String(describing: entryPeriodFilter))"
     }
 
     private var filteredInvoices: [SupplierInvoiceRow] {
         invoices.filter { invoice in
-            if !entryPeriodFilter.includes(entryDate: entryDate(for: invoice)) {
+            if !filterDateIntervalEnabled,
+               !entryPeriodFilter.includes(createdAt: invoice.createdAt) {
                 return false
             }
 
@@ -124,9 +93,11 @@ struct InvoicesListView: View {
     }
 
     private var displayedInvoices: [SupplierInvoiceRow] {
-        guard entryPeriodFilter != .all else { return filteredInvoices }
-        return filteredInvoices.sorted { lhs, rhs in
-            entryDate(for: lhs) > entryDate(for: rhs)
+        filteredInvoices.sorted { lhs, rhs in
+            if lhs.dataFactura != rhs.dataFactura {
+                return lhs.dataFactura > rhs.dataFactura
+            }
+            return lhs.numarFactura.localizedStandardCompare(rhs.numarFactura) == .orderedAscending
         }
     }
 
@@ -143,7 +114,7 @@ struct InvoicesListView: View {
             VStack(spacing: 8) {
                 HStack {
                     Menu {
-                        ForEach(InvoiceEntryPeriodFilter.allCases) { period in
+                        ForEach(InvoiceListPeriodFilter.allCases) { period in
                             Button(period.label) { entryPeriodFilter = period }
                         }
                     } label: {
@@ -183,6 +154,11 @@ struct InvoicesListView: View {
 
                 Toggle(L10n.tr("invoices.filter_date_interval"), isOn: $filterDateIntervalEnabled)
                     .font(.subheadline)
+                    .onChange(of: filterDateIntervalEnabled) { enabled in
+                        if enabled {
+                            entryPeriodFilter = .all
+                        }
+                    }
 
                 if filterDateIntervalEnabled {
                     HStack(spacing: 12) {
@@ -237,6 +213,7 @@ struct InvoicesListView: View {
                             .onDelete(perform: access.canDelete && !isSelectionMode ? deleteItems : { _ in })
                         } header: {
                             HStack {
+                                Text(L10n.tr("invoices.list_count", displayedInvoices.count))
                                 Spacer()
                                 Text(L10n.tr("invoices.column_has_nir"))
                                     .frame(width: 56, alignment: .center)
@@ -297,6 +274,9 @@ struct InvoicesListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadInvoices() }
         .appRefreshable { await loadInvoices() }
+        .onChange(of: listDateQueryKey) { _ in
+            Task { await loadInvoices() }
+        }
         .onChange(of: displayedInvoices.map(\.id)) { _ in
             pruneInvoiceSelection()
         }
@@ -460,11 +440,21 @@ struct InvoicesListView: View {
             errorMessage = nil
         }
         do {
-            async let loadedTask = SupplierService.fetchInvoices()
-            let loaded = try await loadedTask
+            let dateFilter = InvoiceListDateFilter.listQuery(
+                period: entryPeriodFilter,
+                intervalEnabled: filterDateIntervalEnabled,
+                intervalFrom: filterDateFrom,
+                intervalTo: filterDateTo
+            )
+            let loaded: [SupplierInvoiceRow]
             var nirInvoiceIds = Set<UUID>()
             if let companyId = companyManager.currentCompany?.id {
-                nirInvoiceIds = try await SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: companyId)
+                async let loadedTask = SupplierService.fetchInvoices(dateFilter: dateFilter)
+                async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: companyId)
+                loaded = try await loadedTask
+                nirInvoiceIds = try await nirTask
+            } else {
+                loaded = try await SupplierService.fetchInvoices(dateFilter: dateFilter)
             }
             await MainActor.run {
                 invoices = loaded
@@ -628,8 +618,10 @@ struct InvoicesListView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let data = try await InvoiceReceptionSupport.loadOptionsData(companyId: company.id)
-            let previewItems = await SupplierInvoiceEFacturaImport.previewFiles(urls: urls, company: company)
+            async let dataTask = InvoiceReceptionSupport.loadOptionsData(companyId: company.id)
+            async let previewTask = SupplierInvoiceEFacturaImport.previewFiles(urls: urls, company: company)
+            let data = try await dataTask
+            let previewItems = await previewTask
             await MainActor.run {
                 importWorkLocations = data.workLocations
                 importWarehouses = data.warehouses
@@ -729,16 +721,17 @@ struct InvoicesListView: View {
     ) async {
         var contexts: [NIREditorContext] = []
         do {
-            let suppliers = try await SupplierService.fetchSuppliers()
+            let invoices = try await SupplierService.fetchInvoices(ids: invoiceIds)
+            let suppliers = try await SupplierService.fetchSuppliers(ids: invoices.map(\.supplierId))
+            let suppliersById = Dictionary(uniqueKeysWithValues: suppliers.map { ($0.id, $0) })
             let names = InvoiceReceptionSupport.receptionNames(
                 workLocationId: options.workLocationId,
                 warehouseId: options.warehouseId,
                 workLocations: importWorkLocations,
                 warehouses: importWarehouses
             )
-            for invoiceId in invoiceIds {
-                let invoice = try await SupplierService.fetchInvoice(id: invoiceId)
-                guard let supplier = suppliers.first(where: { $0.id == invoice.supplierId }) else { continue }
+            for invoice in invoices {
+                guard let supplier = suppliersById[invoice.supplierId] else { continue }
                 contexts.append(
                     NIREditorContext(
                         invoice: invoice,
@@ -768,11 +761,11 @@ struct InvoicesListView: View {
     private func prepareCreditNoteOffsetQueue(invoiceIds: [UUID]) async {
         var contexts: [CreditNoteOffsetContext] = []
         do {
-            let suppliers = try await SupplierService.fetchSuppliers()
-            for invoiceId in invoiceIds {
-                let invoice = try await SupplierService.fetchInvoice(id: invoiceId)
-                guard invoice.isCreditNote else { continue }
-                let supplierName = suppliers.first(where: { $0.id == invoice.supplierId })?.denumire ?? "—"
+            let invoices = try await SupplierService.fetchInvoices(ids: invoiceIds)
+            let suppliers = try await SupplierService.fetchSuppliers(ids: invoices.map(\.supplierId))
+            let suppliersById = Dictionary(uniqueKeysWithValues: suppliers.map { ($0.id, $0) })
+            for invoice in invoices where invoice.isCreditNote {
+                let supplierName = suppliersById[invoice.supplierId]?.denumire ?? "—"
                 contexts.append(
                     CreditNoteOffsetContext(
                         invoice: invoice,
@@ -1536,7 +1529,7 @@ struct InvoiceFormView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let existingInvoices = try await SupplierService.fetchInvoices()
+            let existingInvoices = try await SupplierService.fetchInvoiceDuplicateIndex()
             if SupplierInvoiceDuplicateCheck.isDuplicate(
                 supplier: supplier,
                 number: numarFactura,

@@ -17,9 +17,14 @@ enum NotaContabilaGenerator {
         return generateGeneric(from: z, nrInreg: nrInreg)
     }
 
-    static func generate(from reports: [ZReportData], config: ZettaNCConfig? = nil) -> [NotaContabilaRow] {
-        reports.sortedForExport().enumerated().flatMap { index, report in
-            generate(from: report, nrInreg: index + 1, config: config)
+    static func generate(
+        from reports: [ZReportData],
+        config: ZettaNCConfig? = nil,
+        startingNrInreg: Int = 1
+    ) -> [NotaContabilaRow] {
+        let start = max(1, startingNrInreg)
+        return reports.sortedForExport().enumerated().flatMap { index, report in
+            generate(from: report, nrInreg: start + index, config: config)
         }
     }
 

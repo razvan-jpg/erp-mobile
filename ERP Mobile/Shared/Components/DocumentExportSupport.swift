@@ -1,6 +1,7 @@
 import MessageUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct MailComposeView: UIViewControllerRepresentable {
     let subject: String
@@ -176,4 +177,66 @@ enum DocumentExportSupport {
         let normalized = digits.hasPrefix("40") ? digits : "40\(digits)"
         return URL(string: "https://wa.me/\(normalized)")
     }
+
+#if targetEnvironment(macCatalyst)
+    /// Save/share without a nested SwiftUI sheet (blank white screen on Mac Catalyst).
+    @discardableResult
+    static func saveOnMac(from sourceURL: URL, suggestedName: String) -> Bool {
+        _ = suggestedName
+        return presentExportPicker(sourceURL: sourceURL)
+    }
+
+    static func shareOnMac(url: URL) {
+        guard let host = MacExportPresenter.topViewController() else { return }
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let popover = controller.popoverPresentationController {
+            popover.sourceView = host.view
+            popover.sourceRect = CGRect(x: host.view.bounds.midX, y: 72, width: 1, height: 1)
+        }
+        host.present(controller, animated: true)
+    }
+
+    @discardableResult
+    private static func presentExportPicker(sourceURL: URL) -> Bool {
+        guard let host = MacExportPresenter.topViewController() else { return false }
+        let delegate = MacExportPresenter.ExportPickerDelegate()
+        MacExportPresenter.documentPickerDelegate = delegate
+        let picker = UIDocumentPickerViewController(forExporting: [sourceURL], asCopy: true)
+        picker.delegate = delegate
+        picker.shouldShowFileExtensions = true
+        if let popover = picker.popoverPresentationController {
+            popover.sourceView = host.view
+            popover.sourceRect = CGRect(x: host.view.bounds.midX, y: 72, width: 1, height: 1)
+        }
+        host.present(picker, animated: true)
+        return true
+    }
+#endif
 }
+
+#if targetEnvironment(macCatalyst)
+private enum MacExportPresenter {
+    static var documentPickerDelegate: ExportPickerDelegate?
+
+    final class ExportPickerDelegate: NSObject, UIDocumentPickerDelegate {
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            MacExportPresenter.documentPickerDelegate = nil
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            MacExportPresenter.documentPickerDelegate = nil
+        }
+    }
+
+    static func topViewController() -> UIViewController? {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let root = scene?.windows.first(where: \.isKeyWindow)?.rootViewController
+            ?? scene?.windows.first?.rootViewController
+        var top = root
+        while let presented = top?.presentedViewController {
+            top = presented
+        }
+        return top
+    }
+}
+#endif

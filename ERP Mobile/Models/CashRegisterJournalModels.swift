@@ -29,6 +29,7 @@ enum CashRegisterManualEntryKind: String, Codable, CaseIterable, Identifiable, S
     case incasareClient
     case plataFurnizor
     case ridicareNumerarBanca
+    case depunereBanca
     case incasareDiverse
     case plataDiverse
 
@@ -38,7 +39,7 @@ enum CashRegisterManualEntryKind: String, Codable, CaseIterable, Identifiable, S
         switch self {
         case .incasareClient, .ridicareNumerarBanca, .incasareDiverse:
             return true
-        case .plataFurnizor, .plataDiverse:
+        case .plataFurnizor, .depunereBanca, .plataDiverse:
             return false
         }
     }
@@ -53,6 +54,8 @@ struct CashRegisterManualEntry: Codable, Identifiable, Hashable, Sendable {
     var documentNumber: String
     var explanation: String
     @SupabaseDecimal var amount: Decimal
+    var supplierId: UUID?
+    var supplierName: String?
 
     init(
         id: UUID = UUID(),
@@ -61,7 +64,9 @@ struct CashRegisterManualEntry: Codable, Identifiable, Hashable, Sendable {
         kind: CashRegisterManualEntryKind,
         documentNumber: String,
         explanation: String,
-        amount: Decimal
+        amount: Decimal,
+        supplierId: UUID? = nil,
+        supplierName: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -70,6 +75,8 @@ struct CashRegisterManualEntry: Codable, Identifiable, Hashable, Sendable {
         self.documentNumber = documentNumber
         self.explanation = explanation
         self.amount = amount
+        self.supplierId = supplierId
+        self.supplierName = supplierName
     }
 
     func resolvedCasaTarget() -> CashRegisterCasaTarget {

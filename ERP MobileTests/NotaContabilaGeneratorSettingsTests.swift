@@ -130,4 +130,20 @@ struct NotaContabilaGeneratorSettingsTests {
         #expect(!rows.contains { $0.contDebit == "5125" })
         #expect(!rows.contains { $0.contDebit == "5113" })
     }
+
+    @Test func numberingStartsFromRequestedFirstNote() {
+        var first = sampleZReport()
+        first.zNumber = 10
+        var second = sampleZReport()
+        second.zNumber = 11
+        let rows = NotaContabilaGenerator.generate(
+            from: [second, first],
+            config: sampleConfig(multipleLocations: false),
+            startingNrInreg: 1543
+        )
+        let numbers = Array(Set(rows.map(\.nrInreg))).sorted()
+        #expect(numbers == [1543, 1544])
+        #expect(rows.contains { $0.nrInreg == 1543 && $0.numarDocument == "0010" })
+        #expect(rows.contains { $0.nrInreg == 1544 && $0.numarDocument == "0011" })
+    }
 }

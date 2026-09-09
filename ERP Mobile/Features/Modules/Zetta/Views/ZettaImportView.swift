@@ -259,6 +259,8 @@ struct ZettaImportView: View {
                     .foregroundStyle(Color.labelMuted)
             }
 
+            firstAccountingNoteField
+
             if !erpContext.hasExpectedCUI, !erpContext.isUtilityStandalone {
                 Text(L10n.tr("module.clients.zetta_no_cui_warning"))
                     .font(.custom("Avenir Next", size: 13).weight(.semibold))
@@ -269,6 +271,41 @@ struct ZettaImportView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
+    }
+
+    private var firstAccountingNoteField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L10n.tr("utilities.zetta_import.first_nc_number"))
+                .font(.custom("Avenir Next", size: 13).weight(.semibold))
+                .foregroundStyle(Color.accentInk)
+            TextField(
+                L10n.tr("utilities.zetta_import.first_nc_number_placeholder"),
+                value: $model.firstAccountingNoteNumber,
+                format: IntegerFormatStyle<Int>().grouping(.never)
+            )
+            .textFieldStyle(.roundedBorder)
+            .font(.custom("Avenir Next", size: 18).weight(.bold))
+            .foregroundStyle(Color.accentInk)
+            .frame(maxWidth: 220)
+            #if os(iOS)
+            .keyboardType(.numberPad)
+            #endif
+            .onChange(of: model.firstAccountingNoteNumber) { value in
+                model.applyFirstAccountingNoteNumber(value)
+            }
+            Text(L10n.tr("utilities.zetta_import.first_nc_number_hint"))
+                .font(.custom("Avenir Next", size: 12).weight(.medium))
+                .foregroundStyle(Color.labelMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.panelFill)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.fieldStroke, lineWidth: 1)
+        )
     }
 
     private var controls: some View {
@@ -396,7 +433,8 @@ struct ZettaImportView: View {
             from: model.scopedReports,
             config: model.zettaNCConfig,
             namingStyle: model.exportNamingStyle,
-            companyDisplayName: model.utilityCompanyDisplayName
+            companyDisplayName: model.utilityCompanyDisplayName,
+            startingNrInreg: model.resolvedFirstAccountingNoteNumber
         )
         let fileCount = max(groups.count, 1)
         let fileNames = groups.map(\.fileName).joined(separator: ", ")
@@ -431,7 +469,7 @@ struct ZettaImportView: View {
             #else
             Text(fileCount > 1
                  ? "Câte un Excel pe firmă — compatibil NextUp. La export alegi folderul de destinație."
-                 : "Un Excel — câte 10 rânduri (Nectarie) sau 8 rânduri (altă firmă) per Z, Nr. înreg. 1, 2, 3…")
+                 : "Un Excel — câte 10 rânduri (Nectarie) sau 8 rânduri (altă firmă) per Z, Nr. înreg. consecutiv de la numărul setat sus.")
                 .font(.custom("Avenir Next", size: 12))
                 .foregroundStyle(Color.labelMuted)
                 .fixedSize(horizontal: false, vertical: true)

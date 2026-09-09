@@ -562,10 +562,12 @@ struct NIREditorView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let loadedLines = try await SupplierService.fetchInvoiceLines(invoiceId: context.invoice.id)
-            let products = try await ProductService.fetchProducts(companyId: company.id)
+            async let loadedLinesTask = SupplierService.fetchInvoiceLines(invoiceId: context.invoice.id)
+            async let receptionDataTask = InvoiceReceptionSupport.loadOptionsData(companyId: company.id)
+            let loadedLines = try await loadedLinesTask
+            let receptionData = try await receptionDataTask
+            let products = try await ProductService.fetchProducts(ids: loadedLines.map(\.productId))
             let productsMap = Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0) })
-            let receptionData = try await InvoiceReceptionSupport.loadOptionsData(companyId: company.id)
             let requirements = InvoiceReceptionSupport.requirements(
                 workLocations: receptionData.workLocations,
                 warehouses: receptionData.warehouses

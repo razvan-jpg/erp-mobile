@@ -25,6 +25,7 @@ struct PendingLocalSave: Identifiable {
 @MainActor
 final class ZettaAppViewModel: ObservableObject {
     @Published var reports: [ZReportData] = []
+    @Published var firstAccountingNoteNumber: Int = 1
     @Published private(set) var previewRows: [NotaContabilaRow] = []
     @Published var isProcessing = false
     @Published var statusMessage: String?
@@ -108,6 +109,7 @@ final class ZettaAppViewModel: ObservableObject {
     func resetForCompanyChange() {
         reports = []
         previewRows = []
+        firstAccountingNoteNumber = 1
         zettaNCConfig = nil
         statusMessage = nil
         errorMessage = nil
@@ -220,7 +222,25 @@ final class ZettaAppViewModel: ObservableObject {
     }
 
     var exportGroups: [ExcelExporter.FirmExportGroup] {
-        ExcelExporter.groupsByFirma(from: scopedReports, config: zettaNCConfig)
+        ExcelExporter.groupsByFirma(
+            from: scopedReports,
+            config: zettaNCConfig,
+            namingStyle: exportNamingStyle,
+            companyDisplayName: utilityCompanyDisplayName,
+            startingNrInreg: resolvedFirstAccountingNoteNumber
+        )
+    }
+
+    var resolvedFirstAccountingNoteNumber: Int {
+        max(1, firstAccountingNoteNumber)
+    }
+
+    func applyFirstAccountingNoteNumber(_ value: Int) {
+        let clamped = max(1, value)
+        if firstAccountingNoteNumber != clamped {
+            firstAccountingNoteNumber = clamped
+        }
+        syncPreviewRows()
     }
 
     var allRows: [NotaContabilaRow] {
@@ -398,7 +418,11 @@ final class ZettaAppViewModel: ObservableObject {
     }
 
     private func syncPreviewRows() {
-        previewRows = NotaContabilaGenerator.generate(from: scopedReports, config: zettaNCConfig)
+        previewRows = NotaContabilaGenerator.generate(
+            from: scopedReports,
+            config: zettaNCConfig,
+            startingNrInreg: resolvedFirstAccountingNoteNumber
+        )
     }
 
     func exportExcel() {
@@ -417,7 +441,8 @@ final class ZettaAppViewModel: ObservableObject {
             from: exportReports,
             config: zettaNCConfig,
             namingStyle: exportNamingStyle,
-            companyDisplayName: utilityCompanyDisplayName
+            companyDisplayName: utilityCompanyDisplayName,
+            startingNrInreg: resolvedFirstAccountingNoteNumber
         )
 
         #if os(macOS) && !targetEnvironment(macCatalyst)
@@ -508,7 +533,8 @@ final class ZettaAppViewModel: ObservableObject {
             from: exportReports,
             config: zettaNCConfig,
             namingStyle: exportNamingStyle,
-            companyDisplayName: utilityCompanyDisplayName
+            companyDisplayName: utilityCompanyDisplayName,
+            startingNrInreg: resolvedFirstAccountingNoteNumber
         )
 
         #if os(macOS) && !targetEnvironment(macCatalyst)

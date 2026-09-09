@@ -264,7 +264,11 @@ private struct InvoiceImportPreviewRow: View {
                 }
             }
 
-            if item.isDuplicate {
+            if item.canAttachNIR {
+                Text(L10n.tr("invoices.import_preview_existing_no_nir"))
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            } else if item.isDuplicate {
                 Text(L10n.tr("invoices.import_preview_duplicate"))
                     .font(.caption)
                     .foregroundColor(.orange)

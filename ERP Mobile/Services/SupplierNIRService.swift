@@ -5,12 +5,7 @@ enum SupplierNIRService {
     private static let client = SupabaseManager.client
 
     private static func dateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        SupabaseDecoding.dateOnlyString(from: date)
     }
 
     private struct NIRInsert: Encodable {
@@ -131,13 +126,17 @@ enum SupplierNIRService {
     }
 
     static func fetchNIRRows(companyId: UUID) async throws -> [SupplierNIRRow] {
-        let rows: [SupplierNIRRow] = try await client
-            .from("supplier_nirs")
-            .select("*, invoice:supplier_invoices(numar_factura, data_factura, supplier_id, supplier:suppliers(denumire))")
-            .eq("company_id", value: companyId.uuidString)
-            .order("data_nir", ascending: false)
-            .execute()
-            .value
+        let rows: [SupplierNIRRow] = try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_nirs")
+                .select("*, invoice:supplier_invoices(numar_factura, data_factura, supplier_id, supplier:suppliers(denumire))")
+                .eq("company_id", value: companyId.uuidString)
+                .order("data_nir", ascending: false)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
         return rows.sorted { lhs, rhs in
             if lhs.dataNir != rhs.dataNir {
                 return lhs.dataNir > rhs.dataNir
@@ -155,12 +154,16 @@ enum SupplierNIRService {
             }
         }
 
-        let rows: [NIRInvoiceRef] = try await client
-            .from("supplier_nirs")
-            .select("invoice_id")
-            .eq("company_id", value: companyId.uuidString)
-            .execute()
-            .value
+        let rows: [NIRInvoiceRef] = try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_nirs")
+                .select("invoice_id")
+                .eq("company_id", value: companyId.uuidString)
+                .order("invoice_id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
         return Set(rows.map(\.invoiceId))
     }
 
@@ -276,6 +279,9 @@ enum SupplierNIRService {
                 .execute()
         }
 
+        var inserts: [NIRLineInsert] = []
+        inserts.reserveCapacity(desiredLines.count)
+
         for (index, line) in desiredLines.enumerated() {
             let reception = conversions[line.id]
                 ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
@@ -301,28 +307,33 @@ enum SupplierNIRService {
                     .eq("id", value: existingLine.id.uuidString)
                     .execute()
             } else {
-                let insertPayload = NIRLineInsert(
-                    nirId: nirId,
-                    companyId: companyId,
-                    invoiceLineId: line.id,
-                    productId: line.productId,
-                    numarLinie: index + 1,
-                    denumire: line.denumire,
-                    cantitate: doubleQuantity(reception.stockQuantity),
-                    pretUnitar: doubleAmount(reception.stockUnitPrice),
-                    sumaLinie: doubleAmount(line.sumaLinie),
-                    sumaTva: doubleAmount(line.sumaTva),
-                    cotaTva: doubleAmount(line.cotaTva),
-                    unitateMasura: reception.stockUnit,
-                    cantitateFactura: doubleQuantity(reception.invoiceQuantity),
-                    unitateFactura: reception.invoiceUnit,
-                    factorConversie: doubleQuantity(reception.factor)
+                inserts.append(
+                    NIRLineInsert(
+                        nirId: nirId,
+                        companyId: companyId,
+                        invoiceLineId: line.id,
+                        productId: line.productId,
+                        numarLinie: index + 1,
+                        denumire: line.denumire,
+                        cantitate: doubleQuantity(reception.stockQuantity),
+                        pretUnitar: doubleAmount(reception.stockUnitPrice),
+                        sumaLinie: doubleAmount(line.sumaLinie),
+                        sumaTva: doubleAmount(line.sumaTva),
+                        cotaTva: doubleAmount(line.cotaTva),
+                        unitateMasura: reception.stockUnit,
+                        cantitateFactura: doubleQuantity(reception.invoiceQuantity),
+                        unitateFactura: reception.invoiceUnit,
+                        factorConversie: doubleQuantity(reception.factor)
+                    )
                 )
-                try await client
-                    .from("supplier_nir_lines")
-                    .insert(insertPayload)
-                    .execute()
             }
+        }
+
+        for chunk in inserts.chunked(into: 200) {
+            try await client
+                .from("supplier_nir_lines")
+                .insert(chunk)
+                .execute()
         }
     }
 
@@ -439,7 +450,7 @@ enum SupplierNIRService {
         let conversionByLineId = Dictionary(
             uniqueKeysWithValues: nirLines.map { ($0.invoiceLineId, StockUnitConversion.reception(nirLine: $0)) }
         )
-        let products = try await ProductService.fetchProducts(companyId: company.id)
+        let products = try await ProductService.fetchProducts(ids: invoiceLines.map(\.productId))
         let productsById = Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0) })
         let reception = try await resolveReceptionDetails(
             nir: nir,

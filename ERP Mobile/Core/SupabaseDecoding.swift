@@ -5,28 +5,33 @@ enum SupabaseDecoding {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
-            let string = try container.decode(String.self)
-            if let date = parseDate(string) {
-                return date
+            if let string = try? container.decode(String.self) {
+                if let date = parseDate(string) {
+                    return date
+                }
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Format dată invalid: \(string)"
+                )
+            }
+            // JSONEncoder default Date = seconds since reference date (local cash-register fallback).
+            if let interval = try? container.decode(Double.self) {
+                return Date(timeIntervalSinceReferenceDate: interval)
             }
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Format dată invalid: \(string)"
+                debugDescription: "Format dată invalid."
             )
         }
         return decoder
     }()
 
-    static func parseDate(_ string: String) -> Date? {
+    static func parseDate(_ string: String, calendar: Calendar = .current) -> Date? {
         let trimmed = normalizePostgreSQLTimestamp(string.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !trimmed.isEmpty else { return nil }
 
-        let dateOnly = DateFormatter()
-        dateOnly.calendar = Calendar(identifier: .gregorian)
-        dateOnly.locale = Locale(identifier: "en_US_POSIX")
-        dateOnly.timeZone = TimeZone(secondsFromGMT: 0)
-        dateOnly.dateFormat = "yyyy-MM-dd"
-        if let date = dateOnly.date(from: trimmed) { return date }
+        // Date-only values are calendar days (invoice / NIR / cash-register date), not UTC midnights.
+        if let date = calendarDate(from: trimmed, calendar: calendar) { return date }
 
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -63,14 +68,31 @@ enum SupabaseDecoding {
         return formattedDateOnly(date, calendar: calendar)
     }
 
+    /// Calendar Y/M/D in the given timezone — never UTC, so 5 Aug 00:00 EEST stays `2026-08-05`.
     private static func formattedDateOnly(_ date: Date, calendar: Calendar) -> String {
-        let day = calendar.startOfDay(for: date)
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: day)
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        let year = parts.year ?? 0
+        let month = parts.month ?? 0
+        let day = parts.day ?? 0
+        return String(format: "%04d-%02d-%02d", year, month, day)
+    }
+
+    private static func calendarDate(from string: String, calendar: Calendar) -> Date? {
+        guard string.count == 10 else { return nil }
+        let parts = string.split(separator: "-")
+        guard parts.count == 3,
+              let year = Int(parts[0]),
+              let month = Int(parts[1]),
+              let day = Int(parts[2]),
+              (1...12).contains(month),
+              (1...31).contains(day)
+        else { return nil }
+
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        return calendar.date(from: components)
     }
 
     /// Normalizează fracțiunile de secundă PostgreSQL (1–6 cifre) pentru decodare stabilă.

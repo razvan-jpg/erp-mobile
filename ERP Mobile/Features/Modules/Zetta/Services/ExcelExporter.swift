@@ -89,6 +89,7 @@ enum ExcelExporter {
         let config: ZettaNCConfig?
         let namingStyle: ExcelExportNamingStyle
         let companyDisplayName: String?
+        let startingNrInreg: Int
 
         var fileName: String {
             ExcelExporter.suggestedFileName(
@@ -97,7 +98,13 @@ enum ExcelExporter {
                 companyDisplayName: companyDisplayName
             )
         }
-        var rows: [NotaContabilaRow] { NotaContabilaGenerator.generate(from: reports, config: config) }
+        var rows: [NotaContabilaRow] {
+            NotaContabilaGenerator.generate(
+                from: reports,
+                config: config,
+                startingNrInreg: startingNrInreg
+            )
+        }
     }
 
     /// Împarte rapoartele pe firmă (fără diacritice / case). Fiecare grup = un Excel separat.
@@ -105,7 +112,8 @@ enum ExcelExporter {
         from reports: [ZReportData],
         config: ZettaNCConfig? = nil,
         namingStyle: ExcelExportNamingStyle = .accountingNote,
-        companyDisplayName: String? = nil
+        companyDisplayName: String? = nil,
+        startingNrInreg: Int = 1
     ) -> [FirmExportGroup] {
         var order: [String] = []
         var buckets: [String: (display: String, reports: [ZReportData])] = [:]
@@ -128,7 +136,8 @@ enum ExcelExporter {
                 reports: bucket.reports,
                 config: config,
                 namingStyle: namingStyle,
-                companyDisplayName: companyDisplayName
+                companyDisplayName: companyDisplayName,
+                startingNrInreg: startingNrInreg
             )
         }
     }
@@ -143,8 +152,20 @@ enum ExcelExporter {
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         let sorted = reports.sortedForExport()
-        let groups = groupsByFirma(from: sorted, namingStyle: style, companyDisplayName: companyDisplayName)
         let datePart = dateRangePart(from: sorted, formatter: f)
+        let explicitFirm = companyDisplayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !explicitFirm.isEmpty {
+            let firmPart = sanitizeFileNameComponent(explicitFirm)
+            switch style {
+            case .accountingNote:
+                let cuiPart = sanitizeCUIComponent(companyCUI(for: sorted))
+                return "NC_\(firmPart)_\(cuiPart)_\(datePart).xlsx"
+            case .zettaUtility:
+                return "ZETTA - \(firmPart) - \(datePart).xlsx"
+            }
+        }
+
+        let groups = groupsByFirma(from: sorted, namingStyle: style, companyDisplayName: companyDisplayName)
 
         if groups.count == 1, let only = groups.first {
             let firmPart = sanitizeFileNameComponent(companyDisplayName ?? companyName(for: only.reports))

@@ -62,7 +62,7 @@ enum ImageLoader {
     static let acceptedFileTypes: [UTType] = [.jpeg, .png, .heic, .heif, .pdf, .image, .tiff]
 
     static let acceptedDropTypes: [UTType] = [
-        .fileURL, .image, .pdf, .jpeg, .png, .heic, .heif, .tiff, .content
+        .fileURL, .pdf, .jpeg, .png, .heic, .heif, .tiff, .image
     ]
 
     /// Una sau mai multe imagini din fișier (PDF → câte o pagină).
@@ -264,10 +264,16 @@ struct DropZoneView: View {
                         )
                 )
         )
-        .onDrop(of: ImageLoader.acceptedDropTypes, isTargeted: $isTargeted) { providers in
-            guard !providers.isEmpty else { return false }
-            handleDrop(providers)
-            return true
+        .overlay {
+            SafeItemDropCatcher(
+                typeIdentifiers: ImageLoader.acceptedDropTypes.map(\.identifier),
+                onTargetedChange: { isTargeted = $0 },
+                onDrop: { providers in
+                    guard !providers.isEmpty else { return false }
+                    handleDrop(providers)
+                    return true
+                }
+            )
         }
     }
 

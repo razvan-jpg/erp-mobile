@@ -8,6 +8,9 @@ enum CashRegisterJournalBuilder {
         let zReports: [CompanyZReportRecord]
         let manualEntries: [CashRegisterManualEntry]
         let supplierCashPayments: [SupplierPaymentRow]
+        let clientCashPayments: [ClientPaymentRow]
+        /// Sold de casă la începutul perioadei (închiderea zilei dinainte de `from`). Cheie = `CashRegisterCasaTarget.id`.
+        var explicitOpeningBalances: [String: Decimal] = [:]
     }
 
     static func build(
@@ -20,12 +23,32 @@ enum CashRegisterJournalBuilder {
         let end = calendar.startOfDay(for: endDate)
         guard start <= end else { return [] }
 
-        let buildStart = min(start, earliestOperationDay(in: context, calendar: calendar, fallback: start))
+        let historyStart = min(start, earliestOperationDay(in: context, calendar: calendar, fallback: start))
         let casas = activeCasas(settings: context.settings, locations: context.workLocations)
         var pages: [CashRegisterDailyJournal] = []
         var closingByCasaDay: [String: Decimal] = [:]
 
-        var day = buildStart
+        var day = historyStart
+        while day < start {
+            recordClosing(
+                context: context,
+                date: day,
+                casas: casas,
+                closingByCasaDay: &closingByCasaDay
+            )
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+
+        seedExplicitOpenings(
+            context: context,
+            periodStart: start,
+            casas: casas,
+            calendar: calendar,
+            closingByCasaDay: &closingByCasaDay
+        )
+
+        day = start
         while day <= end {
             for casa in casas {
                 if let page = buildDailyPage(
@@ -36,6 +59,13 @@ enum CashRegisterJournalBuilder {
                 ) {
                     pages.append(page)
                     closingByCasaDay[balanceKey(casa: casa, date: day)] = page.closingBalance
+                } else if let carried = openingBalance(
+                    for: casa,
+                    date: day,
+                    closingByCasaDay: closingByCasaDay,
+                    calendar: calendar
+                ) {
+                    closingByCasaDay[balanceKey(casa: casa, date: day)] = carried
                 }
             }
             guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
@@ -47,6 +77,46 @@ enum CashRegisterJournalBuilder {
         )
     }
 
+    private static func recordClosing(
+        context: Context,
+        date: Date,
+        casas: [CashRegisterCasaTarget],
+        closingByCasaDay: inout [String: Decimal]
+    ) {
+        let calendar = Calendar(identifier: .gregorian)
+        for casa in casas {
+            if let page = buildDailyPage(
+                context: context,
+                date: date,
+                casa: casa,
+                closingByCasaDay: closingByCasaDay
+            ) {
+                closingByCasaDay[balanceKey(casa: casa, date: date)] = page.closingBalance
+            } else if let carried = openingBalance(
+                for: casa,
+                date: date,
+                closingByCasaDay: closingByCasaDay,
+                calendar: calendar
+            ) {
+                closingByCasaDay[balanceKey(casa: casa, date: date)] = carried
+            }
+        }
+    }
+
+    private static func seedExplicitOpenings(
+        context: Context,
+        periodStart: Date,
+        casas: [CashRegisterCasaTarget],
+        calendar: Calendar,
+        closingByCasaDay: inout [String: Decimal]
+    ) {
+        guard let dayBeforeStart = calendar.date(byAdding: .day, value: -1, to: periodStart) else { return }
+        for casa in casas {
+            guard let amount = context.explicitOpeningBalances[casa.id] else { continue }
+            closingByCasaDay[balanceKey(casa: casa, date: dayBeforeStart)] = max(amount, 0)
+        }
+    }
+
     private static func earliestOperationDay(
         in context: Context,
         calendar: Calendar,
@@ -56,6 +126,7 @@ enum CashRegisterJournalBuilder {
         dates.append(contentsOf: context.zReports.map(\.accountingDate))
         dates.append(contentsOf: context.manualEntries.map(\.date))
         dates.append(contentsOf: context.supplierCashPayments.map(\.dataPlata))
+        dates.append(contentsOf: context.clientCashPayments.map(\.dataPlata))
         guard let earliest = dates.map({ calendar.startOfDay(for: $0) }).min() else { return fallback }
         return earliest
     }
@@ -83,7 +154,7 @@ enum CashRegisterJournalBuilder {
             date: date,
             closingByCasaDay: closingByCasaDay,
             calendar: calendar
-        )
+        ) ?? 0
 
         var operationLines: [CashRegisterJournalLine] = []
         var row = 1
@@ -108,7 +179,7 @@ enum CashRegisterJournalBuilder {
         }
 
         let zReportsToday = context.zReports.filter {
-            calendar.isDate($0.accountingDate, inSameDayAs: date)
+            isSameCalendarDay($0.accountingDate, date)
         }
 
         if casa.isHeadquarters {
@@ -158,12 +229,11 @@ enum CashRegisterJournalBuilder {
         }
 
         let manualToday = context.manualEntries.filter {
-            calendar.isDate($0.date, inSameDayAs: date) && $0.resolvedCasaTarget() == casa
+            isSameCalendarDay($0.date, date) && $0.resolvedCasaTarget() == casa
         }.filter { entry in
             !matchesImportedSupplierPayment(
                 entry,
                 on: date,
-                calendar: calendar,
                 payments: context.supplierCashPayments
             )
         }
@@ -184,8 +254,25 @@ enum CashRegisterJournalBuilder {
         }
 
         if casa.isHeadquarters {
+            let clientPaymentsToday = context.clientCashPayments.filter {
+                isSameCalendarDay($0.dataPlata, date)
+            }
+            for payment in clientPaymentsToday.sorted(by: { lhs, rhs in
+                clientPaymentDocumentNumber(lhs).localizedCaseInsensitiveCompare(
+                    clientPaymentDocumentNumber(rhs)
+                ) == .orderedAscending
+            }) {
+                appendLine(
+                    actCasa: clientPaymentDocumentNumber(payment),
+                    explanation: clientPaymentExplanation(payment),
+                    incasari: payment.suma
+                )
+            }
+        }
+
+        if casa.isHeadquarters {
             let paymentsToday = context.supplierCashPayments.filter {
-                calendar.isDate($0.dataPlata, inSameDayAs: date)
+                isSameCalendarDay($0.dataPlata, date)
             }
             for payment in paymentsToday.sorted(by: { lhs, rhs in
                 supplierPaymentDocumentNumber(lhs).localizedCaseInsensitiveCompare(
@@ -225,7 +312,7 @@ enum CashRegisterJournalBuilder {
             CashRegisterJournalLine(
                 rowNumber: 0,
                 explanation: L10n.tr("module.cash_register.opening_balance"),
-                incasari: opening > 0 ? opening : nil
+                incasari: opening
             )
         ]
         lines.append(contentsOf: operationLines)
@@ -269,8 +356,8 @@ enum CashRegisterJournalBuilder {
         date: Date,
         closingByCasaDay: [String: Decimal],
         calendar: Calendar
-    ) -> Decimal {
-        guard let previous = calendar.date(byAdding: .day, value: -1, to: date) else { return 0 }
+    ) -> Decimal? {
+        guard let previous = calendar.date(byAdding: .day, value: -1, to: date) else { return nil }
         var cursor = previous
         for _ in 0..<366 {
             let key = balanceKey(casa: casa, date: cursor)
@@ -278,7 +365,7 @@ enum CashRegisterJournalBuilder {
             guard let next = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
             cursor = next
         }
-        return 0
+        return nil
     }
 
     private static func balanceKey(casa: CashRegisterCasaTarget, date: Date) -> String {
@@ -348,18 +435,39 @@ enum CashRegisterJournalBuilder {
         return L10n.tr("module.cash_register.line_plata_furnizor_advance", supplier)
     }
 
+    private static func isSameCalendarDay(_ lhs: Date, _ rhs: Date) -> Bool {
+        SupabaseDecoding.dateOnlyString(from: lhs) == SupabaseDecoding.dateOnlyString(from: rhs)
+    }
+
     private static func matchesImportedSupplierPayment(
         _ entry: CashRegisterManualEntry,
         on date: Date,
-        calendar: Calendar,
         payments: [SupplierPaymentRow]
     ) -> Bool {
         guard entry.kind == .plataFurnizor, entry.resolvedCasaTarget().isHeadquarters else { return false }
         return payments.contains { payment in
-            calendar.isDate(payment.dataPlata, inSameDayAs: date)
+            isSameCalendarDay(payment.dataPlata, date)
                 && payment.suma == entry.amount
                 && supplierPaymentDocumentNumber(payment).caseInsensitiveCompare(entry.documentNumber) == .orderedSame
         }
+    }
+
+    private static func clientPaymentDocumentNumber(_ payment: ClientPaymentRow) -> String {
+        if let referinta = payment.referinta?.trimmingCharacters(in: .whitespacesAndNewlines), !referinta.isEmpty {
+            return referinta
+        }
+        return "IC-\(CashRegisterJournalFormatting.fileDate(payment.dataPlata))"
+    }
+
+    private static func clientPaymentExplanation(_ payment: ClientPaymentRow) -> String {
+        if let trimmed = payment.observatii?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            return trimmed
+        }
+        let client = payment.clientName
+        if let invoice = payment.invoiceNumber?.trimmingCharacters(in: .whitespacesAndNewlines), !invoice.isEmpty {
+            return L10n.tr("module.cash_register.line_incasare_client", invoice, client)
+        }
+        return L10n.tr("module.cash_register.line_incasare_client_advance", client)
     }
 
     private static func nextAutoDocumentNumber(from lines: [CashRegisterJournalLine]) -> String {

@@ -169,17 +169,8 @@ private struct InvoiceLineInsert: Encodable {
 enum SupplierService {
     private static let client = SupabaseManager.client
 
-    private static let dateOnlyFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
     private static func dateString(_ date: Date) -> String {
-        dateOnlyFormatter.string(from: date)
+        SupabaseDecoding.dateOnlyString(from: date)
     }
 
     private static func doubleAmount(_ value: Decimal) -> Double {
@@ -405,21 +396,20 @@ enum SupplierService {
     }
 
     static func fetchSuppliers(activeOnly: Bool = false) async throws -> [Supplier] {
-        if activeOnly {
-            return try await client
+        try await SupabasePaging.fetchAll { from, to in
+            var query = client
                 .from("suppliers")
                 .select()
-                .eq("is_active", value: true)
+            if activeOnly {
+                query = query.eq("is_active", value: true)
+            }
+            return try await query
                 .order("denumire", ascending: true)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
                 .execute()
                 .value
         }
-        return try await client
-            .from("suppliers")
-            .select()
-            .order("denumire", ascending: true)
-            .execute()
-            .value
     }
 
     static func createSupplier(
@@ -529,13 +519,83 @@ enum SupplierService {
 
     // MARK: - Invoices
 
-    static func fetchInvoices() async throws -> [SupplierInvoiceRow] {
-        let rows: [SupplierInvoiceRow] = try await client
-            .from("supplier_invoices")
-            .select("*, supplier:suppliers(denumire)")
-            .execute()
-            .value
+    static func fetchInvoices(
+        dateFilter: InvoiceListDateFilter = .none
+    ) async throws -> [SupplierInvoiceRow] {
+        let rows: [SupplierInvoiceRow] = try await SupabasePaging.fetchAll { from, to in
+            var query = client
+                .from("supplier_invoices")
+                .select("*, supplier:suppliers(denumire)")
+            query = applyDateFilter(query, dateFilter)
+            return try await query
+                .order("created_at", ascending: false)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
         return rows.sorted(by: compareInvoiceRowsByDueDate)
+    }
+
+    static func fetchInvoiceDuplicateIndex() async throws -> [SupplierInvoiceDuplicateRef] {
+        try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_invoices")
+                .select("id, supplier_id, numar_factura, data_factura, suma_totala")
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
+    }
+
+    static func fetchInvoices(ids: [UUID]) async throws -> [SupplierInvoice] {
+        guard !ids.isEmpty else { return [] }
+        var all: [SupplierInvoice] = []
+        for chunk in ids.chunked(into: 200) {
+            let rows: [SupplierInvoice] = try await client
+                .from("supplier_invoices")
+                .select()
+                .in("id", values: chunk.map(\.uuidString))
+                .execute()
+                .value
+            all.append(contentsOf: rows)
+        }
+        let byId = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        return ids.compactMap { byId[$0] }
+    }
+
+    static func fetchSuppliers(ids: [UUID]) async throws -> [Supplier] {
+        guard !ids.isEmpty else { return [] }
+        var all: [Supplier] = []
+        for chunk in ids.chunked(into: 200) {
+            let rows: [Supplier] = try await client
+                .from("suppliers")
+                .select()
+                .in("id", values: chunk.map(\.uuidString))
+                .execute()
+                .value
+            all.append(contentsOf: rows)
+        }
+        return all
+    }
+
+    private static func applyDateFilter(
+        _ query: PostgrestFilterBuilder,
+        _ dateFilter: InvoiceListDateFilter
+    ) -> PostgrestFilterBuilder {
+        switch dateFilter {
+        case .none:
+            return query
+        case .created(let start, let end):
+            return query
+                .gte("created_at", value: InvoiceListDateFilter.timestampString(start))
+                .lt("created_at", value: InvoiceListDateFilter.timestampString(end))
+        case .invoiceDate(let start, let end):
+            return query
+                .gte("data_factura", value: InvoiceListDateFilter.dateOnlyString(start))
+                .lte("data_factura", value: InvoiceListDateFilter.dateOnlyString(end))
+        }
     }
 
     static func fetchInvoiceRow(id: UUID) async throws -> SupplierInvoiceRow {

@@ -3,7 +3,7 @@ import Foundation
 enum HelpContent {
     static let pageTitle = "Ajutor — \(ZettaAppInfo.appName)"
     static let subtitle = "Ghid complet: de la bonul Z la Excel pentru NextUp"
-    static let lastUpdated = "Actualizat: 17 august 2026 · v\(ZettaAppInfo.version)"
+    static let lastUpdated = "Actualizat: 9 septembrie 2026 · v\(ZettaAppInfo.version)"
     static let pdfScanTip = "Pentru a elimina ~90% din erorile de citire de pe bonurile termice, scanează toate Rapoartele Z într-un singur fișier PDF pe care apoi îl încarci în aplicație — în loc de poze."
 
     struct Section: Identifiable {
@@ -89,6 +89,7 @@ enum HelpContent {
             ],
             bullets: [
                 "Suportă bonuri fiscale pe hârtie (OCR din poză) și PDF-uri POS Nectarie / Complex Magnolia (citire directă din text).",
+                "Pe tab-ul Utilitare, „Z-uri scanate → import Zetta” citește poze/PDF pe modelul Raport_Z_model.pdf și creează direct Excel-ul de import.",
                 "Recomandat: scanează bonurile termice într-un singur PDF — mult mai puține erori decât la poze.",
                 "Detectează automat firma (Nectarie, Hotel Impex, alte firme din registru) și schema de NC: 10 rânduri (Nectarie) sau 8 rânduri (alte firme).",
                 "Dacă societatea are Setări Zetta configurate (Setări → Setări Zetta), NC folosește conturile și cotele TVA salvate — inclusiv CARD, PLATA MODERNA, viramente și SGR/Bacșiș la 0%.",
@@ -196,7 +197,7 @@ enum HelpContent {
             ],
             bullets: [
                 "Rândurile cu valoare 0 nu apar în Excel (ex. fără TVA 21%, fără plată modernă).",
-                "Nr. înreg. (NC) — 1, 2, 3… câte un număr per Z, același pe toate rândurile acelui Z.",
+                "Nr. înreg. (NC) — câte un număr per Z, același pe toate rândurile acelui Z. Sus, la Clienți → Zetta, Utilitare → Creare fișier import ZETTA și Utilitare → Z-uri scanate → import Zetta, setezi numărul primei note; următoarele continuă consecutiv.",
                 "Partenerul contabil (401.x) se completează automat după firmă și locație.",
                 "Coloana Partener CIF rămâne goală — cerință NextUp; nu o completa manual.",
                 "Format dată în Excel: yyyy-MM-dd (compatibil NextUp)."
