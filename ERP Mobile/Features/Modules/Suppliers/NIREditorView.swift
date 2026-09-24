@@ -15,6 +15,8 @@ struct NIREditorView: View {
     @State private var productsById: [UUID: Product] = [:]
     @State private var linePricingByLineId: [UUID: NIRLinePricingState] = [:]
     @State private var conversionDraftByLineId: [UUID: NIRConversionDraft] = [:]
+    @State private var receivedByInvoiceLineId: [UUID: Decimal] = [:]
+    @State private var currentNIRQuantities: [UUID: Decimal] = [:]
     @State private var receptionOptions = InvoiceReceptionOptions()
     @State private var receptionRequirements = InvoiceReceptionRequirements(workLocations: [], warehouses: [])
     @State private var workLocations: [CompanyWorkLocation] = []
@@ -112,6 +114,9 @@ struct NIREditorView: View {
 
             Section {
                 Text(L10n.tr("nir.editor_hint"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+                Text(L10n.tr("nir.editor_partial_hint"))
                     .font(.caption)
                     .foregroundColor(AppColors.secondary)
                 Text(L10n.tr("nir.editor_pricing_hint"))
@@ -267,6 +272,8 @@ struct NIREditorView: View {
             }
             NIRLineQuantityFields(
                 reception: reception,
+                invoiceQuantityText: conversionInvoiceQuantityBinding(for: line),
+                remainingQuantity: remainingQuantity(for: line),
                 factorText: conversionFactorBinding(for: line),
                 stockQuantityText: conversionQuantityBinding(for: line),
                 stockUnit: conversionStockUnitBinding(for: line)
@@ -324,14 +331,20 @@ struct NIREditorView: View {
     private func reception(for line: SupplierInvoiceLine) -> StockUnitConversion.Reception {
         let product = productsById[line.productId]
         let canConvert = allowsConversion(for: line)
+        let proposedInvoiceQty = proposedInvoiceQuantity(for: line)
         guard let draft = conversionDraftByLineId[line.id] else {
             return StockUnitConversion.reception(
                 invoiceLine: line,
                 product: product,
+                invoiceQuantityOverride: proposedInvoiceQty,
                 allowsConversion: canConvert
             )
         }
         let stockUnitOverride = draft.stockUnit.trimmingCharacters(in: .whitespacesAndNewlines)
+        let invoiceQty = SupplierFormatting.parseAmount(
+            draft.invoiceQuantityText,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        ) ?? proposedInvoiceQty
         if let quantity = SupplierFormatting.parseAmount(
             draft.stockQuantityText,
             maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
@@ -339,6 +352,7 @@ struct NIREditorView: View {
             return StockUnitConversion.reception(
                 invoiceLine: line,
                 product: product,
+                invoiceQuantityOverride: invoiceQty,
                 stockQuantityOverride: quantity,
                 stockUnitOverride: stockUnitOverride.isEmpty ? nil : stockUnitOverride,
                 allowsConversion: canConvert
@@ -351,6 +365,7 @@ struct NIREditorView: View {
             return StockUnitConversion.reception(
                 invoiceLine: line,
                 product: product,
+                invoiceQuantityOverride: invoiceQty,
                 factorOverride: factor,
                 stockUnitOverride: stockUnitOverride.isEmpty ? nil : stockUnitOverride,
                 allowsConversion: canConvert
@@ -359,8 +374,35 @@ struct NIREditorView: View {
         return StockUnitConversion.reception(
             invoiceLine: line,
             product: product,
+            invoiceQuantityOverride: invoiceQty,
             stockUnitOverride: stockUnitOverride.isEmpty ? nil : stockUnitOverride,
             allowsConversion: canConvert
+        )
+    }
+
+    private func remainingQuantity(for line: SupplierInvoiceLine) -> Decimal {
+        NIRReceptionTracking.remainingInvoiceQuantity(
+            line: line,
+            receivedByInvoiceLineId: receivedByInvoiceLineId,
+            excludingNIRQuantities: currentNIRQuantities
+        )
+    }
+
+    private func proposedInvoiceQuantity(for line: SupplierInvoiceLine) -> Decimal {
+        if context.existingNIR != nil, let current = currentNIRQuantities[line.id], current > 0 {
+            return current
+        }
+        let remaining = remainingQuantity(for: line)
+        return remaining > 0 ? remaining : 0
+    }
+
+    private func conversionInvoiceQuantityBinding(for line: SupplierInvoiceLine) -> Binding<String> {
+        Binding(
+            get: {
+                conversionDraftByLineId[line.id]?.invoiceQuantityText
+                    ?? SupplierFormatting.amountString(proposedInvoiceQuantity(for: line))
+            },
+            set: { setInvoiceQuantity($0, for: line) }
         )
     }
 
@@ -395,6 +437,30 @@ struct NIREditorView: View {
         )
     }
 
+    private func setInvoiceQuantity(_ text: String, for line: SupplierInvoiceLine) {
+        let product = productsById[line.productId]
+        let current = reception(for: line)
+        let parsed = SupplierFormatting.parseAmount(
+            text,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        )
+        let updated = StockUnitConversion.reception(
+            invoiceLine: line,
+            product: product,
+            invoiceQuantityOverride: parsed,
+            factorOverride: current.factor,
+            stockUnitOverride: current.stockUnit,
+            allowsConversion: allowsConversion(for: line)
+        )
+        conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: text,
+            factorText: SupplierFormatting.amountString(updated.factor),
+            stockQuantityText: SupplierFormatting.amountString(updated.stockQuantity),
+            stockUnit: updated.stockUnit
+        )
+        refreshPricingAfterConversion(for: line)
+    }
+
     private func setFactor(_ text: String, for line: SupplierInvoiceLine) {
         let product = productsById[line.productId]
         let current = reception(for: line)
@@ -405,11 +471,13 @@ struct NIREditorView: View {
         let updated = StockUnitConversion.reception(
             invoiceLine: line,
             product: product,
+            invoiceQuantityOverride: current.invoiceQuantity,
             factorOverride: parsed,
             stockUnitOverride: current.stockUnit,
             allowsConversion: allowsConversion(for: line)
         )
         conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: SupplierFormatting.amountString(updated.invoiceQuantity),
             factorText: text,
             stockQuantityText: SupplierFormatting.amountString(updated.stockQuantity),
             stockUnit: updated.stockUnit
@@ -427,11 +495,13 @@ struct NIREditorView: View {
         let updated = StockUnitConversion.reception(
             invoiceLine: line,
             product: product,
+            invoiceQuantityOverride: current.invoiceQuantity,
             stockQuantityOverride: parsed,
             stockUnitOverride: current.stockUnit,
             allowsConversion: allowsConversion(for: line)
         )
         conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: SupplierFormatting.amountString(updated.invoiceQuantity),
             factorText: SupplierFormatting.amountString(updated.factor),
             stockQuantityText: text,
             stockUnit: updated.stockUnit
@@ -442,6 +512,7 @@ struct NIREditorView: View {
     private func setStockUnit(_ unit: String, for line: SupplierInvoiceLine) {
         let current = reception(for: line)
         conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: SupplierFormatting.amountString(current.invoiceQuantity),
             factorText: SupplierFormatting.amountString(current.factor),
             stockQuantityText: SupplierFormatting.amountString(current.stockQuantity),
             stockUnit: unit
@@ -476,9 +547,11 @@ struct NIREditorView: View {
         let reception = StockUnitConversion.reception(
             invoiceLine: line,
             product: productsById[line.productId],
+            invoiceQuantityOverride: proposedInvoiceQuantity(for: line),
             allowsConversion: allowsConversion
         )
         conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: SupplierFormatting.amountString(reception.invoiceQuantity),
             factorText: SupplierFormatting.amountString(reception.factor),
             stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
             stockUnit: reception.stockUnit
@@ -495,10 +568,12 @@ struct NIREditorView: View {
             reception = StockUnitConversion.reception(
                 invoiceLine: line,
                 product: productsById[line.productId],
+                invoiceQuantityOverride: proposedInvoiceQuantity(for: line),
                 allowsConversion: allowsConversion(for: line)
             )
         }
         conversionDraftByLineId[line.id] = NIRConversionDraft(
+            invoiceQuantityText: SupplierFormatting.amountString(reception.invoiceQuantity),
             factorText: SupplierFormatting.amountString(reception.factor),
             stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
             stockUnit: reception.stockUnit
@@ -536,6 +611,7 @@ struct NIREditorView: View {
     }
 
     private func excludedLineSummary(_ line: SupplierInvoiceLine) -> String {
+        let remaining = remainingQuantity(for: line)
         let quantitySummary = L10n.tr(
             "nir.editor_excluded_line_summary",
             SupplierFormatting.amountString(line.cantitate),
@@ -543,6 +619,19 @@ struct NIREditorView: View {
         )
         if NIRLineEligibility.isAutoExcluded(line) {
             return L10n.tr("nir.editor_excluded_line_auto_summary", quantitySummary)
+        }
+        if remaining <= 0, context.existingNIR == nil || !currentNIRQuantities.keys.contains(line.id) {
+            return L10n.tr(
+                "nir.editor_excluded_line_fully_received",
+                quantitySummary
+            )
+        }
+        if remaining < line.cantitate {
+            return L10n.tr(
+                "nir.editor_excluded_line_remaining",
+                SupplierFormatting.amountString(remaining),
+                line.unitateMasura
+            )
         }
         return quantitySummary
     }
@@ -582,28 +671,55 @@ struct NIREditorView: View {
                 ?? context.warehouseId
                 ?? context.invoice.warehouseId
                 ?? initialReception.warehouseId
-            var initialSelection = Set(defaultSelectedLineIds(from: loadedLines))
+
+            let receivedTotals = try await SupplierNIRService.fetchReceivedInvoiceQuantities(
+                forInvoice: context.invoice.id
+            )
+            var thisNIRQuantities: [UUID: Decimal] = [:]
             var existingByInvoiceLineId: [UUID: SupplierNIRLine] = [:]
+            var initialSelection: Set<UUID>
+
             if let existingNIR = context.existingNIR {
                 let nirLines = try await SupplierNIRService.fetchNIRLines(nirId: existingNIR.id)
                 existingByInvoiceLineId = Dictionary(
                     uniqueKeysWithValues: nirLines.map { ($0.invoiceLineId, $0) }
                 )
+                thisNIRQuantities = Dictionary(uniqueKeysWithValues: nirLines.map {
+                    (
+                        $0.invoiceLineId,
+                        $0.cantitateFactura > 0 ? $0.cantitateFactura : $0.cantitate
+                    )
+                })
                 initialSelection = Set(nirLines.map(\.invoiceLineId))
                     .intersection(selectableLineIds(from: loadedLines))
+            } else {
+                initialSelection = Set(
+                    defaultSelectedLineIds(
+                        from: loadedLines,
+                        receivedByInvoiceLineId: receivedTotals,
+                        excludingNIRQuantities: [:]
+                    )
+                )
             }
 
             var drafts: [UUID: NIRConversionDraft] = [:]
             var pricing: [UUID: NIRLinePricingState] = [:]
             for line in loadedLines {
                 let product = productsMap[line.productId]
+                let remaining = NIRReceptionTracking.remainingInvoiceQuantity(
+                    line: line,
+                    receivedByInvoiceLineId: receivedTotals,
+                    excludingNIRQuantities: thisNIRQuantities
+                )
                 var reception: StockUnitConversion.Reception
                 if let existing = existingByInvoiceLineId[line.id] {
                     reception = StockUnitConversion.reception(nirLine: existing)
                 } else {
+                    let proposed = remaining > 0 ? remaining : line.cantitate
                     reception = StockUnitConversion.reception(
                         invoiceLine: line,
                         product: product,
+                        invoiceQuantityOverride: proposed,
                         allowsConversion: product?.tip.allowsStockConversion ?? true
                     )
                 }
@@ -613,9 +729,11 @@ struct NIREditorView: View {
                     reception: reception
                 )
                 if existingByInvoiceLineId[line.id] == nil, !state.productKind.allowsStockConversion {
+                    let proposed = remaining > 0 ? remaining : line.cantitate
                     reception = StockUnitConversion.reception(
                         invoiceLine: line,
                         product: product,
+                        invoiceQuantityOverride: proposed,
                         allowsConversion: false
                     )
                     state = NIRLinePricingState.make(
@@ -625,6 +743,7 @@ struct NIREditorView: View {
                     )
                 }
                 drafts[line.id] = NIRConversionDraft(
+                    invoiceQuantityText: SupplierFormatting.amountString(reception.invoiceQuantity),
                     factorText: SupplierFormatting.amountString(reception.factor),
                     stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
                     stockUnit: reception.stockUnit
@@ -638,6 +757,8 @@ struct NIREditorView: View {
                 productsById = productsMap
                 conversionDraftByLineId = drafts
                 linePricingByLineId = pricing
+                receivedByInvoiceLineId = receivedTotals
+                currentNIRQuantities = thisNIRQuantities
                 workLocations = receptionData.workLocations
                 warehouses = receptionData.warehouses
                 receptionRequirements = requirements
@@ -924,8 +1045,20 @@ struct NIREditorView: View {
             }
         }
     }
-    private func defaultSelectedLineIds(from lines: [SupplierInvoiceLine]) -> [UUID] {
-        lines.filter { NIRLineEligibility.isReceivable($0) }.map(\.id)
+    private func defaultSelectedLineIds(
+        from lines: [SupplierInvoiceLine],
+        receivedByInvoiceLineId: [UUID: Decimal],
+        excludingNIRQuantities: [UUID: Decimal]
+    ) -> [UUID] {
+        lines.compactMap { line in
+            guard NIRLineEligibility.isReceivable(line) else { return nil }
+            let remaining = NIRReceptionTracking.remainingInvoiceQuantity(
+                line: line,
+                receivedByInvoiceLineId: receivedByInvoiceLineId,
+                excludingNIRQuantities: excludingNIRQuantities
+            )
+            return remaining > 0 ? line.id : nil
+        }
     }
 
     private func selectableLineIds(from lines: [SupplierInvoiceLine]) -> [UUID] {
@@ -934,6 +1067,7 @@ struct NIREditorView: View {
 }
 
 private struct NIRConversionDraft: Equatable {
+    var invoiceQuantityText: String
     var factorText: String
     var stockQuantityText: String
     var stockUnit: String
@@ -941,65 +1075,71 @@ private struct NIRConversionDraft: Equatable {
 
 private struct NIRLineQuantityFields: View {
     let reception: StockUnitConversion.Reception
+    @Binding var invoiceQuantityText: String
+    let remainingQuantity: Decimal
     @Binding var factorText: String
     @Binding var stockQuantityText: String
     @Binding var stockUnit: String
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.tr("nir.editor_field_invoice_qty"))
-                    .font(.caption2)
-                    .foregroundColor(AppColors.secondary)
-                    .lineLimit(1)
-                Text(
-                    "\(SupplierFormatting.amountString(reception.invoiceQuantity)) \(reception.invoiceUnit)"
+        VStack(alignment: .leading, spacing: 6) {
+            Text(
+                L10n.tr(
+                    "nir.editor_remaining_qty",
+                    SupplierFormatting.amountString(remainingQuantity),
+                    reception.invoiceUnit
                 )
-                .font(.subheadline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            }
-            .frame(minWidth: 72, alignment: .leading)
-
-            CompactFormField(
-                title: L10n.tr("nir.editor_field_factor", reception.invoiceUnit, stockUnitDisplay),
-                text: $factorText,
-                width: 78
             )
+            .font(.caption2)
+            .foregroundColor(.orange)
 
-            CompactFormField(
-                title: L10n.tr("nir.editor_field_nir_qty"),
-                text: $stockQuantityText,
-                width: 72
-            )
+            HStack(alignment: .bottom, spacing: 6) {
+                CompactFormField(
+                    title: L10n.tr("nir.editor_field_invoice_qty"),
+                    text: $invoiceQuantityText,
+                    width: 72
+                )
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.tr("nir.editor_field_stock_unit"))
-                    .font(.caption2)
-                    .foregroundColor(AppColors.secondary)
-                    .lineLimit(1)
-                Picker(L10n.tr("nir.editor_field_stock_unit"), selection: $stockUnit) {
-                    ForEach(stockUnitOptions, id: \.self) { unit in
-                        Text(unit).tag(unit)
+                CompactFormField(
+                    title: L10n.tr("nir.editor_field_factor", reception.invoiceUnit, stockUnitDisplay),
+                    text: $factorText,
+                    width: 78
+                )
+
+                CompactFormField(
+                    title: L10n.tr("nir.editor_field_nir_qty"),
+                    text: $stockQuantityText,
+                    width: 72
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.tr("nir.editor_field_stock_unit"))
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondary)
+                        .lineLimit(1)
+                    Picker(L10n.tr("nir.editor_field_stock_unit"), selection: $stockUnit) {
+                        ForEach(stockUnitOptions, id: \.self) { unit in
+                            Text(unit).tag(unit)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .compactLineControl()
+                    .frame(minWidth: 56, maxWidth: 72, alignment: .leading)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .compactLineControl()
-                .frame(minWidth: 56, maxWidth: 72, alignment: .leading)
-            }
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(L10n.tr("nir.editor_field_purchase_unit_price"))
-                    .font(.caption2)
-                    .foregroundColor(AppColors.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Text(SupplierFormatting.amountString(reception.stockUnitPrice))
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(L10n.tr("nir.editor_field_purchase_unit_price"))
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Text(SupplierFormatting.amountString(reception.stockUnitPrice))
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .frame(minWidth: 52, alignment: .trailing)
             }
-            .frame(minWidth: 52, alignment: .trailing)
         }
     }
 

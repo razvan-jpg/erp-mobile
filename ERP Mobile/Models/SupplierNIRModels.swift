@@ -190,7 +190,7 @@ struct NIREditorContext: Identifiable, Sendable {
         warehouseName: String?,
         existingNIR: SupplierNIR? = nil
     ) {
-        id = invoice.id
+        id = existingNIR?.id ?? UUID()
         self.invoice = invoice
         self.supplier = supplier
         self.workLocationId = workLocationId

@@ -154,6 +154,18 @@ enum ProductService {
         return trimmed.range(of: garantieProductName, options: [.caseInsensitive, .diacriticInsensitive]) != nil
     }
 
+    /// Ambalaje Quadrant (și similare) care încep cu „Amb.” — tratate ca SGR la NIR.
+    nonisolated static func isQuadrantAmbProductName(_ denumire: String) -> Bool {
+        let trimmed = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return trimmed.uppercased().hasPrefix("AMB.")
+    }
+
+    /// Excluse automat din NIR și din „recepție incompletă”: Garanție SGR + Amb.
+    nonisolated static func isNIRReceptionExcludedName(_ denumire: String) -> Bool {
+        isGarantieProductName(denumire) || isQuadrantAmbProductName(denumire)
+    }
+
     static func resolvedProductName(for denumire: String) -> String {
         let trimmed = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
         return isGarantieProductName(trimmed) ? garantieSGRProductName : trimmed
@@ -686,7 +698,7 @@ enum ProductService {
     }
 
     nonisolated static func shouldSkipNIRProductKindUpdate(lineName: String) -> Bool {
-        isGarantieProductName(lineName)
+        isNIRReceptionExcludedName(lineName)
     }
 
     private static func normalizedUnit(_ value: String) -> String {

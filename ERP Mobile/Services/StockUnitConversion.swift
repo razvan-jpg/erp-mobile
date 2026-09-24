@@ -91,12 +91,19 @@ enum StockUnitConversion {
     static func reception(
         invoiceLine: SupplierInvoiceLine,
         product: Product?,
+        invoiceQuantityOverride: Decimal? = nil,
         factorOverride: Decimal? = nil,
         stockQuantityOverride: Decimal? = nil,
         stockUnitOverride: String? = nil,
         allowsConversion: Bool? = nil
     ) -> Reception {
-        let invoiceQuantity = invoiceLine.cantitate
+        let fullInvoiceQuantity = invoiceLine.cantitate
+        let invoiceQuantity: Decimal = {
+            if let invoiceQuantityOverride, invoiceQuantityOverride > 0 {
+                return invoiceQuantityOverride
+            }
+            return fullInvoiceQuantity
+        }()
         let invoiceUnit = invoiceLine.unitateMasura
         let lineName = invoiceLine.denumire
         let canConvert = allowsConversion ?? product?.tip.allowsStockConversion ?? true
@@ -123,7 +130,11 @@ enum StockUnitConversion {
             )
             stockQuantity = invoiceQuantity * factor
         }
-        let lineValue = invoiceLine.sumaLinie
+        let lineValue = NIRReceptionTracking.proportionalLineValue(
+            fullValue: invoiceLine.sumaLinie,
+            invoiceQuantity: invoiceQuantity,
+            fullQuantity: fullInvoiceQuantity
+        )
         let stockUnitPrice = stockQuantity > 0 ? lineValue / stockQuantity : invoiceLine.pretUnitar
         return Reception(
             invoiceQuantity: invoiceQuantity,
