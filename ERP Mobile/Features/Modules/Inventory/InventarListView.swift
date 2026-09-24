@@ -2,7 +2,6 @@ import SwiftUI
 
 struct InventarListView: View {
     let access: ModuleAccessRights
-    let onChanged: () async -> Void
 
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var inventories: [PhysicalInventory] = []
@@ -96,12 +95,10 @@ struct InventarListView: View {
         .appTask { await loadInventories() }
         .appRefreshable {
             await loadInventories()
-            await onChanged()
         }
         .fullScreenCover(isPresented: $showCreate) {
             PhysicalInventoryCreateView(access: access) {
                 await loadInventories()
-                await onChanged()
             }
         }
         .fullScreenCover(item: $selectedReport) { report in
@@ -110,7 +107,6 @@ struct InventarListView: View {
         .fullScreenCover(item: $selectedInventory) { context in
             PhysicalInventoryDetailView(context: context) {
                 await loadInventories()
-                await onChanged()
             }
         }
         .alert(L10n.tr("inventory.physical_delete_title"), isPresented: $showDeleteConfirm, presenting: inventoryToDelete) { inventory in
@@ -193,7 +189,6 @@ struct InventarListView: View {
         do {
             try await PhysicalInventoryService.deleteInventory(id: inventory.id)
             await loadInventories()
-            await onChanged()
         } catch {
             errorMessage = error.localizedDescription
         }

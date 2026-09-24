@@ -9,7 +9,6 @@ struct ProductsView: View {
     @State private var selectedSection: Section = .catalog
     @State private var access = ModuleAccessRights.none
     @State private var isLoadingAccess = true
-    @State private var refreshToken = 0
 
     private enum Section: CaseIterable, Identifiable {
         case catalog
@@ -67,7 +66,6 @@ struct ProductsView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .id(refreshToken)
         }
         .navigationTitle(module.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -81,22 +79,16 @@ struct ProductsView: View {
     private var sectionContent: some View {
         switch selectedSection {
         case .catalog:
-            ProductListView(scope: .catalog, canEdit: access.canEdit, canDelete: access.canDelete) {
-                refreshToken += 1
-            }
+            ProductListView(scope: .catalog, canEdit: access.canEdit, canDelete: access.canDelete)
         case .articles:
             ProductListView(
                 scope: .articles,
                 canEdit: access.canEdit,
                 canCreate: access.canCreate,
                 canDelete: access.canDelete
-            ) {
-                refreshToken += 1
-            }
+            )
         case .recipes:
-            ProductListView(scope: .recipes, canEdit: access.canEdit, canDelete: access.canDelete) {
-                refreshToken += 1
-            }
+            ProductListView(scope: .recipes, canEdit: access.canEdit, canDelete: access.canDelete)
         }
     }
 

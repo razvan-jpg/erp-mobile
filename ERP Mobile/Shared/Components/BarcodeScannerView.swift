@@ -290,6 +290,8 @@ extension View {
         }
         .onChange(of: text.wrappedValue) { newValue in
             guard let code = MacBarcodeWedgeInput.normalizedScanFromSearchField(newValue) else { return }
+            // Evită bucla: după normalizare textul nu mai conține \\n / \\r.
+            guard code != newValue else { return }
             text.wrappedValue = code
             onScanned?(code)
         }
@@ -335,6 +337,7 @@ extension View {
     ) -> some View {
         onChange(of: text.wrappedValue) { newValue in
             guard let code = MacBarcodeWedgeInput.normalizedScanFromSearchField(newValue) else { return }
+            guard code != newValue else { return }
             text.wrappedValue = code
             onScanned?(code)
         }

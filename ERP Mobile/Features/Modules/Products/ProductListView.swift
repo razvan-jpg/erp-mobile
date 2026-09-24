@@ -27,7 +27,6 @@ struct ProductListView: View {
     let canEdit: Bool
     var canCreate: Bool = false
     var canDelete: Bool = false
-    let onChanged: () -> Void
 
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var products: [Product] = []
@@ -138,9 +137,8 @@ struct ProductListView: View {
         .appTask { await loadProducts() }
         .appRefreshable {
             await loadProducts()
-            onChanged()
         }
-        .sheet(item: $selectedProduct, onDismiss: { onChanged() }) { product in
+        .sheet(item: $selectedProduct) { product in
             ProductDetailView(
                 product: product,
                 canEdit: canEdit,
@@ -170,7 +168,7 @@ struct ProductListView: View {
             if pendingDetailProduct != nil {
                 openPendingDetail()
             } else {
-                onChanged()
+                Task { await loadProducts() }
             }
         }
     }

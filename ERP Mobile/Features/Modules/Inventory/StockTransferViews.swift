@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct StockTransferListView: View {
-    let onChanged: () async -> Void
+    var onChanged: () async -> Void = {}
 
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var companyManager: CompanyManager
