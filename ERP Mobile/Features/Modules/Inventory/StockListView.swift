@@ -2,7 +2,6 @@ import SwiftUI
 
 struct StockListView: View {
     let canEdit: Bool
-    let onChanged: () async -> Void
 
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var rows: [ProductStockRow] = []
@@ -65,7 +64,6 @@ struct StockListView: View {
         .appTask { await loadRows() }
         .appRefreshable {
             await loadRows()
-            await onChanged()
         }
         .fullScreenCover(item: $selectedCard) { card in
             ProductWarehouseCardView(context: card)

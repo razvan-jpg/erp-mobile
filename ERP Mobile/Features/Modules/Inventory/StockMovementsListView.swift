@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct StockMovementsListView: View {
-    let onChanged: () async -> Void
-
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var rows: [StockMovementRow] = []
     @State private var isLoading = false
@@ -56,7 +54,6 @@ struct StockMovementsListView: View {
         .appTask { await loadRows() }
         .appRefreshable {
             await loadRows()
-            await onChanged()
         }
     }
 
