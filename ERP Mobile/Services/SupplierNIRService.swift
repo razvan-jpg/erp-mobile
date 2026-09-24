@@ -96,14 +96,122 @@ enum SupplierNIRService {
     }
 
     static func fetchNIR(forInvoice invoiceId: UUID) async throws -> SupplierNIR? {
+        try await fetchNIRs(forInvoice: invoiceId).first
+    }
+
+    static func fetchNIRs(forInvoice invoiceId: UUID) async throws -> [SupplierNIR] {
         let rows: [SupplierNIR] = try await client
             .from("supplier_nirs")
             .select()
             .eq("invoice_id", value: invoiceId.uuidString)
-            .limit(1)
+            .order("data_nir", ascending: false)
             .execute()
             .value
-        return rows.first
+        return rows.sorted { lhs, rhs in
+            if lhs.dataNir != rhs.dataNir {
+                return lhs.dataNir > rhs.dataNir
+            }
+            return lhs.numarNir.localizedStandardCompare(rhs.numarNir) == .orderedDescending
+        }
+    }
+
+    /// Sumă `cantitate_factura` pe linie de factură, pentru toate NIR-urile unei facturi.
+    static func fetchReceivedInvoiceQuantities(forInvoice invoiceId: UUID) async throws -> [UUID: Decimal] {
+        let nirs = try await fetchNIRs(forInvoice: invoiceId)
+        return try await aggregateReceivedQuantities(nirIds: nirs.map(\.id))
+    }
+
+    static func fetchNIRLinesForNIRs(nirIds: [UUID]) async throws -> [SupplierNIRLine] {
+        guard !nirIds.isEmpty else { return [] }
+        let rows: [SupplierNIRLine] = try await client
+            .from("supplier_nir_lines")
+            .select()
+            .in("nir_id", values: nirIds.map(\.uuidString))
+            .execute()
+            .value
+        return rows
+    }
+
+    /// Cantități pe linie doar dintr-un NIR (pentru editare — se exclud din „deja recepționat”).
+    static func fetchReceivedInvoiceQuantities(nirId: UUID) async throws -> [UUID: Decimal] {
+        try await aggregateReceivedQuantities(nirIds: [nirId])
+    }
+
+    private static func aggregateReceivedQuantities(nirIds: [UUID]) async throws -> [UUID: Decimal] {
+        let lines = try await fetchNIRLinesForNIRs(nirIds: nirIds)
+        var totals: [UUID: Decimal] = [:]
+        for line in lines {
+            totals[line.invoiceLineId, default: 0] += line.cantitateFactura > 0
+                ? line.cantitateFactura
+                : line.cantitate
+        }
+        return totals
+    }
+
+    static func fetchInvoiceReceptionStates(companyId: UUID) async throws -> [UUID: InvoiceNIRReceptionState] {
+        let nirs = try await fetchNIRRows(companyId: companyId)
+        guard !nirs.isEmpty else { return [:] }
+
+        let invoiceIds = Set(nirs.map(\.invoiceId))
+        let receivedByInvoiceLineId = try await aggregateReceivedQuantities(nirIds: nirs.map(\.id))
+
+        struct InvoiceLineQty: Decodable {
+            let id: UUID
+            let invoiceId: UUID
+            let denumire: String
+            let cantitate: Decimal
+
+            enum CodingKeys: String, CodingKey {
+                case id, denumire, cantitate
+                case invoiceId = "invoice_id"
+            }
+        }
+
+        let invoiceLines: [InvoiceLineQty] = try await client
+            .from("supplier_invoice_lines")
+            .select("id, invoice_id, denumire, cantitate")
+            .eq("company_id", value: companyId.uuidString)
+            .in("invoice_id", values: invoiceIds.map(\.uuidString))
+            .execute()
+            .value
+
+        var linesByInvoice: [UUID: [SupplierInvoiceLine]] = [:]
+        for row in invoiceLines {
+            let stub = SupplierInvoiceLine(
+                id: row.id,
+                companyId: companyId,
+                invoiceId: row.invoiceId,
+                productId: UUID(),
+                numarLinie: 0,
+                denumire: row.denumire,
+                cantitate: row.cantitate,
+                pretUnitar: 0,
+                sumaLinie: 0,
+                sumaTva: 0,
+                cotaTva: 0,
+                unitateMasura: "buc",
+                createdAt: nil
+            )
+            linesByInvoice[row.invoiceId, default: []].append(stub)
+        }
+
+        var states: [UUID: InvoiceNIRReceptionState] = [:]
+        for invoiceId in invoiceIds {
+            let lines = linesByInvoice[invoiceId] ?? []
+            if lines.isEmpty {
+                states[invoiceId] = .complete
+                continue
+            }
+            if NIRReceptionTracking.hasIncompleteReception(
+                invoiceLines: lines,
+                receivedByInvoiceLineId: receivedByInvoiceLineId
+            ) {
+                states[invoiceId] = .partial
+            } else {
+                states[invoiceId] = .complete
+            }
+        }
+        return states
     }
 
     static func fetchNIR(id: UUID) async throws -> SupplierNIR {
@@ -217,10 +325,6 @@ enum SupplierNIRService {
         warehouseId: UUID?,
         createdBy: UUID?
     ) async throws -> SupplierNIR {
-        if let existing = try await fetchNIR(forInvoice: invoiceId) {
-            return existing
-        }
-
         let payload = NIRInsert(
             companyId: companyId,
             invoiceId: invoiceId,
@@ -279,14 +383,20 @@ enum SupplierNIRService {
         for (index, line) in desiredLines.enumerated() {
             let reception = conversions[line.id]
                 ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
+            let lineValue = reception.lineValue
+            let lineVAT = NIRReceptionTracking.proportionalLineValue(
+                fullValue: line.sumaTva,
+                invoiceQuantity: reception.invoiceQuantity,
+                fullQuantity: line.cantitate
+            )
             let payload = NIRLineUpdate(
                 productId: line.productId,
                 numarLinie: index + 1,
                 denumire: line.denumire,
                 cantitate: doubleQuantity(reception.stockQuantity),
                 pretUnitar: doubleAmount(reception.stockUnitPrice),
-                sumaLinie: doubleAmount(line.sumaLinie),
-                sumaTva: doubleAmount(line.sumaTva),
+                sumaLinie: doubleAmount(lineValue),
+                sumaTva: doubleAmount(lineVAT),
                 cotaTva: doubleAmount(line.cotaTva),
                 unitateMasura: reception.stockUnit,
                 cantitateFactura: doubleQuantity(reception.invoiceQuantity),
@@ -310,8 +420,8 @@ enum SupplierNIRService {
                     denumire: line.denumire,
                     cantitate: doubleQuantity(reception.stockQuantity),
                     pretUnitar: doubleAmount(reception.stockUnitPrice),
-                    sumaLinie: doubleAmount(line.sumaLinie),
-                    sumaTva: doubleAmount(line.sumaTva),
+                    sumaLinie: doubleAmount(lineValue),
+                    sumaTva: doubleAmount(lineVAT),
                     cotaTva: doubleAmount(line.cotaTva),
                     unitateMasura: reception.stockUnit,
                     cantitateFactura: doubleQuantity(reception.invoiceQuantity),
@@ -371,6 +481,30 @@ enum SupplierNIRService {
 
         guard !selectedLines.isEmpty else {
             throw NIRSaveError.noReceivableLines
+        }
+
+        let receivedTotals = try await fetchReceivedInvoiceQuantities(forInvoice: context.invoice.id)
+        let currentNIRQuantities: [UUID: Decimal]
+        if let existingNIR = context.existingNIR {
+            currentNIRQuantities = try await fetchReceivedInvoiceQuantities(nirId: existingNIR.id)
+        } else {
+            currentNIRQuantities = [:]
+        }
+
+        for line in selectedLines {
+            let reception = conversions[line.id]
+                ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
+            let remaining = NIRReceptionTracking.remainingInvoiceQuantity(
+                line: line,
+                receivedByInvoiceLineId: receivedTotals,
+                excludingNIRQuantities: currentNIRQuantities
+            )
+            if reception.invoiceQuantity > remaining + Decimal(string: "0.0001")! {
+                throw NIRSaveError.quantityExceedsRemaining(
+                    lineName: line.denumire,
+                    remaining: remaining
+                )
+            }
         }
 
         let nir: SupplierNIR

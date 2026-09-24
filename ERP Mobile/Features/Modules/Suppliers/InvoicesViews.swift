@@ -44,6 +44,7 @@ struct InvoicesListView: View {
 
     @State private var invoices: [SupplierInvoiceRow] = []
     @State private var invoiceIdsWithNIR: Set<UUID> = []
+    @State private var invoiceNIRReceptionStates: [UUID: InvoiceNIRReceptionState] = [:]
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showCreate = false
@@ -223,7 +224,8 @@ struct InvoicesListView: View {
                             ForEach(displayedInvoices) { invoice in
                                 InvoiceRowView(
                                     invoice: invoice,
-                                    hasNIR: invoiceIdsWithNIR.contains(invoice.id),
+                                    nirReceptionState: invoiceNIRReceptionStates[invoice.id]
+                                        ?? (invoiceIdsWithNIR.contains(invoice.id) ? .complete : .none),
                                     canDelete: access.canDelete,
                                     isSelectionMode: isSelectionMode && access.canDelete,
                                     isSelected: selectedInvoiceIds.contains(invoice.id),
@@ -463,12 +465,17 @@ struct InvoicesListView: View {
             async let loadedTask = SupplierService.fetchInvoices()
             let loaded = try await loadedTask
             var nirInvoiceIds = Set<UUID>()
+            var receptionStates: [UUID: InvoiceNIRReceptionState] = [:]
             if let companyId = companyManager.currentCompany?.id {
-                nirInvoiceIds = try await SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: companyId)
+                async let idsTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: companyId)
+                async let statesTask = SupplierNIRService.fetchInvoiceReceptionStates(companyId: companyId)
+                nirInvoiceIds = try await idsTask
+                receptionStates = try await statesTask
             }
             await MainActor.run {
                 invoices = loaded
                 invoiceIdsWithNIR = nirInvoiceIds
+                invoiceNIRReceptionStates = receptionStates
                 isLoading = false
             }
         } catch is CancellationError {
@@ -837,7 +844,7 @@ struct InvoicesListView: View {
 
 private struct InvoiceRowView: View {
     let invoice: SupplierInvoiceRow
-    let hasNIR: Bool
+    let nirReceptionState: InvoiceNIRReceptionState
     let canDelete: Bool
     var isSelectionMode: Bool = false
     var isSelected: Bool = false
@@ -940,12 +947,18 @@ private struct InvoiceRowView: View {
 
     @ViewBuilder
     private var nirIndicator: some View {
-        if hasNIR {
+        switch nirReceptionState {
+        case .complete:
             Image(systemName: "checkmark")
                 .font(.body.bold())
                 .foregroundColor(.green)
                 .accessibilityLabel(L10n.tr("invoices.has_nir"))
-        } else {
+        case .partial:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.body)
+                .foregroundColor(.orange)
+                .accessibilityLabel(L10n.tr("invoices.partial_nir"))
+        case .none:
             Text("—")
                 .font(.body)
                 .foregroundColor(AppColors.tertiary)
@@ -1013,7 +1026,8 @@ struct InvoiceFormView: View {
     @State private var workLocations: [CompanyWorkLocation] = []
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var nirEditorContext: NIREditorContext?
-    @State private var existingNIR: SupplierNIR?
+    @State private var existingNIRs: [SupplierNIR] = []
+    @State private var invoiceReceptionIncomplete = false
 
     @State private var receptionRequirements = InvoiceReceptionRequirements(workLocations: [], warehouses: [])
 
@@ -1243,22 +1257,39 @@ struct InvoiceFormView: View {
     @ViewBuilder
     private var nirEditSection: some View {
         Section(header: Text(L10n.tr("nir.editor_section_title"))) {
-            if let existingNIR {
-                AppLabeledContent(L10n.tr("nir.export_number"), value: existingNIR.numarNir)
-                Button {
-                    openNIREditor(existingNIR: existingNIR)
-                } label: {
-                    Label(L10n.tr("nir.editor_edit_action"), systemImage: "doc.text.magnifyingglass")
-                }
-            } else {
+            if invoiceReceptionIncomplete {
+                Label(L10n.tr("invoices.partial_nir_hint"), systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+
+            if existingNIRs.isEmpty {
                 Text(L10n.tr("nir.editor_not_created_hint"))
                     .font(.caption)
                     .foregroundColor(AppColors.secondary)
-                Button {
-                    openNIREditor(existingNIR: nil)
-                } label: {
-                    Label(L10n.tr("nir.editor_create_action"), systemImage: "doc.badge.plus")
+            } else {
+                ForEach(existingNIRs) { nir in
+                    HStack {
+                        AppLabeledContent(L10n.tr("nir.export_number"), value: nir.numarNir)
+                        Spacer(minLength: 8)
+                        Button {
+                            openNIREditor(existingNIR: nir)
+                        } label: {
+                            Label(L10n.tr("nir.editor_edit_action"), systemImage: "doc.text.magnifyingglass")
+                        }
+                    }
                 }
+            }
+
+            Button {
+                openNIREditor(existingNIR: nil)
+            } label: {
+                Label(
+                    existingNIRs.isEmpty
+                        ? L10n.tr("nir.editor_create_action")
+                        : L10n.tr("nir.editor_create_another_action"),
+                    systemImage: "doc.badge.plus"
+                )
             }
         }
     }
@@ -1297,9 +1328,16 @@ struct InvoiceFormView: View {
     private func loadExistingNIR() async {
         guard case .edit(let invoice) = mode else { return }
         do {
-            let nir = try await SupplierNIRService.fetchNIR(forInvoice: invoice.id)
+            let nirs = try await SupplierNIRService.fetchNIRs(forInvoice: invoice.id)
+            let received = try await SupplierNIRService.fetchReceivedInvoiceQuantities(forInvoice: invoice.id)
+            let lines = try await SupplierService.fetchInvoiceLines(invoiceId: invoice.id)
+            let incomplete = !nirs.isEmpty && NIRReceptionTracking.hasIncompleteReception(
+                invoiceLines: lines,
+                receivedByInvoiceLineId: received
+            )
             await MainActor.run {
-                existingNIR = nir
+                existingNIRs = nirs
+                invoiceReceptionIncomplete = incomplete
             }
         } catch {
             await MainActor.run {

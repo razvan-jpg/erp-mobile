@@ -24,14 +24,30 @@ struct NIRLineEligibilityTests {
     @Test func autoExcludesGarantieLines() {
         let garantie = makeLine(denumire: "Garantie")
         let garantieSGR = makeLine(denumire: "Garantie SGR")
+        let amb = makeLine(denumire: "Amb. Cutie Quadrant")
+        let ambLower = makeLine(denumire: "amb. pet")
         let product = makeLine(denumire: "Apă minerală")
+        let beverageSGR = makeLine(denumire: "0.33L MIRINDA PORTOC DOZA SGR")
 
         #expect(NIRLineEligibility.isAutoExcluded(garantie))
         #expect(NIRLineEligibility.isAutoExcluded(garantieSGR))
+        #expect(NIRLineEligibility.isAutoExcluded(amb))
+        #expect(NIRLineEligibility.isAutoExcluded(ambLower))
         #expect(!NIRLineEligibility.isAutoExcluded(product))
+        #expect(!NIRLineEligibility.isAutoExcluded(beverageSGR))
         #expect(NIRLineEligibility.isReceivable(product))
+        #expect(NIRLineEligibility.isReceivable(beverageSGR))
         #expect(!NIRLineEligibility.isReceivable(garantie))
         #expect(!NIRLineEligibility.isReceivable(garantieSGR))
+        #expect(!NIRLineEligibility.isReceivable(amb))
+    }
+
+    @Test func quadrantAmbProductNameDetection() {
+        #expect(ProductService.isQuadrantAmbProductName("Amb. PET"))
+        #expect(ProductService.isQuadrantAmbProductName("AMB. Cutie"))
+        #expect(!ProductService.isQuadrantAmbProductName("Amb ceva"))
+        #expect(!ProductService.isQuadrantAmbProductName("Ambalaj normal"))
+        #expect(!ProductService.isQuadrantAmbProductName("Garantie SGR"))
     }
 
     private func makeLine(denumire: String) -> SupplierInvoiceLine {
