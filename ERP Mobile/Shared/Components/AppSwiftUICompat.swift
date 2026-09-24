@@ -178,20 +178,34 @@ extension View {
         }
     }
 
+    @ViewBuilder
     func appTask(priority: TaskPriority = .userInitiated, _ action: @escaping () async -> Void) -> some View {
-        onAppear {
-            Task(priority: priority) { await action() }
+        if #available(iOS 15.0, *) {
+            task(priority: priority) {
+                await action()
+            }
+        } else {
+            onAppear {
+                Task(priority: priority) { await action() }
+            }
         }
     }
 
+    @ViewBuilder
     func appTask<T: Equatable>(
         id: T,
         priority: TaskPriority = .userInitiated,
         _ action: @escaping () async -> Void
     ) -> some View {
-        self
-            .onAppear { Task(priority: priority) { await action() } }
-            .onChange(of: id) { _ in Task(priority: priority) { await action() } }
+        if #available(iOS 15.0, *) {
+            task(id: id, priority: priority) {
+                await action()
+            }
+        } else {
+            self
+                .onAppear { Task(priority: priority) { await action() } }
+                .onChange(of: id) { _ in Task(priority: priority) { await action() } }
+        }
     }
 
     @ViewBuilder

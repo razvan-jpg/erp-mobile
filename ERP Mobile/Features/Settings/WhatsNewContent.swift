@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 30 august 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · August 30, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 24 septembrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · September 24, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.033",
+            targetVersionLabel: "1.0.034",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
@@ -37,6 +37,17 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.033", "24.09.2026",
+                ro: [
+                    "Stocuri / Articole: remediat un ciclu de reîncărcare permanentă a ecranului (în special pe Mac), din care aplicația nu mai ieșea.",
+                    "Listele se actualizează local după salvare sau pull-to-refresh, fără a recrea tot ecranul.",
+                ],
+                en: [
+                    "Stock / Articles: fixed a permanent screen reload loop (especially on Mac) that only stopped by quitting the app.",
+                    "Lists now refresh locally after save or pull-to-refresh, without remounting the whole screen.",
+                ]
+            ),
             release(
                 "1.0.032", "30.08.2026",
                 ro: [

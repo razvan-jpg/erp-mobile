@@ -8,7 +8,6 @@ struct InventoryView: View {
     @State private var selectedSection: Section = .stocks
     @State private var access = ModuleAccessRights.none
     @State private var isLoadingAccess = true
-    @State private var refreshToken = 0
 
     private enum Section: CaseIterable, Identifiable {
         case stocks
@@ -66,7 +65,6 @@ struct InventoryView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .id(refreshToken)
         }
         .navigationTitle(module.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -80,17 +78,11 @@ struct InventoryView: View {
     private var sectionContent: some View {
         switch selectedSection {
         case .stocks:
-            StockListView(canEdit: access.canEdit) {
-                refreshToken += 1
-            }
+            StockListView(canEdit: access.canEdit)
         case .movements:
-            StockMovementsListView {
-                refreshToken += 1
-            }
+            StockMovementsListView()
         case .physicalInventory:
-            InventarListView(access: access) {
-                refreshToken += 1
-            }
+            InventarListView(access: access)
         }
     }
 

@@ -187,7 +187,6 @@ private struct NomenclatoareArticleCatalogView: View {
     @State private var productsModule: AppModule?
     @State private var access = ModuleAccessRights.none
     @State private var isLoadingAccess = true
-    @State private var refreshToken = 0
 
     var body: some View {
         Group {
@@ -211,10 +210,7 @@ private struct NomenclatoareArticleCatalogView: View {
                     scope: .catalog,
                     canEdit: access.canEdit,
                     canDelete: access.canDelete
-                ) {
-                    refreshToken += 1
-                }
-                .id(refreshToken)
+                )
             }
         }
         .navigationTitle(L10n.tr("module.nomenclatoare.tile.article_catalog"))
@@ -265,7 +261,6 @@ private struct NomenclatoareArticlesView: View {
     @State private var productsModule: AppModule?
     @State private var access = ModuleAccessRights.none
     @State private var isLoadingAccess = true
-    @State private var refreshToken = 0
 
     var body: some View {
         Group {
@@ -290,10 +285,7 @@ private struct NomenclatoareArticlesView: View {
                     canEdit: access.canEdit,
                     canCreate: access.canCreate,
                     canDelete: access.canDelete
-                ) {
-                    refreshToken += 1
-                }
-                .id(refreshToken)
+                )
             }
         }
         .navigationTitle(L10n.tr("module.nomenclatoare.tile.articles"))
