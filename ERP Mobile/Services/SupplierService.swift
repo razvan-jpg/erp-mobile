@@ -1043,7 +1043,19 @@ enum SupplierService {
             throw CreditNoteOffsetError.notCreditNote
         }
 
-        let sanitized = PaymentAllocation.sanitizedPlan(plan)
+        let existing = try await fetchCreditOffsets(creditInvoiceId: creditInvoice.id)
+        if CreditNoteOffsetAllocation.isLocked(
+            availableCredit: creditInvoice.availableCreditAmount,
+            existingOffsetCount: existing.count
+        ) {
+            return
+        }
+
+        let existingTargetIds = Set(existing.map(\.targetInvoiceId))
+        let sanitized = CreditNoteOffsetAllocation.insertablePlan(
+            PaymentAllocation.sanitizedPlan(plan),
+            excludingExistingTargetIds: existingTargetIds
+        )
         let availableCredit = creditInvoice.availableCreditAmount
         let appliedTotal = SupplierFormatting.roundAmount(
             sanitized.invoiceLines.reduce(Decimal.zero) { $0 + $1.amount }
@@ -1051,6 +1063,8 @@ enum SupplierService {
         if appliedTotal > SupplierFormatting.roundAmount(availableCredit) {
             throw CreditNoteOffsetError.amountExceedsAvailableCredit
         }
+
+        guard !sanitized.invoiceLines.isEmpty else { return }
 
         let supplierInvoices = try await fetchInvoicesForAccount(supplierId: creditInvoice.supplierId)
         let invoiceById = Dictionary(uniqueKeysWithValues: supplierInvoices.map { ($0.id, $0) })
@@ -1066,14 +1080,6 @@ enum SupplierService {
                 throw CreditNoteOffsetError.targetInvoiceInvalid
             }
         }
-
-        try await client
-            .from("supplier_invoice_credit_offsets")
-            .delete()
-            .eq("credit_invoice_id", value: creditInvoice.id.uuidString)
-            .execute()
-
-        guard !sanitized.invoiceLines.isEmpty else { return }
 
         struct OffsetInsert: Encodable {
             let companyId: UUID

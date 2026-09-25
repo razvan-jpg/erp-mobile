@@ -285,10 +285,10 @@ struct EFacturaInvoiceParserTests {
         let parsed = try EFacturaInvoiceParser.parse(data: Data(xml.utf8))
         #expect(parsed.isCreditNote)
         #expect(parsed.invoiceNumber == "1600443823")
-        #expect(parsed.taxInclusiveAmount == -7042.83)
-        #expect(parsed.taxAmount == -1222.31)
+        #expect(parsed.taxInclusiveAmount == Decimal(string: "-7042.83"))
+        #expect(parsed.taxAmount == Decimal(string: "-1222.31"))
         #expect(parsed.lines.count == 1)
-        #expect(parsed.lines[0].lineTotal == -5820.52)
+        #expect(parsed.lines[0].lineTotal == Decimal(string: "-5820.52"))
         #expect(parsed.lines[0].quantity == 1)
     }
 

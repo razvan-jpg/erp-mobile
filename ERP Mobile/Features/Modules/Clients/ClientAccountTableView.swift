@@ -115,11 +115,11 @@ struct ClientAccountTableView: View {
             ),
             TableCell(
                 text: AccountLedgerDisplay.balanceText(entry.soldFactura, moneda: moneda),
-                foregroundColor: nil
+                foregroundColor: Self.balanceColor(entry.soldFactura)
             ),
             TableCell(
                 text: AccountLedgerDisplay.balanceText(entry.soldFinal, moneda: moneda),
-                foregroundColor: nil
+                foregroundColor: Self.balanceColor(entry.soldFinal)
             ),
             TableCell(text: entry.zileIntarziereDisplay, foregroundColor: nil),
             TableCell(text: entry.statusDisplay, foregroundColor: nil)
@@ -128,6 +128,13 @@ struct ClientAccountTableView: View {
 
     private func rowBackground(for index: Int) -> Color {
         index.isMultiple(of: 2) ? Color(.systemBackground) : Color.secondary.opacity(0.10)
+    }
+
+    private static func balanceColor(_ value: Decimal?) -> Color? {
+        guard let value else { return nil }
+        if value < 0 { return .green }
+        if value > 0 { return .orange }
+        return nil
     }
 
     @ViewBuilder

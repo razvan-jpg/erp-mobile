@@ -51,11 +51,15 @@ struct ImportedImage: Identifiable, Equatable {
     /// Text încorporat din PDF (fără OCR) — când există, parserul îl folosește direct.
     let embeddedText: String?
 
-    init(image: PlatformImage, fileName: String, embeddedText: String? = nil) {
+    init(image: PlatformImage, fileName: String, embeddedText: String? = nil, originalPagePDF: Data? = nil) {
         self.image = image
         self.fileName = fileName
         self.embeddedText = embeddedText
+        self.originalPagePDF = originalPagePDF
     }
+
+    /// Pagina originală de scan (PDF), nu reconstrucție din OCR.
+    let originalPagePDF: Data?
 }
 
 enum ImageLoader {
@@ -81,7 +85,8 @@ enum ImageLoader {
             return loadPDFPages(from: url)
         }
         if let image = loadImageFile(from: url) {
-            return [image]
+            let pdf = image.originalPagePDF ?? pdfDataWrappingImage(image.image)
+            return [ImportedImage(image: image.image, fileName: image.fileName, embeddedText: nil, originalPagePDF: pdf)]
         }
         return []
     }
@@ -117,33 +122,93 @@ enum ImageLoader {
 
         var results: [ImportedImage] = []
         for index in 0..<pageCount {
-            guard let page = document.page(at: index),
-                  let image = renderPDFPage(page) else { continue }
             let fileName = pageCount > 1
                 ? "\(baseName) · p\(index + 1).pdf"
                 : url.lastPathComponent
+            guard let page = document.page(at: index) else {
+                results.append(ImportedImage(image: placeholderImage(), fileName: fileName, embeddedText: nil, originalPagePDF: nil))
+                continue
+            }
+            let image = renderPDFPage(page) ?? placeholderImage()
             let embeddedText = page.string?.trimmingCharacters(in: .whitespacesAndNewlines)
             let text = (embeddedText?.isEmpty == false) ? embeddedText : nil
-            results.append(ImportedImage(image: image, fileName: fileName, embeddedText: text))
+            let pagePDF = singlePagePDF(from: page)
+            results.append(ImportedImage(image: image, fileName: fileName, embeddedText: text, originalPagePDF: pagePDF))
         }
         return results
     }
 
-    private static func renderPDFPage(_ page: PDFPage) -> PlatformImage? {
+    private static func placeholderImage() -> PlatformImage {
+        #if canImport(AppKit) && !targetEnvironment(macCatalyst)
+        return NSImage(size: NSSize(width: 64, height: 64))
+        #else
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 64, height: 64))
+        return renderer.image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 64, height: 64))
+        }
+        #endif
+    }
+
+    private static func singlePagePDF(from page: PDFPage) -> Data? {
+        let output = PDFDocument()
+        if let copied = page.copy() as? PDFPage {
+            output.insert(copied, at: 0)
+        } else {
+            output.insert(page, at: 0)
+        }
+        return output.dataRepresentation()
+    }
+
+    static func cgImageForOCR(fromPDFPage data: Data, longestEdge: CGFloat = 4000) -> CGImage? {
+        guard let document = PDFDocument(data: data), let page = document.page(at: 0) else { return nil }
+        guard let image = renderPDFPage(page, targetLongest: longestEdge) else { return nil }
+        return OCRService.cgImageForOCR(from: image)
+    }
+
+    static func pdfDataWrappingImage(_ image: PlatformImage) -> Data {
+        #if canImport(AppKit) && !targetEnvironment(macCatalyst)
+        return Data()
+        #else
+        let imgSize = image.size
+        let maxSize = CGSize(width: 595, height: 842)
+        let scale = min(maxSize.width / max(imgSize.width, 1), maxSize.height / max(imgSize.height, 1), 1)
+        let drawSize = CGSize(width: max(imgSize.width * scale, 1), height: max(imgSize.height * scale, 1))
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: drawSize))
+        return renderer.pdfData { ctx in
+            ctx.beginPage()
+            image.draw(in: CGRect(origin: .zero, size: drawSize))
+        }
+        #endif
+    }
+
+    private static func renderPDFPage(_ page: PDFPage, targetLongest: CGFloat = 3200) -> PlatformImage? {
         let bounds = page.bounds(for: .mediaBox)
         let longest = max(bounds.width, bounds.height)
         guard longest > 0 else { return nil }
 
-        let targetLongest: CGFloat = 3200
-        let scale = max(2, min(4, targetLongest / longest))
+        let scale = max(2, min(6, targetLongest / longest))
         let size = CGSize(width: bounds.width * scale, height: bounds.height * scale)
         let thumbnail = page.thumbnail(of: size, for: .mediaBox)
         #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-        guard thumbnail.size.width > 0, thumbnail.size.height > 0 else { return nil }
-        return thumbnail
+        if thumbnail.size.width > 0, thumbnail.size.height > 0 { return thumbnail }
+        return nil
         #elseif canImport(UIKit)
-        guard thumbnail.size.width > 0, thumbnail.size.height > 0 else { return nil }
-        return normalizedUIImage(thumbnail)
+        if thumbnail.size.width > 0, thumbnail.size.height > 0 {
+            return normalizedUIImage(thumbnail)
+        }
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let drawn = renderer.image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ctx.cgContext.saveGState()
+            ctx.cgContext.translateBy(x: 0, y: size.height)
+            ctx.cgContext.scaleBy(x: scale, y: -scale)
+            ctx.cgContext.translateBy(x: -bounds.origin.x, y: -bounds.origin.y)
+            page.draw(with: .mediaBox, to: ctx.cgContext)
+            ctx.cgContext.restoreGState()
+        }
+        return drawn.size.width > 0 ? normalizedUIImage(drawn) : nil
         #else
         return nil
         #endif

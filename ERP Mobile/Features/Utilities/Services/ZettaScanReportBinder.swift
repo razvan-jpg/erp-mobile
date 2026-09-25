@@ -9,14 +9,30 @@ enum ZettaScanReportBinder {
 
     nonisolated static func individualPDFFileName(for report: ZReportData, usedNames: inout Set<String>) -> String {
         let datePart = CashRegisterJournalFormatting.fileDate(report.date)
-        var name = "Raport_Z_\(max(report.zNumber, 0))_\(datePart).pdf"
+        let zPart: String
+        if report.zNumber > 0 {
+            zPart = "\(report.zNumber)"
+        } else if let page = pageIndex(from: report.sourceFileName) {
+            zPart = "p\(page)"
+        } else {
+            zPart = "necitit"
+        }
+        var name = "Raport_Z_\(zPart)_\(datePart).pdf"
         var suffix = 2
         while usedNames.contains(name) {
-            name = "Raport_Z_\(max(report.zNumber, 0))_\(datePart)_\(suffix).pdf"
+            name = "Raport_Z_\(zPart)_\(datePart)_\(suffix).pdf"
             suffix += 1
         }
         usedNames.insert(name)
         return name
+    }
+
+    nonisolated private static func pageIndex(from fileName: String) -> Int? {
+        guard let regex = try? NSRegularExpression(pattern: #"p(\d+)"#),
+              let match = regex.firstMatch(in: fileName, range: NSRange(fileName.startIndex..., in: fileName)),
+              match.numberOfRanges >= 2,
+              let range = Range(match.range(at: 1), in: fileName) else { return nil }
+        return Int(fileName[range])
     }
 
     nonisolated static func dateRangeFilePart(from reports: [ZReportData]) -> String {

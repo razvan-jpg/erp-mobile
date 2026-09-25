@@ -3,6 +3,10 @@ import Foundation
 /// Convertește textul extras din PDF-urile BINA Smart Business (format englez POS)
 /// în etichetele așteptate de `ZParser` (format român Nectarie / POS digital).
 enum BinaPosZReportTextNormalizer {
+    nonisolated static func prepareOCRTextForZParser(_ text: String) -> String {
+        normalizeForParser(normalizeIfNeeded(text))
+    }
+
     nonisolated static func normalizeIfNeeded(_ text: String) -> String {
         guard looksLikeEnglishBinaPOS(text) else { return text }
         return normalizeForParser(text)
@@ -611,6 +615,10 @@ enum BinaPosZReportTextNormalizer {
         return nil
     }
 
+    nonisolated private static func isStandaloneVatRateLabel(_ folded: String) -> Bool {
+        folded.range(of: #"^(VAT|TVA)\s+\d+%"#, options: .regularExpression) != nil
+    }
+
     nonisolated private static func mergeBrutLine(
         category: String,
         rate: String,
@@ -626,7 +634,19 @@ enum BinaPosZReportTextNormalizer {
                 continue
             }
             let upper = folded(trimmed)
-            if upper.hasPrefix("BRUT ") || upper.hasPrefix("VAT ") || upper.hasPrefix("TVA ")
+            if upper == "RON" {
+                index += 1
+                continue
+            }
+            // "VAT 21%" / "TVA 11%" sunt eticheta cotei, nu următorul grup — suma e pe rândul de după.
+            if isStandaloneVatRateLabel(upper) {
+                index += 1
+                continue
+            }
+            if upper.hasPrefix("BRUT ") || upper.hasPrefix("VAT A") || upper.hasPrefix("VAT B")
+                || upper.hasPrefix("VAT C") || upper.hasPrefix("VAT D")
+                || upper.hasPrefix("TVA A") || upper.hasPrefix("TVA B")
+                || upper.hasPrefix("TVA C") || upper.hasPrefix("TVA D")
                 || upper == "TOTAL SOLD" || upper == "TOTAL VAT" || upper == "TOTAL VANZARI" {
                 break
             }

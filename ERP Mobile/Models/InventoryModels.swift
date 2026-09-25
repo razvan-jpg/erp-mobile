@@ -18,6 +18,7 @@ struct ProductStockProductRef: Codable, Hashable, Sendable {
 struct ProductStockRow: Codable, Identifiable, Hashable, Sendable {
     let companyId: UUID
     let productId: UUID
+    let warehouseId: UUID?
     @SupabaseDecimal var cantitate: Decimal
     let updatedAt: Date?
     let product: ProductStockProductRef?
@@ -28,6 +29,7 @@ struct ProductStockRow: Codable, Identifiable, Hashable, Sendable {
         case cantitate, product
         case companyId = "company_id"
         case productId = "product_id"
+        case warehouseId = "warehouse_id"
         case updatedAt = "updated_at"
     }
 }
@@ -54,6 +56,7 @@ enum StockMovementSource: String, Codable, Sendable {
     case supplierInvoiceStornoDelete = "supplier_invoice_storno_delete"
     case physicalInventory = "physical_inventory"
     case initialStock = "initial_stock"
+    case stockTransfer = "stock_transfer"
 
     var label: String {
         switch self {
@@ -64,6 +67,7 @@ enum StockMovementSource: String, Codable, Sendable {
         case .supplierInvoiceStornoDelete: return L10n.tr("inventory.source_supplier_invoice_storno_delete")
         case .physicalInventory: return L10n.tr("inventory.source_physical_inventory")
         case .initialStock: return L10n.tr("inventory.source_initial_stock")
+        case .stockTransfer: return L10n.tr("inventory.source_stock_transfer")
         }
     }
 }
@@ -111,6 +115,7 @@ struct StockMovementDetailRow: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date?
     let invoiceId: UUID?
     let invoiceLineId: UUID?
+    let warehouseId: UUID?
     @SupabaseOptionalDecimal var pretUnitar: Decimal?
     let invoice: StockMovementInvoiceRef?
     let invoiceLine: StockMovementInvoiceLineRef?
@@ -124,6 +129,7 @@ struct StockMovementDetailRow: Codable, Identifiable, Hashable, Sendable {
         case createdAt = "created_at"
         case invoiceId = "invoice_id"
         case invoiceLineId = "invoice_line_id"
+        case warehouseId = "warehouse_id"
         case pretUnitar = "pret_unitar"
         case invoiceLine = "invoice_line"
     }
@@ -226,5 +232,71 @@ struct StockMovementRow: Codable, Identifiable, Hashable, Sendable {
 
     var productName: String {
         product?.denumire ?? L10n.tr("inventory.unknown_product")
+    }
+}
+
+struct StockTransfer: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let companyId: UUID
+    let numar: String
+    let dataBon: Date
+    let sourceWarehouseId: UUID
+    let destinationWarehouseId: UUID
+    let observatii: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, numar, observatii
+        case companyId = "company_id"
+        case dataBon = "data_bon"
+        case sourceWarehouseId = "source_warehouse_id"
+        case destinationWarehouseId = "destination_warehouse_id"
+        case createdAt = "created_at"
+    }
+}
+
+struct StockTransferLine: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let transferId: UUID
+    let productId: UUID
+    let numarLinie: Int
+    @SupabaseDecimal var cantitate: Decimal
+    let unitateMasura: String
+    let product: ProductStockProductRef?
+
+    enum CodingKeys: String, CodingKey {
+        case id, cantitate, product
+        case transferId = "transfer_id"
+        case productId = "product_id"
+        case numarLinie = "numar_linie"
+        case unitateMasura = "unitate_masura"
+    }
+}
+
+enum StockTransferError: LocalizedError {
+    case sameWarehouse
+    case noLines
+    case insufficientStock
+    case productNotAllowed
+    case forbidden
+
+    var errorDescription: String? {
+        switch self {
+        case .sameWarehouse: return L10n.tr("inventory.transfer_error_same_warehouse")
+        case .noLines: return L10n.tr("inventory.transfer_error_no_lines")
+        case .insufficientStock: return L10n.tr("inventory.transfer_error_insufficient")
+        case .productNotAllowed: return L10n.tr("inventory.transfer_error_product")
+        case .forbidden: return L10n.tr("inventory.transfer_error_forbidden")
+        }
+    }
+
+    static func map(_ error: Error) -> Error {
+        let message = error.localizedDescription.uppercased()
+        if message.contains("TRANSFER_SAME_WAREHOUSE") { return StockTransferError.sameWarehouse }
+        if message.contains("TRANSFER_NO_LINES") { return StockTransferError.noLines }
+        if message.contains("TRANSFER_INSUFFICIENT_STOCK") { return StockTransferError.insufficientStock }
+        if message.contains("TRANSFER_PRODUCT_NOT_ALLOWED") { return StockTransferError.productNotAllowed }
+        if message.contains("FORBIDDEN") { return StockTransferError.forbidden }
+        return error
     }
 }

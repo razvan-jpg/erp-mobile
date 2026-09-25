@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 9 septembrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · September 9, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 24 septembrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · September 24, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.049",
+            targetVersionLabel: "1.0.064",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
@@ -37,6 +37,155 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.063", "24.09.2026",
+                ro: [
+                    "Factură furnizor: mai multe NIR-uri, câte unul pe gestiune. Dacă schimbați gestiunea și salvați, stocul se mută automat.",
+                    "Stocuri: bon de transfer între gestiuni pentru materii prime, marfă, ambalaje și consumabile, la data bonului.",
+                    "Inventar pe gestiunea aleasă. La salvare, stocul scriptic devine cantitatea numărată, iar diferențele rămân ca proces-verbal.",
+                ],
+                en: [
+                    "Supplier invoice: several goods receipt notes, one per warehouse. Changing the warehouse and saving moves the stock.",
+                    "Inventory: transfer note between warehouses for raw materials, merchandise, packaging, and consumables, on the note date.",
+                    "Stock take for the selected warehouse. On save, book stock becomes the counted quantity, and differences are kept as a report.",
+                ]
+            ),
+            release(
+                "1.0.062", "19.09.2026",
+                ro: [
+                    "Fișa furnizor: Sold factură = restul acelei facturi, Sold final = soldul total după document. Storno-ul alocat scade restul facturilor de plată și nu se mai poate realoca (ex. Quadrant).",
+                ],
+                en: [
+                    "Supplier account sheet: Invoice balance = that invoice’s remainder, Final balance = running total after the document. An allocated credit note reduces payable remainders and cannot be reallocated (e.g. Quadrant).",
+                ]
+            ),
+            release(
+                "1.0.061", "11.09.2026",
+                ro: [
+                    "HR → Listări: Excel NextUp din stat (brut, CAS 25%, CASS 10%, impozit 10%, CAM 2,25%), fără PDF Saga. Aceleași opțiuni ca la Utilitare: notă simplă sau sume strânse în 4311, plus preview înainte de salvare.",
+                ],
+                en: [
+                    "HR → Listings: NextUp Excel from payroll (gross, 25% CAS, 10% CASS, 10% tax, 2.25% CAM), no Saga PDF. Same options as Utilities: simple note or amounts collected in 4311, plus preview before saving.",
+                ]
+            ),
+            release(
+                "1.0.060", "11.09.2026",
+                ro: [
+                    "Utilitare: lângă Nr. notei alegeți notă simplă sau sume strânse în 4311 (după 444, 4315, 4316, 436 se adaugă debitul și 4311 pe credit). Preview notă contabilă înainte de salvare.",
+                ],
+                en: [
+                    "Utilities: next to the note number choose a simple note or amounts collected in 4311 (after 444, 4315, 4316, 436 the debit and 4311 credit are added). Journal-note preview before saving.",
+                ]
+            ),
+            release(
+                "1.0.059", "11.09.2026",
+                ro: [
+                    "Utilitare: nota Saga cu % (un debit, mai multe credite) se exportă în NextUp ca perechi 1:1 — același cont de debit, cu suma fiecărui credit, nu totalul cumulat.",
+                ],
+                en: [
+                    "Utilities: Saga notes with % (one debit, several credits) export to NextUp as 1:1 pairs — the same debit account with each credit’s amount, not the combined total.",
+                ]
+            ),
+            release(
+                "1.0.058", "11.09.2026",
+                ro: [
+                    "Utilitare: nota contabilă PDF din Saga (cont debitor / creditor, sume 66 660.00, % la rețineri) se citește și devine Excel de import salarii NextUp.",
+                ],
+                en: [
+                    "Utilities: Saga journal-note PDFs (debit/credit accounts, amounts like 66 660.00, % withholdings) are read into the NextUp salary import Excel.",
+                ]
+            ),
+            release(
+                "1.0.057", "11.09.2026",
+                ro: [
+                    "Utilitare: Creare fișier import stat în NextUp din notă contabilă PDF — încărcați PDF-ul notei de salarii și obțineți Excel-ul pe modelul de 21 coloane.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Utilities: Create NextUp payroll import from a journal-note PDF — upload the salary note PDF and get the 21-column Excel.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.056", "11.09.2026",
+                ro: [
+                    "HR: angajați, contracte, stat lunar (CO, CM, sporuri pe om), pontaj generat din stat + orarul firmei, listări PDF și Excel NextUp pe modelul de salarii.",
+                ],
+                en: [
+                    "HR: employees, contracts, monthly payroll (leave, sick leave, bonuses per person), timesheet from payroll plus the company schedule, PDF listings and NextUp Excel on the salary model.",
+                ]
+            ),
+            release(
+                "1.0.055", "11.09.2026",
+                ro: [
+                    "Module ERP: tile HR pe dashboard, pentru societatea activă. Permisiunile se setează în Utilizatori.",
+                ],
+                en: [
+                    "ERP modules: HR tile on the dashboard, for the active company. Permissions are set in Users.",
+                ]
+            ),
+            release(
+                "1.0.054", "09.09.2026",
+                ro: [
+                    "Rapoarte Z BINA în engleză: vânzările pe cote TVA (BRUT A/B/D) se citesc din nou corect — suma de după „VAT 21%” nu mai e ignorată.",
+                ],
+                en: [
+                    "English BINA Z reports: VAT group sales (BRUT A/B/D) are read again — the amount after “VAT 21%” is no longer skipped.",
+                ]
+            ),
+            release(
+                "1.0.053", "09.09.2026",
+                ro: [
+                    "Manual Ajutor: procedura Excel pentru NextUp (Z-uri scanate și Clienți → Zetta) și cum ajung încasările în Registrul de casă — fără buton „Trimite în RC”, doar Generează registre după salvare.",
+                ],
+                en: [
+                    "Help manual: NextUp Excel procedure (scanned Z reports and Clients → Zetta) and how receipts reach the cash register — no “Send to RC” button; Generate registers after saving.",
+                ]
+            ),
+            release(
+                "1.0.052", "09.09.2026",
+                ro: [
+                    "Z-uri scanate: PDF-ul cu toate paginile este scan-ul original (toate paginile, în ordine), nu o reconstrucție. Excel-ul rămâne din valorile citite.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Scanned Z reports: the combined PDF is the original scan (all pages, in order), not a reconstruction. Excel still uses the values that were read.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.051", "09.09.2026",
+                ro: [
+                    "Z-uri scanate: se citește pagina întreagă pe două coloane (etichetă + valoare), ca pe model. Fără număr Z nu mai apar sume false din stratul scannerului.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Scanned Z reports: each page is read as two columns (label + value), like the model. Without a Z number, scanner leftover amounts are no longer kept.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.050", "09.09.2026",
+                ro: [
+                    "Z-uri scanate → import Zetta: Recitește pe paginile necitite; previzualizare PDF și Excel fără să salvați fișierul.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Scanned Z reports → Zetta import: Reread unread pages; preview PDF and Excel without saving the file.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
+            release(
+                "1.0.049", "09.09.2026",
+                ro: [
+                    "Z-uri scanate → import Zetta: un fișier cu mai multe Z-uri = aceeași firmă și un singur Excel; fiecare pagină este un Z; PDF-urile se completează pe modelul salvat Raport_Z_model.pdf.",
+                    "Manual Ajutor: Utilitare actualizat.",
+                ],
+                en: [
+                    "Scanned Z reports → Zetta import: one file with several Zs = the same firm and a single Excel; each page is one Z; PDFs are filled on the saved Raport_Z_model.pdf layout.",
+                    "Help manual: Utilities updated.",
+                ]
+            ),
             release(
                 "1.0.048", "09.09.2026",
                 ro: [

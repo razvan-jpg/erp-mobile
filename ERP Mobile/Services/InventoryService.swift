@@ -4,8 +4,18 @@ import Supabase
 enum InventoryService {
     private static let client = SupabaseManager.client
 
-    static func fetchStockRows(companyId: UUID) async throws -> [ProductStockRow] {
-        try await client
+    static func fetchStockRows(companyId: UUID, warehouseId: UUID? = nil) async throws -> [ProductStockRow] {
+        if let warehouseId {
+            return try await client
+                .from("warehouse_product_stocks")
+                .select("company_id, warehouse_id, product_id, cantitate, updated_at, product:products(id, denumire, cod, cod_bare, unitate_masura, tip)")
+                .eq("company_id", value: companyId.uuidString)
+                .eq("warehouse_id", value: warehouseId.uuidString)
+                .order("updated_at", ascending: false)
+                .execute()
+                .value
+        }
+        return try await client
             .from("product_stocks")
             .select("company_id, product_id, cantitate, updated_at, product:products(id, denumire, cod, cod_bare, unitate_masura, tip)")
             .eq("company_id", value: companyId.uuidString)
@@ -30,7 +40,7 @@ enum InventoryService {
         try await client
             .from("stock_movements")
             .select("""
-                id, company_id, product_id, tip, cantitate, unitate_masura, sursa, referinta, data_tranzactie, created_at, invoice_id, invoice_line_id, pret_unitar,
+                id, company_id, product_id, tip, cantitate, unitate_masura, sursa, referinta, data_tranzactie, created_at, invoice_id, invoice_line_id, warehouse_id, pret_unitar,
                 invoice:supplier_invoices(numar_factura, data_factura),
                 invoice_line:supplier_invoice_lines(pret_unitar, suma_linie, suma_tva, cota_tva)
                 """)
@@ -52,7 +62,7 @@ enum InventoryService {
             let rows: [StockMovementDetailRow] = try await client
                 .from("stock_movements")
                 .select("""
-                    id, company_id, product_id, tip, cantitate, unitate_masura, sursa, referinta, data_tranzactie, created_at, invoice_id, invoice_line_id, pret_unitar,
+                    id, company_id, product_id, tip, cantitate, unitate_masura, sursa, referinta, data_tranzactie, created_at, invoice_id, invoice_line_id, warehouse_id, pret_unitar,
                     invoice:supplier_invoices(numar_factura, data_factura),
                     invoice_line:supplier_invoice_lines(pret_unitar, suma_linie, suma_tva, cota_tva)
                     """)

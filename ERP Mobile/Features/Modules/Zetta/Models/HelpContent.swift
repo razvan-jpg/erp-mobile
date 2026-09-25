@@ -89,7 +89,8 @@ enum HelpContent {
             ],
             bullets: [
                 "Suportă bonuri fiscale pe hârtie (OCR din poză) și PDF-uri POS Nectarie / Complex Magnolia (citire directă din text).",
-                "Pe tab-ul Utilitare, „Z-uri scanate → import Zetta” citește poze/PDF pe modelul Raport_Z_model.pdf și creează direct Excel-ul de import.",
+                "Pe tab-ul Utilitare, „Z-uri scanate → import Zetta”: PDF-ul cu toate paginile este scan-ul original; Excel-ul din valorile citite; previzualizare și Recitește. Nu salvează Z-urile în ERP.",
+                "Pentru Excel NextUp + Registru de casă: Clienți → Zetta → Generează Excel & Salvează (vezi secțiunile 8 și 12).",
                 "Recomandat: scanează bonurile termice într-un singur PDF — mult mai puține erori decât la poze.",
                 "Detectează automat firma (Nectarie, Hotel Impex, alte firme din registru) și schema de NC: 10 rânduri (Nectarie) sau 8 rânduri (alte firme).",
                 "Dacă societatea are Setări Zetta configurate (Setări → Setări Zetta), NC folosește conturile și cotele TVA salvate — inclusiv CARD, PLATA MODERNA, viramente și SGR/Bacșiș la 0%.",
@@ -224,16 +225,16 @@ enum HelpContent {
             id: "export",
             title: "8. Export Excel & NextUp",
             paragraphs: [
-                "Când toate Z-urile sunt corecte, apasă Exportă Excel (Mac) sau Exportă & trimite (iOS).",
-                "Dacă ai Z-uri de la firme diferite, primești câte un fișier Excel per firmă.",
-                "Numele fișierului se calculează automat: NC_<Firmă>_<CUI>_<perioadă>.xlsx — ex. NC_HOTEL_IMPEX_SRL_49209086_2026-07-01_2026-07-15.xlsx când Z-urile acoperă un interval de zile."
+                "Când toate Z-urile sunt corecte, în Clienți → Zetta apasă Generează Excel & Salvează: salvează Rapoartele Z în Clienți → Rapoarte Z (pentru Registrul de casă) și exportă Excel-ul. În Utilitare → Creare fișier import ZETTA, butonul de export scrie doar Excel-ul.",
+                "Din Utilitare → Z-uri scanate → import Zetta: Citește și creează fișierul Zetta → Recitește paginile necitite → Previzualizare → Salvează Excel-ul de import Zetta. Acest flux nu salvează Z-urile în ERP.",
+                "Numele fișierului din Zetta: NC_<Firmă>_<CUI>_<perioadă>.xlsx. Dacă ai Z-uri de la firme diferite în aceeași sesiune Zetta, primești câte un Excel per firmă."
             ],
             bullets: [
                 "Mac: alegi locația și numele (propus automat cu firmă, CUI și perioada Z-urilor).",
                 "iOS: share sheet — WhatsApp, AirDrop, Mail, Fișiere (nume actualizat în fișierul partajat).",
                 "Import în NextUp: Contabilitate → Import note contabile din Excel — un fișier per firmă.",
                 "Verifică în NextUp că partenerul și jurnalul (JV/RC/OD) sunt recunoscute.",
-                "La mai multe firme în aceeași sesiune: NC_Export_<perioadă>.xlsx sau câte un fișier per firmă."
+                "La mai multe firme în aceeași sesiune Zetta: NC_Export_<perioadă>.xlsx sau câte un fișier per firmă."
             ],
             screenshots: [.exportBar],
             tip: "\(pdfScanTip)\n\nDupă ce ai încărcat un xlsx salvat, la export Mac îți propune folderul fișierului vechi, dar numele nou reflectă perioada completă."
@@ -287,11 +288,30 @@ enum HelpContent {
                 "Export eșuat după xlsx — alege locație cu drept de scriere; numele propus include perioada nouă (poate diferi de fișierul încărcat).",
                 "„Diferență!” — verifică BRUT A/B/D vs plăți; editează manual sau reimportă PDF.",
                 "Plată modernă greșită — pe PDF trebuie să fie suma de pe rând; lipsă = 0.",
+                "PDF BINA în engleză fără vânzări pe cote — suma e pe rândul de după „VAT 21%”; aplicația o citește de acolo, nu de pe eticheta cotei.",
                 "Data NC greșită la tura noapte — verifică toggle „Tura noapte” și ora „Până la” de pe bon.",
                 "Acces cameră refuzat (iOS) — Setări → \(ZettaAppInfo.appName) → Cameră."
             ],
             screenshots: [.headerButtons],
             tip: "\(pdfScanTip)\n\nContact: \(ZettaAppInfo.contactEmail) — menționează versiunea \(ZettaAppInfo.version) și atașează PDF-ul sau poza."
+        ),
+        Section(
+            id: "cash-register",
+            title: "12. Încasări în Registrul de casă",
+            paragraphs: [
+                "Nu există buton „Trimite încasările în RC”. Registrul (Dashboard → Registru de casă → Generează registre) citește datele deja salvate în ERP: numerar din Rapoarte Z, încasări clienți cu metoda Numerar și documente manuale.",
+                "Utilitare → Z-uri scanate creează doar Excel-ul NextUp. Pentru casă trebuie Clienți → Zetta → Generează Excel & Salvează."
+            ],
+            bullets: [
+                "1) Clienți → Zetta: importați Z-urile, verificați sumele, setați Nr. înreg., apoi Generează Excel & Salvează.",
+                "2) Z-urile apar în Clienți → Rapoarte Z. Cardul și plata modernă rămân în Excel (jurnal OD); în casă intră doar numerarul.",
+                "3) Dashboard → Registru de casă: De la / Până la, sold inițial dacă e nevoie, Generează registre. Linia Z: „Incasari cf Z nr. …”.",
+                "Încasare client: fișa de cont → încasare, metoda Numerar, salvați. La generare apare automat la Casa Sediu.",
+                "Chitanță fără factură: în Registru de casă, Adaugă document (chitanță client / diverse).",
+                "BINA și Z-urile scanate nu alimentează registrul până nu salvați Z-urile din Clienți → Zetta."
+            ],
+            screenshots: [],
+            tip: "După ștergerea unui Raport Z se șterg și încasările Z asociate. Regenerați registrul pentru perioada respectivă."
         )
     ]
 

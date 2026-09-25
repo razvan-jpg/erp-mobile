@@ -6,11 +6,14 @@ struct StockListView: View {
 
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var rows: [ProductStockRow] = []
+    @State private var warehouses: [CompanyWarehouse] = []
+    @State private var selectedWarehouseId: UUID?
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var searchText = ""
     @State private var selectedCard: ProductWarehouseCardContext?
     @State private var showScanner = false
+    @State private var showTransfers = false
 
     private var filteredRows: [ProductStockRow] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -29,6 +32,42 @@ struct StockListView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            if !warehouses.isEmpty {
+                Picker(L10n.tr("inventory.field_warehouse"), selection: $selectedWarehouseId) {
+                    Text(L10n.tr("inventory.warehouse_all")).tag(Optional<UUID>.none)
+                    ForEach(warehouses.filter(\.isActive)) { warehouse in
+                        Text(warehouse.denumire).tag(Optional(warehouse.id))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+            stockBody
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showTransfers = true
+                } label: {
+                    Image(systemName: "arrow.left.arrow.right.square")
+                }
+                .accessibilityLabel(L10n.tr("inventory.transfer_title"))
+            }
+        }
+        .onChange(of: selectedWarehouseId) { _ in
+            Task { await loadRows() }
+        }
+        .fullScreenCover(isPresented: $showTransfers) {
+            StockTransferListView {
+                await loadRows()
+                await onChanged()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var stockBody: some View {
         Group {
             if filteredRows.isEmpty && !isLoading {
                 AppEmptyStateView(
@@ -80,7 +119,10 @@ struct StockListView: View {
         isLoading = true
         errorMessage = nil
         do {
-            rows = try await InventoryService.fetchStockRows(companyId: companyId)
+            async let stockRows = InventoryService.fetchStockRows(companyId: companyId, warehouseId: selectedWarehouseId)
+            async let loadedWarehouses = WarehouseService.fetchWarehouses(companyId: companyId)
+            rows = try await stockRows
+            warehouses = try await loadedWarehouses
         } catch {
             rows = []
             errorMessage = error.localizedDescription

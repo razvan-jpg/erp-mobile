@@ -7,12 +7,49 @@ struct CreditNoteOffsetContext: Identifiable, Hashable {
     var id: UUID { invoice.id }
 }
 
+struct CreditNoteOffsetDisplayLine: Identifiable, Hashable {
+    let id: UUID
+    let invoiceNumber: String
+    let amount: Decimal
+}
+
+struct CreditNoteOffsetLockedSection: View {
+    let creditInvoiceNumber: String
+    let currency: String
+    let lines: [CreditNoteOffsetDisplayLine]
+
+    var body: some View {
+        Section {
+            Text(L10n.tr("credit_note.offset_locked_intro", creditInvoiceNumber))
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondary)
+
+            ForEach(lines) { line in
+                AppLabeledContent(line.invoiceNumber.uppercased()) {
+                    Text(SupplierFormatting.currency(line.amount, code: currency))
+                        .foregroundColor(.red)
+                }
+            }
+
+            Text(L10n.tr("credit_note.offset_locked_fully_allocated"))
+                .font(.caption)
+                .foregroundColor(.green)
+        } header: {
+            Text(L10n.tr("credit_note.offset_section_title"))
+        } footer: {
+            Text(L10n.tr("credit_note.offset_locked_footer"))
+                .font(.caption)
+        }
+    }
+}
+
 struct CreditNoteOffsetSelectionSection: View {
     let creditInvoiceNumber: String
     let creditAmount: Decimal
     let currency: String
     let targetInvoices: [SupplierInvoice]
     @Binding var selectedInvoiceIds: [UUID]
+    var existingLines: [CreditNoteOffsetDisplayLine] = []
 
     private var openInvoiceRows: [PaymentFormOpenInvoiceRow] {
         targetInvoices.map {
@@ -43,6 +80,18 @@ struct CreditNoteOffsetSelectionSection: View {
             Text(L10n.tr("credit_note.offset_intro", creditInvoiceNumber, SupplierFormatting.currency(creditAmount, code: currency)))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondary)
+
+            if !existingLines.isEmpty {
+                ForEach(existingLines) { line in
+                    AppLabeledContent(line.invoiceNumber.uppercased()) {
+                        Text(SupplierFormatting.currency(line.amount, code: currency))
+                            .foregroundColor(.red)
+                    }
+                }
+                Text(L10n.tr("credit_note.offset_existing_locked"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+            }
 
             PaymentFormMultiInvoiceSelectionSection(
                 emptyMessageKey: "credit_note.offset_no_open_invoices",
@@ -103,6 +152,24 @@ struct CreditNoteOffsetSheet: View {
         context.invoice.availableCreditAmount
     }
 
+    private var isLocked: Bool {
+        CreditNoteOffsetAllocation.isLocked(
+            availableCredit: creditAmount,
+            existingOffsetCount: existingOffsets.count
+        )
+    }
+
+    private var existingLines: [CreditNoteOffsetDisplayLine] {
+        let invoicesById = Dictionary(uniqueKeysWithValues: supplierInvoices.map { ($0.id, $0) })
+        return existingOffsets.map { offset in
+            CreditNoteOffsetDisplayLine(
+                id: offset.id,
+                invoiceNumber: invoicesById[offset.targetInvoiceId]?.numarFactura ?? "—",
+                amount: offset.amount
+            )
+        }
+    }
+
     private var plan: PaymentAllocationPlan {
         CreditNoteOffsetAllocation.plan(
             invoices: supplierInvoices,
@@ -114,16 +181,28 @@ struct CreditNoteOffsetSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                CreditNoteOffsetSelectionSection(
-                    creditInvoiceNumber: context.invoice.numarFactura,
-                    creditAmount: creditAmount,
-                    currency: context.invoice.moneda,
-                    targetInvoices: CreditNoteOffsetAllocation.openTargetInvoices(
-                        supplierInvoices,
-                        excludingCreditInvoiceId: context.invoice.id
-                    ),
-                    selectedInvoiceIds: $selectedInvoiceIds
-                )
+                if isLocked {
+                    CreditNoteOffsetLockedSection(
+                        creditInvoiceNumber: context.invoice.numarFactura,
+                        currency: context.invoice.moneda,
+                        lines: existingLines
+                    )
+                } else {
+                    CreditNoteOffsetSelectionSection(
+                        creditInvoiceNumber: context.invoice.numarFactura,
+                        creditAmount: creditAmount,
+                        currency: context.invoice.moneda,
+                        targetInvoices: CreditNoteOffsetAllocation.openTargetInvoices(
+                            supplierInvoices,
+                            excludingCreditInvoiceId: context.invoice.id
+                        )
+                        .filter { invoice in
+                            !existingOffsets.contains(where: { $0.targetInvoiceId == invoice.id })
+                        },
+                        selectedInvoiceIds: $selectedInvoiceIds,
+                        existingLines: existingLines
+                    )
+                }
 
                 if let errorMessage {
                     Section {
@@ -135,15 +214,17 @@ struct CreditNoteOffsetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.tr("credit_note.offset_skip")) {
+                    Button(L10n.tr(isLocked ? "common.done" : "credit_note.offset_skip")) {
                         onSkip()
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.tr("credit_note.offset_apply")) {
-                        Task { await applyOffsets() }
+                if !isLocked {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(L10n.tr("credit_note.offset_apply")) {
+                            Task { await applyOffsets() }
+                        }
+                        .disabled(isLoading || selectedInvoiceIds.isEmpty)
                     }
-                    .disabled(isLoading || selectedInvoiceIds.isEmpty)
                 }
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -157,13 +238,10 @@ struct CreditNoteOffsetSheet: View {
         do {
             let invoices = try await SupplierService.fetchInvoicesForAccount(supplierId: context.invoice.supplierId)
             let offsets = try await SupplierService.fetchCreditOffsets(creditInvoiceId: context.invoice.id)
-            let selected = offsets.compactMap { offset in
-                invoices.contains(where: { $0.id == offset.targetInvoiceId }) ? offset.targetInvoiceId : nil
-            }
             await MainActor.run {
                 supplierInvoices = invoices
                 existingOffsets = offsets
-                selectedInvoiceIds = selected
+                selectedInvoiceIds = []
             }
         } catch {
             await MainActor.run {

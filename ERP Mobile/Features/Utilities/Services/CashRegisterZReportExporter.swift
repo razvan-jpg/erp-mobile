@@ -46,9 +46,9 @@ enum CashRegisterZReportBinaLayout {
         PaymentSpec(label: "Numerar", markers: ["CASH", "NUMERAR"]),
         PaymentSpec(label: "Credit cards", markers: ["CREDIT CARDS"]),
         PaymentSpec(label: "Credit", markers: ["CREDIT"]),
-        PaymentSpec(label: "Bon masa", markers: ["MEAL TICKET", "BON MASA", "BON MAS"]),
+        PaymentSpec(label: "Bon masă", markers: ["MEAL TICKET", "BON MASA", "BON MAS"]),
         PaymentSpec(label: "Jeton", markers: ["JETON"]),
-        PaymentSpec(label: "Card masa", markers: ["MEAL CARD", "CARD MASA", "CARD MAS"]),
+        PaymentSpec(label: "Card masă", markers: ["MEAL CARD", "CARD MASA", "CARD MAS"]),
         PaymentSpec(label: "Plata moderna", markers: ["PLATA MODERNA"]),
         PaymentSpec(label: "Voucher", markers: ["VOUCHER"]),
     ]
@@ -399,19 +399,19 @@ enum CashRegisterZReportBinaLayout {
             y = pdfDraw(text: model.companyAddress, at: CGPoint(x: pdfLabelX, y: y), font: pdfRegularFont(size: 7.7), maxWidth: 520)
             y += pdfHeaderStep + 8
 
-            y = pdfDraw(text: "Z report Numar \(model.zNumber)", at: CGPoint(x: pdfLabelX, y: y), font: pdfBoldFont(size: 9.6))
+            y = pdfDraw(text: "Z report Număr \(model.zNumber)", at: CGPoint(x: pdfLabelX, y: y), font: pdfBoldFont(size: 9.6))
             y += pdfRowStep + 2
 
-            y = pdfDrawRow(label: "Locatia", value: model.location, y: y)
-            y = pdfDrawRow(label: "Numar POS", value: model.posNumber, y: y)
+            y = pdfDrawRow(label: "Locaţia", value: model.location, y: y)
+            y = pdfDrawRow(label: "Număr POS", value: model.posNumber, y: y)
             y = pdfDrawRow(label: "Utilizator", value: model.user, y: y)
             y = pdfDrawRow(label: "De la", value: model.fromDate, y: y)
-            y = pdfDrawRow(label: "Pana la", value: model.toDate, y: y)
+            y = pdfDrawRow(label: "Până la", value: model.toDate, y: y)
             y = pdfDrawRow(label: "Documente", value: model.documents, y: y)
             y = pdfDrawRow(label: "Total", value: formatRON(model.total), y: y, boldValue: true)
 
             y += pdfSectionGap - pdfRowStep
-            y = pdfDraw(text: "Metode de Plata", at: CGPoint(x: pdfLabelX, y: y), font: pdfRegularFont(size: 9.0))
+            y = pdfDraw(text: "Metode de Plată", at: CGPoint(x: pdfLabelX, y: y), font: pdfRegularFont(size: 9.0))
             y += pdfRowStep + 2
 
             for payment in model.payments {
@@ -435,7 +435,7 @@ enum CashRegisterZReportBinaLayout {
                 y = pdfDrawRow(label: row.label, value: row.amount, y: y)
             }
             y = pdfDrawRow(label: "Total TVA", value: model.totalVAT, y: y)
-            y = pdfDrawRow(label: "Total vanzari", value: stripRON(from: model.totalSales), y: y, boldValue: true)
+            y = pdfDrawRow(label: "Total vânzări", value: stripRON(from: model.totalSales), y: y, boldValue: true)
             _ = y
         }
     }

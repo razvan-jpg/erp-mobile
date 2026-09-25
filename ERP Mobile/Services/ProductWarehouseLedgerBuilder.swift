@@ -22,12 +22,15 @@ enum ProductWarehouseLedgerBuilder {
             switch movement.tip {
             case .intrare:
                 let quantity = movement.cantitate
-                cmp = weightedAverage(
-                    stock: stock,
-                    currentCost: cmp,
-                    inboundQuantity: quantity,
-                    inboundPrice: movement.unitPurchasePrice
-                )
+                let keepsCost = movement.sursa == StockMovementSource.stockTransfer.rawValue && stock > 0
+                if !keepsCost {
+                    cmp = weightedAverage(
+                        stock: stock,
+                        currentCost: cmp,
+                        inboundQuantity: quantity,
+                        inboundPrice: movement.unitPurchasePrice
+                    )
+                }
                 stock += quantity
                 entries.append(
                     ProductWarehouseLedgerEntry(

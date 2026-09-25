@@ -142,7 +142,7 @@ struct CashRegisterDailyJournal: Identifiable, Hashable, Sendable {
 }
 
 enum CashRegisterJournalFormatting {
-    static func fileDate(_ date: Date) -> String {
+    nonisolated static func fileDate(_ date: Date) -> String {
         let calendar = Calendar(identifier: .gregorian)
         let year = calendar.component(.year, from: date)
         let month = calendar.component(.month, from: date)
@@ -158,7 +158,7 @@ enum CashRegisterJournalFormatting {
         return (String(format: "%02d", day), String(format: "%02d", month), String(year))
     }
 
-    static func amount(_ value: Decimal) -> String {
+    nonisolated static func amount(_ value: Decimal) -> String {
         var rounded = value
         var output = Decimal()
         NSDecimalRound(&output, &rounded, 2, .plain)

@@ -764,7 +764,7 @@ struct InvoicesListView: View {
             let invoices = try await SupplierService.fetchInvoices(ids: invoiceIds)
             let suppliers = try await SupplierService.fetchSuppliers(ids: invoices.map(\.supplierId))
             let suppliersById = Dictionary(uniqueKeysWithValues: suppliers.map { ($0.id, $0) })
-            for invoice in invoices where invoice.isCreditNote {
+            for invoice in invoices where invoice.isCreditNote && invoice.availableCreditAmount > 0 {
                 let supplierName = suppliersById[invoice.supplierId]?.denumire ?? "—"
                 contexts.append(
                     CreditNoteOffsetContext(
@@ -1006,12 +1006,13 @@ struct InvoiceFormView: View {
     @State private var workLocations: [CompanyWorkLocation] = []
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var nirEditorContext: NIREditorContext?
-    @State private var existingNIR: SupplierNIR?
+    @State private var existingNIRs: [SupplierNIR] = []
 
     @State private var receptionRequirements = InvoiceReceptionRequirements(workLocations: [], warehouses: [])
 
     @State private var supplierAccountInvoices: [SupplierInvoice] = []
     @State private var selectedOffsetInvoiceIds: [UUID] = []
+    @State private var existingCreditOffsets: [SupplierInvoiceCreditOffset] = []
 
     private var parsedTotalAmount: Decimal? {
         SupplierFormatting.parseAmount(
@@ -1026,10 +1027,18 @@ struct InvoiceFormView: View {
     }
 
     private var creditOffsetTargetInvoices: [SupplierInvoice] {
-        guard let creditInvoice = currentCreditInvoiceForOffset else { return [] }
+        let existingTargetIds = Set(existingCreditOffsets.map(\.targetInvoiceId))
         return CreditNoteOffsetAllocation.openTargetInvoices(
             supplierAccountInvoices,
-            excludingCreditInvoiceId: creditInvoice.id
+            excludingCreditInvoiceId: currentCreditInvoiceForOffset?.id
+        )
+        .filter { !existingTargetIds.contains($0.id) }
+    }
+
+    private var isCreditNoteAllocationLocked: Bool {
+        CreditNoteOffsetAllocation.isLocked(
+            availableCredit: creditAmountForOffset,
+            existingOffsetCount: existingCreditOffsets.count
         )
     }
 
@@ -1136,13 +1145,22 @@ struct InvoiceFormView: View {
                 }
 
                 if isCreditNoteForm, selectedSupplier != nil {
-                    CreditNoteOffsetSelectionSection(
-                        creditInvoiceNumber: numarFactura.isEmpty ? "—" : numarFactura,
-                        creditAmount: creditAmountForOffset,
-                        currency: moneda.trimmingCharacters(in: .whitespaces).isEmpty ? "RON" : moneda,
-                        targetInvoices: creditOffsetTargetInvoices,
-                        selectedInvoiceIds: $selectedOffsetInvoiceIds
-                    )
+                    if isCreditNoteAllocationLocked {
+                        CreditNoteOffsetLockedSection(
+                            creditInvoiceNumber: numarFactura.isEmpty ? "—" : numarFactura,
+                            currency: moneda.trimmingCharacters(in: .whitespaces).isEmpty ? "RON" : moneda,
+                            lines: lockedCreditOffsetLines
+                        )
+                    } else {
+                        CreditNoteOffsetSelectionSection(
+                            creditInvoiceNumber: numarFactura.isEmpty ? "—" : numarFactura,
+                            creditAmount: creditAmountForOffset,
+                            currency: moneda.trimmingCharacters(in: .whitespaces).isEmpty ? "RON" : moneda,
+                            targetInvoices: creditOffsetTargetInvoices,
+                            selectedInvoiceIds: $selectedOffsetInvoiceIds,
+                            existingLines: existingCreditOffsetLines
+                        )
+                    }
                 }
 
                 Section(header: Text(L10n.tr("invoices.section_notes"))) {
@@ -1236,24 +1254,40 @@ struct InvoiceFormView: View {
     @ViewBuilder
     private var nirEditSection: some View {
         Section(header: Text(L10n.tr("nir.editor_section_title"))) {
-            if let existingNIR {
-                AppLabeledContent(L10n.tr("nir.export_number"), value: existingNIR.numarNir)
-                Button {
-                    openNIREditor(existingNIR: existingNIR)
-                } label: {
-                    Label(L10n.tr("nir.editor_edit_action"), systemImage: "doc.text.magnifyingglass")
-                }
-            } else {
+            if existingNIRs.isEmpty {
                 Text(L10n.tr("nir.editor_not_created_hint"))
                     .font(.caption)
                     .foregroundColor(AppColors.secondary)
-                Button {
-                    openNIREditor(existingNIR: nil)
-                } label: {
-                    Label(L10n.tr("nir.editor_create_action"), systemImage: "doc.badge.plus")
+            } else {
+                ForEach(existingNIRs) { nir in
+                    Button {
+                        openNIREditor(existingNIR: nir)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(nir.numarNir)
+                                .font(.headline)
+                            Text(nirWarehouseLabel(nir))
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
+                        }
+                    }
                 }
             }
+            Button {
+                openNIREditor(existingNIR: nil)
+            } label: {
+                Label(
+                    existingNIRs.isEmpty ? L10n.tr("nir.editor_create_action") : L10n.tr("nir.editor_add_another"),
+                    systemImage: "doc.badge.plus"
+                )
+            }
         }
+    }
+
+    private func nirWarehouseLabel(_ nir: SupplierNIR) -> String {
+        let warehouse = warehouses.first { $0.id == nir.warehouseId }?.denumire
+        let location = workLocations.first { $0.id == nir.workLocationId }?.denumire
+        return [warehouse, location].compactMap { $0 }.joined(separator: " · ")
     }
 
     private func openNIREditor(existingNIR: SupplierNIR?) {
@@ -1290,9 +1324,9 @@ struct InvoiceFormView: View {
     private func loadExistingNIR() async {
         guard case .edit(let invoice) = mode else { return }
         do {
-            let nir = try await SupplierNIRService.fetchNIR(forInvoice: invoice.id)
+            let nirs = try await SupplierNIRService.fetchNIRs(forInvoice: invoice.id)
             await MainActor.run {
-                existingNIR = nir
+                existingNIRs = nirs
             }
         } catch {
             await MainActor.run {
@@ -1447,26 +1481,48 @@ struct InvoiceFormView: View {
         }
     }
 
+    private var existingCreditOffsetLines: [CreditNoteOffsetDisplayLine] {
+        creditOffsetDisplayLines(from: existingCreditOffsets)
+    }
+
+    private var lockedCreditOffsetLines: [CreditNoteOffsetDisplayLine] {
+        existingCreditOffsetLines
+    }
+
+    private func creditOffsetDisplayLines(
+        from offsets: [SupplierInvoiceCreditOffset]
+    ) -> [CreditNoteOffsetDisplayLine] {
+        let invoicesById = Dictionary(uniqueKeysWithValues: supplierAccountInvoices.map { ($0.id, $0) })
+        return offsets.map { offset in
+            CreditNoteOffsetDisplayLine(
+                id: offset.id,
+                invoiceNumber: invoicesById[offset.targetInvoiceId]?.numarFactura ?? "—",
+                amount: offset.amount
+            )
+        }
+    }
+
     private func loadCreditOffsetData() async {
         guard let supplierId = selectedSupplierId,
               supplierId != Self.addNewSupplierSentinel else {
             await MainActor.run {
                 supplierAccountInvoices = []
                 selectedOffsetInvoiceIds = []
+                existingCreditOffsets = []
             }
             return
         }
 
         do {
             let invoices = try await SupplierService.fetchInvoicesForAccount(supplierId: supplierId)
-            var selected: [UUID] = []
+            var offsets: [SupplierInvoiceCreditOffset] = []
             if case .edit(let invoice) = mode, invoice.isCreditNote {
-                let offsets = try await SupplierService.fetchCreditOffsets(creditInvoiceId: invoice.id)
-                selected = offsets.map(\.targetInvoiceId)
+                offsets = try await SupplierService.fetchCreditOffsets(creditInvoiceId: invoice.id)
             }
             await MainActor.run {
                 supplierAccountInvoices = invoices
-                selectedOffsetInvoiceIds = selected
+                selectedOffsetInvoiceIds = []
+                existingCreditOffsets = offsets
             }
         } catch {
             await MainActor.run {
@@ -1614,11 +1670,16 @@ struct InvoiceFormView: View {
                 )
                 if total < 0 {
                     let latestInvoice = try await SupplierService.fetchInvoice(id: updatedInvoice.id)
-                    try await SupplierService.replaceCreditNoteOffsets(
-                        companyId: companyId,
-                        creditInvoice: latestInvoice,
-                        plan: creditOffsetPlan
-                    )
+                    if !CreditNoteOffsetAllocation.isLocked(
+                        availableCredit: latestInvoice.availableCreditAmount,
+                        existingOffsetCount: existingCreditOffsets.count
+                    ) {
+                        try await SupplierService.replaceCreditNoteOffsets(
+                            companyId: companyId,
+                            creditInvoice: latestInvoice,
+                            plan: creditOffsetPlan
+                        )
+                    }
                 }
                 if access.canEdit {
                     let invalidLines = invoiceLines.filter { line in

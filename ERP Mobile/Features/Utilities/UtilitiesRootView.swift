@@ -49,6 +49,16 @@ struct UtilitiesRootView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink(destination: HRPayrollNCImportView()) {
+                        utilityButtonLabel(
+                            title: L10n.tr("utilities.payroll_nc.title"),
+                            subtitle: L10n.tr("utilities.payroll_nc.subtitle"),
+                            systemImage: "tablecells.badge.plus"
+                        )
+                        .settingsMenuButtonChrome()
+                    }
+                    .buttonStyle(.plain)
+
                     NavigationLink(destination: CashRegisterZExtractView()) {
                         utilityButtonLabel(
                             title: L10n.tr("utilities.cash_register.title"),

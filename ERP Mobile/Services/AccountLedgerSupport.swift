@@ -34,7 +34,7 @@ extension PaymentMethod {
 enum AccountLedgerDisplay {
     static func remainingInvoiceBalance(status: InvoiceStatus, restDePlata: Decimal) -> Decimal? {
         guard status != .anulata, status != .platita else { return nil }
-        guard restDePlata > 0 else { return nil }
+        guard restDePlata != 0 else { return nil }
         return restDePlata
     }
 
@@ -181,6 +181,7 @@ protocol AccountLedgerFilterEntry {
     var invoiceStatus: InvoiceStatus? { get }
     var dataDocument: Date { get }
     var suma: Decimal { get }
+    var balanceDelta: Decimal { get }
 }
 
 extension ClientAccountLedgerEntry: AccountLedgerFilterEntry {}
@@ -254,11 +255,7 @@ enum AccountLedgerFiltering {
     }
 
     static func balanceDelta<Entry: AccountLedgerFilterEntry>(for entry: Entry) -> Decimal {
-        if entry.isInvoice {
-            guard entry.invoiceStatus != .anulata else { return 0 }
-            return entry.suma
-        }
-        return -entry.suma
+        entry.balanceDelta
     }
 }
 
@@ -277,7 +274,8 @@ extension ClientAccountLedgerEntry {
             soldFinal: soldFinal,
             zileIntarziere: zileIntarziere,
             invoiceStatus: invoiceStatus,
-            isInvoice: isInvoice
+            isInvoice: isInvoice,
+            balanceDelta: balanceDelta
         )
     }
 
@@ -355,7 +353,8 @@ extension SupplierAccountLedgerEntry {
             soldFinal: soldFinal,
             zileIntarziere: zileIntarziere,
             invoiceStatus: invoiceStatus,
-            isInvoice: isInvoice
+            isInvoice: isInvoice,
+            balanceDelta: balanceDelta
         )
     }
 

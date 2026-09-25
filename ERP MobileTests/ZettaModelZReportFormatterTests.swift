@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import ERPMobile
 
+@MainActor
 struct ZettaModelZReportFormatterTests {
     @Test func digitalModelTextKeepsZNumberAndPayments() {
         let sample = """
@@ -25,6 +26,13 @@ struct ZettaModelZReportFormatterTests {
         #expect(text.contains("293"))
         #expect(text.uppercased().contains("NUMERAR"))
         #expect(text.contains("PLOIESTI") || text.contains("Ploiești") || text.contains("Ploiesti"))
+        #expect(text.contains("Număr POS"))
+        #expect(text.contains("Documente"))
+        #expect(text.contains("Credit"))
+        #expect(text.contains("Bon masă"))
+        #expect(text.contains("BRUT D TVA 0%"))
+        #expect(text.contains("TVA D 0%"))
+        #expect(text.contains("COMPLEX MAGNOLIA"))
     }
 
     @Test func parsedFieldsFallbackIncludesBankDepositStyleTotals() {

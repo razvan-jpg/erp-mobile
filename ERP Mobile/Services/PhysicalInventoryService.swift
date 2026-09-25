@@ -9,12 +9,14 @@ enum PhysicalInventoryService {
         let dataInventar: String
         let observatii: String?
         let createdBy: UUID?
+        let warehouseId: UUID?
 
         enum CodingKeys: String, CodingKey {
             case observatii
             case companyId = "company_id"
             case dataInventar = "data_inventar"
             case createdBy = "created_by"
+            case warehouseId = "warehouse_id"
         }
     }
 
@@ -43,7 +45,7 @@ enum PhysicalInventoryService {
     static func fetchInventories(companyId: UUID) async throws -> [PhysicalInventory] {
         try await client
             .from("physical_inventories")
-            .select("id, company_id, numar_inventar, data_inventar, status, observatii, created_at, updated_at, finalized_at")
+            .select("id, company_id, numar_inventar, data_inventar, status, observatii, warehouse_id, created_at, updated_at, finalized_at")
             .eq("company_id", value: companyId.uuidString)
             .order("data_inventar", ascending: false)
             .order("created_at", ascending: false)
@@ -54,7 +56,7 @@ enum PhysicalInventoryService {
     static func fetchInventory(id: UUID) async throws -> PhysicalInventory {
         let rows: [PhysicalInventory] = try await client
             .from("physical_inventories")
-            .select("id, company_id, numar_inventar, data_inventar, status, observatii, created_at, updated_at, finalized_at")
+            .select("id, company_id, numar_inventar, data_inventar, status, observatii, warehouse_id, created_at, updated_at, finalized_at")
             .eq("id", value: id.uuidString)
             .limit(1)
             .execute()
@@ -84,18 +86,20 @@ enum PhysicalInventoryService {
         dataInventar: Date,
         observatii: String?,
         createdBy: UUID?,
+        warehouseId: UUID?,
         populateFromStock: Bool
     ) async throws -> PhysicalInventory {
         let payload = InventoryInsert(
             companyId: companyId,
             dataInventar: dateString(dataInventar),
             observatii: emptyToNil(observatii),
-            createdBy: createdBy
+            createdBy: createdBy,
+            warehouseId: warehouseId
         )
         let rows: [PhysicalInventory] = try await client
             .from("physical_inventories")
             .insert(payload)
-            .select("id, company_id, numar_inventar, data_inventar, status, observatii, created_at, updated_at, finalized_at")
+            .select("id, company_id, numar_inventar, data_inventar, status, observatii, warehouse_id, created_at, updated_at, finalized_at")
             .execute()
             .value
         guard let inventory = rows.first else { throw ServiceError.invalidResponse }
@@ -159,6 +163,25 @@ enum PhysicalInventoryService {
         } catch {
             throw PhysicalInventoryError.map(error)
         }
+    }
+
+    static func fetchDifferenceReports(companyId: UUID) async throws -> [InventoryDifferenceReport] {
+        try await client
+            .from("inventory_difference_reports")
+            .select("id, company_id, inventory_id, warehouse_id, numar, data_ora")
+            .eq("company_id", value: companyId.uuidString)
+            .order("data_ora", ascending: false)
+            .execute()
+            .value
+    }
+
+    static func fetchDifferenceReportLines(reportId: UUID) async throws -> [InventoryDifferenceReportLine] {
+        try await client
+            .from("inventory_difference_report_lines")
+            .select("id, report_id, product_id, denumire, unitate_masura, stoc_scriptic, cantitate_faptica, diferenta")
+            .eq("report_id", value: reportId.uuidString)
+            .execute()
+            .value
     }
 
     static func deleteLine(id: UUID) async throws {

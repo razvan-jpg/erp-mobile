@@ -8,6 +8,7 @@ enum ModuleCode {
     static let bankStatement = "bank_statement"
     static let inventory = "inventory"
     static let stockSheet = "stock_sheet"
+    static let hr = "hr"
     static let products = "products"
 
     static let dashboardHiddenCodes: Set<String> = [products]

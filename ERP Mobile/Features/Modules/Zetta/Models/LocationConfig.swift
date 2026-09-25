@@ -6,7 +6,7 @@ enum PunctLucru: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
-    var shortName: String {
+    nonisolated var shortName: String {
         switch self {
         case .agro: return "Agro"
         case .ploiesti: return "Ploiesti"

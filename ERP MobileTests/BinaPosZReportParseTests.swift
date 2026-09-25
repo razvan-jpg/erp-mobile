@@ -1,5 +1,5 @@
 import XCTest
-@testable import ERP_Mobile
+@testable import ERPMobile
 
 final class BinaPosZReportParseTests: XCTestCase {
     private let binaEnglishSample = """

@@ -23,6 +23,7 @@ enum OCRService {
         "NECTARIE", "NUMERAR", "VANZARI", "VANZ", "MODERNA", "MODERNĂ",
         "RAPORT", "FISCAL", "ZILNIC", "TICHETE", "VOUCHER", "SERTAR",
         "TOTAL", "TVA", "PLOIESTI", "PLOIEȘTI", "BUCURESTI", "BUCUREȘTI",
+        "COMPLEX", "MAGNOLIA", "DOCUMENTE", "UTILIZATOR", "LOCATIA", "NUMAR",
         "DATA", "ORA", "CATA", "GRA", "AMEF", "0RR", "23:41", "20:41", "00:51",
         "REDUCERI", "RETRAGERI", "SCUTIT", "DMJE",
         "IMPEX", "HOTEL", "VANZARI", "0741", "0830", "0740", "0742", "0758",
@@ -59,6 +60,194 @@ enum OCRService {
     nonisolated static func recognizeText(from cgImage: CGImage) async throws -> String {
         let reports = try await recognizeReports(from: cgImage)
         return reports.first ?? ""
+    }
+
+    /// Un Raport Z pe pagină (utilitar scan): OCR pe toată pagina, fără tăiere pe coloane.
+    nonisolated static func recognizeFullPageText(from cgImage: CGImage) async throws -> String {
+        try await recognizeScanZPage(from: cgImage)
+    }
+
+    /// Scan A4 pe modelul Raport Z (etichete stânga, valori dreapta) — un singur Z, nu două coloane-bon.
+    nonisolated static func recognizeScanZPage(from cgImage: CGImage) async throws -> String {
+        try await Task.detached(priority: .userInitiated) {
+            try recognizeScanZPageSync(from: cgImage)
+        }.value
+    }
+
+    /// Fără crop pe document (taie etichetele stânga). Împerechează coloana de etichete cu coloana de valori.
+    nonisolated private static func recognizeScanZPageSync(from source: CGImage) throws -> String {
+        let prepared = prepareSourceForOCR(source)
+        let full = scaleCGImage(prepared, longestEdge: 4000, allowUpscale: true) ?? prepared
+
+        var candidates: [String] = []
+
+        let accurate = try performOCR(on: full, level: .accurate, minimumTextHeight: 0.0025)
+        candidates.append(reconstructBinaTwoColumn(from: accurate.observations))
+        candidates.append(reconstructLines(from: accurate.observations))
+
+        if let boosted = enhanceForOCR(full, aggressive: true) {
+            let boostOCR = try performOCR(on: boosted, level: .accurate, minimumTextHeight: 0.002)
+            candidates.append(reconstructBinaTwoColumn(from: boostOCR.observations))
+            candidates.append(reconstructLines(from: boostOCR.observations))
+        }
+
+        let columns = try ocrEqualColumnCrops(source: full, columnCount: 2)
+        if columns.count == 2 {
+            candidates.append(mergeColumnTextsByRelativeY(left: columns[0], right: columns[1]))
+            candidates.append("\(columns[0])\n\(columns[1])")
+        }
+
+        return bestScanPageText(candidates)
+    }
+
+    nonisolated private static func bestScanPageText(_ texts: [String]) -> String {
+        var best: (text: String, hasZ: Int, score: Int)?
+        for raw in texts {
+            let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            let parsed = ZParser.parse(ocrText: text)
+            let score = ZParser.ocrCandidateScore(parsed, ocrText: text).overall
+            let hasZ = parsed.zNumber > 0 ? 1 : 0
+            if let current = best {
+                if hasZ != current.hasZ {
+                    if hasZ > current.hasZ { best = (text, hasZ, score) }
+                    continue
+                }
+                if score > current.score { best = (text, hasZ, score) }
+            } else {
+                best = (text, hasZ, score)
+            }
+        }
+        return best?.text ?? texts.first ?? ""
+    }
+
+    /// Etichete stânga + valori dreapta, pe același rând vizual (ca Raport_Z_model.pdf).
+    nonisolated private static func reconstructBinaTwoColumn(from tokens: [OCRToken]) -> String {
+        guard tokens.count >= 8 else { return reconstructLines(from: tokens) }
+        let left = tokens.filter { $0.box.midX < 0.50 }
+        let right = tokens.filter { $0.box.midX >= 0.50 }
+        guard left.count >= 5, right.count >= 3 else {
+            return reconstructLines(from: tokens)
+        }
+
+        let leftRows = groupedRows(from: left)
+        let rightRows = groupedRows(from: right)
+        var usedRight = Set<Int>()
+        var lines: [String] = []
+
+        for leftRow in leftRows {
+            let leftText = joinedRow(leftRow)
+            let leftY = averageMidY(leftRow)
+            if let index = nearestRowIndex(in: rightRows, to: leftY, used: usedRight, tolerance: 0.022) {
+                usedRight.insert(index)
+                let rightText = joinedRow(rightRows[index])
+                if rightText.isEmpty {
+                    lines.append(leftText)
+                } else {
+                    lines.append("\(leftText) \t\(rightText)")
+                }
+            } else {
+                lines.append(leftText)
+            }
+        }
+
+        for (index, rightRow) in rightRows.enumerated() where !usedRight.contains(index) {
+            let extra = joinedRow(rightRow)
+            if !extra.isEmpty { lines.append(extra) }
+        }
+        return lines.filter { !$0.isEmpty }.joined(separator: "\n")
+    }
+
+    nonisolated private static func mergeColumnTextsByRelativeY(left: String, right: String) -> String {
+        let leftLines = nonEmptyLines(left)
+        let rightLines = nonEmptyLines(right)
+        guard !leftLines.isEmpty, !rightLines.isEmpty else {
+            return [left, right].filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.joined(separator: "\n")
+        }
+
+        var usedRight = Set<Int>()
+        var lines: [String] = []
+        for (leftIndex, leftLine) in leftLines.enumerated() {
+            let leftY = CGFloat(leftIndex) / CGFloat(max(leftLines.count - 1, 1))
+            var bestIndex: Int?
+            var bestDistance = CGFloat.greatestFiniteMagnitude
+            for (rightIndex, _) in rightLines.enumerated() where !usedRight.contains(rightIndex) {
+                let rightY = CGFloat(rightIndex) / CGFloat(max(rightLines.count - 1, 1))
+                let distance = abs(leftY - rightY)
+                if distance < bestDistance {
+                    bestDistance = distance
+                    bestIndex = rightIndex
+                }
+            }
+            if let bestIndex, bestDistance <= 0.12 {
+                usedRight.insert(bestIndex)
+                lines.append("\(leftLine) \t\(rightLines[bestIndex])")
+            } else {
+                lines.append(leftLine)
+            }
+        }
+        for (index, rightLine) in rightLines.enumerated() where !usedRight.contains(index) {
+            lines.append(rightLine)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    nonisolated private static func groupedRows(from tokens: [OCRToken]) -> [[OCRToken]] {
+        let sorted = tokens.sorted { a, b in
+            if abs(a.box.midY - b.box.midY) > 0.008 {
+                return a.box.midY > b.box.midY
+            }
+            return a.box.minX < b.box.minX
+        }
+        var rows: [[OCRToken]] = []
+        for token in sorted {
+            if var last = rows.last, let ref = last.first {
+                let yTol = max(0.010, min(ref.box.height, token.box.height) * 0.85)
+                if abs(ref.box.midY - token.box.midY) <= yTol {
+                    last.append(token)
+                    rows[rows.count - 1] = last
+                    continue
+                }
+            }
+            rows.append([token])
+        }
+        return rows
+    }
+
+    nonisolated private static func joinedRow(_ row: [OCRToken]) -> String {
+        row.sorted { $0.box.minX < $1.box.minX }
+            .map(\.text)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    nonisolated private static func averageMidY(_ row: [OCRToken]) -> CGFloat {
+        guard !row.isEmpty else { return 0 }
+        return row.map(\.box.midY).reduce(0, +) / CGFloat(row.count)
+    }
+
+    nonisolated private static func nearestRowIndex(
+        in rows: [[OCRToken]],
+        to y: CGFloat,
+        used: Set<Int>,
+        tolerance: CGFloat
+    ) -> Int? {
+        var best: (Int, CGFloat)?
+        for (index, row) in rows.enumerated() where !used.contains(index) {
+            let distance = abs(averageMidY(row) - y)
+            if distance <= tolerance, best == nil || distance < best!.1 {
+                best = (index, distance)
+            }
+        }
+        return best?.0
+    }
+
+    nonisolated private static func nonEmptyLines(_ text: String) -> [String] {
+        text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     /// Unul sau mai multe bonuri Z din aceeași poză (bonuri alăturate sau text concatenat).

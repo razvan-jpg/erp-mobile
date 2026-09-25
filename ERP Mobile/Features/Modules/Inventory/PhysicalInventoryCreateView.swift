@@ -11,6 +11,8 @@ struct PhysicalInventoryCreateView: View {
     @State private var dataInventar = Date()
     @State private var observatii = ""
     @State private var populateFromStock = true
+    @State private var warehouses: [CompanyWarehouse] = []
+    @State private var warehouseId: UUID?
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -18,6 +20,12 @@ struct PhysicalInventoryCreateView: View {
         NavigationView {
             Form {
                 Section {
+                    Picker(L10n.tr("inventory.field_warehouse"), selection: $warehouseId) {
+                        Text(L10n.tr("common.select")).tag(Optional<UUID>.none)
+                        ForEach(warehouses.filter(\.isActive)) { warehouse in
+                            Text(warehouse.denumire).tag(Optional(warehouse.id))
+                        }
+                    }
                     DateInputField(title: L10n.tr("inventory.physical_field_date"), date: $dataInventar)
                     Toggle(L10n.tr("inventory.physical_populate_from_stock"), isOn: $populateFromStock)
                 }
@@ -44,11 +52,17 @@ struct PhysicalInventoryCreateView: View {
                     Button(L10n.tr("common.save")) {
                         Task { await createInventory() }
                     }
-                    .disabled(isSaving || !access.canCreate)
+                    .disabled(isSaving || !access.canCreate || warehouseId == nil)
                 }
             }
             .appFullOverlay { LoadingOverlay(isLoading: isSaving) }
+            .appTask { await loadWarehouses() }
         }
+    }
+
+    private func loadWarehouses() async {
+        guard let companyId = companyManager.currentCompany?.id else { return }
+        warehouses = (try? await WarehouseService.fetchWarehouses(companyId: companyId)) ?? []
     }
 
     private func createInventory() async {
@@ -61,6 +75,7 @@ struct PhysicalInventoryCreateView: View {
                 dataInventar: dataInventar,
                 observatii: observatii,
                 createdBy: session.currentProfile?.id,
+                warehouseId: warehouseId,
                 populateFromStock: populateFromStock
             )
             await onSaved()

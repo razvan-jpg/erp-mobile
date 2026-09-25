@@ -14,6 +14,7 @@ struct ClientAccountLedgerEntry: Identifiable, Hashable, Sendable {
     let zileIntarziere: Int?
     let invoiceStatus: InvoiceStatus?
     let isInvoice: Bool
+    let balanceDelta: Decimal
 
     var zileIntarziereDisplay: String {
         guard let zileIntarziere else { return "—" }
@@ -125,7 +126,8 @@ enum ClientAccountLedgerBuilder {
                     soldFinal: soldFinal,
                     zileIntarziere: draft.zileIntarziere,
                     invoiceStatus: draft.invoiceStatus,
-                    isInvoice: draft.isInvoice
+                    isInvoice: draft.isInvoice,
+                    balanceDelta: draft.balanceDelta
                 )
             )
         }

@@ -306,6 +306,9 @@ struct PhysicalInventoryDetailView: View {
         errorMessage = nil
         do {
             inventory = try await PhysicalInventoryService.fetchInventory(id: context.inventory.id)
+            if inventory.status == .open {
+                _ = try await PhysicalInventoryService.loadProductsFromStock(inventoryId: inventory.id)
+            }
             lines = try await PhysicalInventoryService.fetchLines(inventoryId: inventory.id)
         } catch {
             errorMessage = error.localizedDescription

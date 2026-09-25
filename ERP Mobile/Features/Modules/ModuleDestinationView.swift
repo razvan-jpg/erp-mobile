@@ -19,6 +19,8 @@ struct ModuleDestinationView: View {
             InventoryView(module: module)
         case ModuleCode.stockSheet:
             StockSheetModuleView(module: module)
+        case ModuleCode.hr:
+            HRModuleView(module: module)
         case ModuleCode.products:
             ProductsView(module: module)
         default:

@@ -21,7 +21,7 @@ struct CashRegisterJournalBuilderTests {
                     amount: 50
                 )
             ],
-            explicitOpening: ["hq": 1234.56]
+            explicitOpening: ["hq": Decimal(string: "1234.56") ?? 0]
         )
 
         let pages = CashRegisterJournalBuilder.build(

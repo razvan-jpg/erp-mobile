@@ -21,6 +21,12 @@ struct NIRLineEligibilityTests {
         #expect(ProductService.shouldSkipNIRProductKindUpdate(lineName: "Garantie SGR"))
     }
 
+    @Test func remainingQuantityAfterOtherNIRs() {
+        #expect(NIRQuantityAllocation.remaining(invoiceQuantity: 10, receivedOnOtherNIRs: 4) == 6)
+        #expect(NIRQuantityAllocation.remaining(invoiceQuantity: 10, receivedOnOtherNIRs: 10) == 0)
+        #expect(NIRQuantityAllocation.remaining(invoiceQuantity: 10, receivedOnOtherNIRs: 12) == 0)
+    }
+
     @Test func autoExcludesGarantieLines() {
         let garantie = makeLine(denumire: "Garantie")
         let garantieSGR = makeLine(denumire: "Garantie SGR")

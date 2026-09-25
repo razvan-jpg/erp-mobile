@@ -227,7 +227,10 @@ struct ProductWarehouseCardView: View {
                 productId: context.row.productId
             )
             async let productTask = ProductService.fetchProduct(id: context.row.productId)
-            let movements = try await movementsTask
+            let movements = try await movementsTask.filter { movement in
+                guard let warehouseId = context.row.warehouseId else { return true }
+                return movement.warehouseId == warehouseId
+            }
             let product = try await productTask
             let result = ProductWarehouseLedgerBuilder.build(movements: movements)
             ledgerEntries = result.entries

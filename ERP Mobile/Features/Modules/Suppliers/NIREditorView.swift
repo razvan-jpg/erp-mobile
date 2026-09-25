@@ -584,6 +584,10 @@ struct NIREditorView: View {
                 ?? context.warehouseId
                 ?? context.invoice.warehouseId
                 ?? initialReception.warehouseId
+            let receivedElsewhere = try await SupplierNIRService.receivedInvoiceQuantities(
+                invoiceId: context.invoice.id,
+                excludingNirId: context.existingNIR?.id
+            )
             var initialSelection = Set(defaultSelectedLineIds(from: loadedLines))
             var existingByInvoiceLineId: [UUID: SupplierNIRLine] = [:]
             if let existingNIR = context.existingNIR {
@@ -593,6 +597,14 @@ struct NIREditorView: View {
                 )
                 initialSelection = Set(nirLines.map(\.invoiceLineId))
                     .intersection(selectableLineIds(from: loadedLines))
+            } else {
+                initialSelection = initialSelection.filter { lineId in
+                    guard let line = loadedLines.first(where: { $0.id == lineId }) else { return false }
+                    return NIRQuantityAllocation.remaining(
+                        invoiceQuantity: line.cantitate,
+                        receivedOnOtherNIRs: receivedElsewhere[lineId] ?? 0
+                    ) > 0
+                }
             }
 
             var drafts: [UUID: NIRConversionDraft] = [:]
@@ -625,6 +637,26 @@ struct NIREditorView: View {
                         product: product,
                         reception: reception
                     )
+                }
+                if existingByInvoiceLineId[line.id] == nil {
+                    let remaining = NIRQuantityAllocation.remaining(
+                        invoiceQuantity: line.cantitate,
+                        receivedOnOtherNIRs: receivedElsewhere[line.id] ?? 0
+                    )
+                    if remaining > 0, remaining < line.cantitate, line.cantitate > 0 {
+                        let ratio = remaining / line.cantitate
+                        reception.invoiceQuantity = remaining
+                        reception.stockQuantity = remaining * reception.factor
+                        reception.lineValue = line.sumaLinie * ratio
+                        if reception.stockQuantity > 0 {
+                            reception.stockUnitPrice = reception.lineValue / reception.stockQuantity
+                        }
+                        state = NIRLinePricingState.make(
+                            line: line,
+                            product: product,
+                            reception: reception
+                        )
+                    }
                 }
                 drafts[line.id] = NIRConversionDraft(
                     factorText: SupplierFormatting.amountString(reception.factor),

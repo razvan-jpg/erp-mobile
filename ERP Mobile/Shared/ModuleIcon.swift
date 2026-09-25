@@ -17,6 +17,8 @@ enum ModuleIcon {
             return "shippingbox.fill"
         case ModuleCode.stockSheet:
             return "list.bullet.rectangle.fill"
+        case ModuleCode.hr:
+            return "person.3.sequence.fill"
         case ModuleCode.products:
             return "books.vertical.fill"
         default:

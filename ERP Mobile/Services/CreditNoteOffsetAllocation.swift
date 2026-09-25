@@ -39,6 +39,20 @@ enum CreditNoteOffsetAllocation {
         return max(0, SupplierFormatting.roundAmount(creditAmount - applied))
     }
 
+    static func isLocked(availableCredit: Decimal, existingOffsetCount: Int) -> Bool {
+        existingOffsetCount > 0 && SupplierFormatting.roundAmount(availableCredit) <= 0
+    }
+
+    static func insertablePlan(
+        _ plan: PaymentAllocationPlan,
+        excludingExistingTargetIds existingTargetIds: Set<UUID>
+    ) -> PaymentAllocationPlan {
+        let lines = plan.invoiceLines.filter { !existingTargetIds.contains($0.invoiceId) }
+        return PaymentAllocation.sanitizedPlan(
+            PaymentAllocationPlan(invoiceLines: lines, advanceAmount: 0)
+        )
+    }
+
     static func summaryMessage(
         creditInvoiceNumber: String,
         plan: PaymentAllocationPlan,

@@ -26,6 +26,7 @@ final class ZettaScanImportViewModel: ObservableObject {
     @Published var generatedExcelURLs: [URL] = []
     @Published var generatedPDFURLs: [URL] = []
     @Published var generatedCombinedPDFURL: URL?
+    @Published var generatedExcelRows: [NotaContabilaRow] = []
     @Published var firstNCNumberText = "1"
     @Published var isProcessing = false
     @Published var statusMessage: String?
@@ -61,6 +62,7 @@ final class ZettaScanImportViewModel: ObservableObject {
         generatedExcelURLs = []
         generatedPDFURLs = []
         generatedCombinedPDFURL = nil
+        generatedExcelRows = []
         reports = []
         statusMessage = L10n.tr("utilities.zetta_scan.files_loaded", pendingImages.count)
     }
@@ -72,6 +74,7 @@ final class ZettaScanImportViewModel: ObservableObject {
         generatedExcelURLs = []
         generatedPDFURLs = []
         generatedCombinedPDFURL = nil
+        generatedExcelRows = []
         statusMessage = nil
         errorMessage = nil
         #if os(iOS) || targetEnvironment(macCatalyst)
@@ -90,36 +93,84 @@ final class ZettaScanImportViewModel: ObservableObject {
         statusMessage = L10n.tr("utilities.zetta_scan.reading")
         defer { isProcessing = false }
 
+        _ = try? await UtilityTemplateService.fetchTemplate(.zReportModel)
+
         var created: [ZReportData] = []
+        var unreadNames: [String] = []
         for (index, item) in pendingImages.enumerated() {
             statusMessage = L10n.tr("utilities.zetta_scan.reading_file", index + 1, pendingImages.count, item.fileName)
             await Task.yield()
             do {
-                let parsed = try await reports(from: item)
-                if parsed.isEmpty {
-                    errorMessage = L10n.tr("utilities.zetta_scan.error_no_text", item.fileName)
-                    continue
+                let parsed = try await readOnePage(item)
+                created.append(parsed)
+                if ZettaScanPageReader.isWeak(parsed) {
+                    unreadNames.append(item.fileName)
                 }
-                created.append(contentsOf: parsed)
             } catch {
+                created.append(ZettaScanPageReader.stubPage(fileName: item.fileName))
+                unreadNames.append(item.fileName)
                 errorMessage = L10n.tr("utilities.zetta_scan.error_ocr", item.fileName, error.localizedDescription)
             }
         }
 
-        reports = created.sortedForExport()
-        guard !reports.isEmpty else {
-            if errorMessage == nil {
-                errorMessage = L10n.tr("utilities.zetta_scan.error_no_z")
-            }
-            return
-        }
-
+        reports = ZettaScanPageReader.unifyFirm(created)
         do {
             try writeGeneratedFiles()
-            statusMessage = L10n.tr("utilities.zetta_scan.generated_choose", reports.count)
+            let readCount = reports.filter { $0.zNumber > 0 }.count
+            if readCount == 0 {
+                statusMessage = L10n.tr("utilities.zetta_scan.generated_pdf_only", pendingImages.count)
+            } else if unreadNames.isEmpty {
+                statusMessage = L10n.tr("utilities.zetta_scan.generated_choose", reports.count)
+            } else {
+                statusMessage = L10n.tr(
+                    "utilities.zetta_scan.generated_with_unread",
+                    readCount,
+                    unreadNames.count,
+                    unreadNames.joined(separator: ", ")
+                )
+            }
         } catch {
             errorMessage = L10n.tr("utilities.zetta_scan.error_export", error.localizedDescription)
         }
+    }
+
+    func canReread(_ report: ZReportData) -> Bool {
+        pendingImages.contains { $0.fileName == report.sourceFileName }
+    }
+
+    func reread(_ report: ZReportData) async {
+        guard let item = pendingImages.first(where: { $0.fileName == report.sourceFileName }) else {
+            errorMessage = L10n.tr("utilities.zetta_scan.error_reread_missing")
+            return
+        }
+
+        isProcessing = true
+        errorMessage = nil
+        statusMessage = L10n.tr("utilities.zetta_scan.rereading", item.fileName)
+        defer { isProcessing = false }
+
+        do {
+            let parsed = try await readOnePage(item, forceOCR: true)
+            var updated = reports
+            if let index = updated.firstIndex(where: { $0.id == report.id }) {
+                updated[index] = parsed
+            } else {
+                updated.append(parsed)
+            }
+            reports = ZettaScanPageReader.unifyFirm(updated)
+            try writeGeneratedFiles()
+            if ZettaScanPageReader.isWeak(parsed) {
+                statusMessage = L10n.tr("utilities.zetta_scan.reread_still_unread", item.fileName)
+            } else {
+                statusMessage = L10n.tr("utilities.zetta_scan.reread_ok", item.fileName)
+            }
+        } catch {
+            errorMessage = L10n.tr("utilities.zetta_scan.error_ocr", item.fileName, error.localizedDescription)
+        }
+    }
+
+    func pdfData(from url: URL) -> Data? {
+        try? Data(contentsOf: url)
     }
 
     func export(_ kind: ZettaScanExportKind) {
@@ -159,80 +210,90 @@ final class ZettaScanImportViewModel: ObservableObject {
             .appendingPathComponent("zetta-scan-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
-        let groups = ExcelExporter.groupsByFirma(
-            from: reports,
-            config: nil,
-            namingStyle: .zettaUtility,
-            companyDisplayName: nil,
-            startingNrInreg: firstNCNumber
-        )
-        var excelURLs: [URL] = []
-        for group in groups {
-            let url = directory.appendingPathComponent(group.fileName)
-            try ExcelExporter.export(rows: group.rows, to: url)
-            excelURLs.append(url)
-        }
-
-        var usedPDFNames: Set<String> = []
+        var originalPDFs: [Data] = []
         var pdfURLs: [URL] = []
-        var pdfDatas: [Data] = []
-        for report in reports {
-            let text = ZettaModelZReportFormatter.rebuiltModelText(
-                for: report,
-                companyName: nil,
-                addressLine: nil
-            )
-            let data = CashRegisterZReportPDFBuilder.makeA4PDF(text: text)
+        var usedPDFNames: Set<String> = []
+        for item in pendingImages {
+            let pagePDF: Data
+            if let original = item.originalPagePDF, original.starts(with: [0x25, 0x50, 0x44, 0x46]) {
+                pagePDF = original
+            } else {
+                pagePDF = ImageLoader.pdfDataWrappingImage(item.image)
+            }
+            originalPDFs.append(pagePDF)
+            let report = reports.first(where: { $0.sourceFileName == item.fileName })
+                ?? ZettaScanPageReader.stubPage(fileName: item.fileName)
             let name = ZettaScanReportBinder.individualPDFFileName(for: report, usedNames: &usedPDFNames)
             let url = directory.appendingPathComponent(name)
-            try data.write(to: url, options: .atomic)
+            try pagePDF.write(to: url, options: .atomic)
             pdfURLs.append(url)
-            pdfDatas.append(data)
         }
 
+        let nameSource = reports.contains(where: { $0.zNumber > 0 })
+            ? reports.filter { $0.zNumber > 0 }
+            : reports
         let combinedURL = directory.appendingPathComponent(
-            "\(ZettaScanReportBinder.exportBaseName(for: reports)).pdf"
+            "\(ZettaScanReportBinder.exportBaseName(for: nameSource)).pdf"
         )
-        let combinedData = CashRegisterZReportPDFBuilder.makeCombinedPDF(fromOriginalPDFs: pdfDatas)
+        let combinedData = CashRegisterZReportPDFBuilder.makeCombinedPDF(fromOriginalPDFs: originalPDFs)
         try combinedData.write(to: combinedURL, options: .atomic)
+
+        let readable = reports.filter { $0.zNumber > 0 }.sortedForExport()
+        var excelURLs: [URL] = []
+        var excelRows: [NotaContabilaRow] = []
+        if !readable.isEmpty {
+            let firmName = FirmaRegistry.displayName(for: readable[0])
+            excelRows = NotaContabilaGenerator.generate(
+                from: readable,
+                config: nil,
+                startingNrInreg: firstNCNumber
+            )
+            let excelName = ExcelExporter.suggestedFileName(
+                for: readable,
+                style: .zettaUtility,
+                companyDisplayName: firmName
+            )
+            let excelURL = directory.appendingPathComponent(excelName)
+            try ExcelExporter.export(rows: excelRows, to: excelURL)
+            excelURLs = [excelURL]
+        }
 
         generatedExcelURLs = excelURLs
         generatedPDFURLs = pdfURLs
         generatedCombinedPDFURL = combinedURL
+        generatedExcelRows = excelRows
     }
 
-    private func reports(from item: ImportedImage) async throws -> [ZReportData] {
-        if let embedded = item.embeddedText, !embedded.isEmpty {
-            let fromText = parseSegments(
-                ZParser.splitOCRTextIntoReports(BinaPosZReportTextNormalizer.normalizeIfNeeded(embedded)),
-                fileName: item.fileName
-            )
-            if !fromText.isEmpty {
-                return fromText
-            }
+    /// O pagină / o poză = un Z. OCR pe toată pagina. Stratul de text al scannerului se ignoră dacă nu e PDF digital POS complet.
+    private func readOnePage(_ item: ImportedImage, forceOCR: Bool = false) async throws -> ZReportData {
+        let embeddedText = item.embeddedText.flatMap { text -> String? in
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : BinaPosZReportTextNormalizer.normalizeIfNeeded(trimmed)
         }
-        guard let cgImage = OCRService.cgImageForOCR(from: item.image) else {
-            return []
+        let embeddedParsed = embeddedText.map { ZettaScanPageReader.parsePage(text: $0, fileName: item.fileName) }
+
+        if !forceOCR,
+           let embeddedText, let embeddedParsed,
+           ZettaScanPageReader.isTrustedDigitalEmbedded(embeddedText, parsed: embeddedParsed) {
+            return embeddedParsed
         }
-        let ocrSegments = try await OCRService.recognizeReports(from: cgImage)
-        return parseSegments(ocrSegments, fileName: item.fileName)
+
+        guard let cgImage = ocrImage(for: item) else {
+            return ZettaScanPageReader.stubPage(fileName: item.fileName)
+        }
+        let ocrText = try await OCRService.recognizeScanZPage(from: cgImage)
+        guard !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return ZettaScanPageReader.stubPage(fileName: item.fileName)
+        }
+        return ZettaScanPageReader.parsePage(text: ocrText, fileName: item.fileName)
     }
 
-    private func parseSegments(_ segments: [String], fileName: String) -> [ZReportData] {
-        var created: [ZReportData] = []
-        for (segIndex, text) in segments.enumerated() {
-            if ZParser.isAppScreenshot(text) { continue }
-            var parsed = ZParser.parse(ocrText: text)
-            guard Self.isUsableReport(parsed) else { continue }
-            parsed.parseSource = ZParser.isDigitalPOSZReport(text) ? .digitalPDF : parsed.parseSource
-            if segments.count > 1 {
-                parsed.sourceFileName = "\(fileName) · Z \(segIndex + 1)/\(segments.count)"
-            } else {
-                parsed.sourceFileName = fileName
-            }
-            created.append(parsed)
+    private func ocrImage(for item: ImportedImage) -> CGImage? {
+        if let pdf = item.originalPagePDF,
+           let fromPDF = ImageLoader.cgImageForOCR(fromPDFPage: pdf, longestEdge: 4000) {
+            return fromPDF
         }
-        return created
+        return OCRService.cgImageForOCR(from: item.image)
     }
 
     #if os(macOS) && !targetEnvironment(macCatalyst)
@@ -271,10 +332,4 @@ final class ZettaScanImportViewModel: ObservableObject {
     }
     #endif
 
-    private static func isUsableReport(_ report: ZReportData) -> Bool {
-        report.zNumber > 0
-            || report.totalVanzari > 0
-            || report.numerar > 0
-            || report.card > 0
-    }
 }

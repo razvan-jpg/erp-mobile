@@ -1,7 +1,21 @@
 import SwiftUI
 
+private struct ZettaScanPDFPreviewItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let data: Data
+}
+
+private struct ZettaScanExcelPreviewItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let rows: [NotaContabilaRow]
+}
+
 struct ZettaScanImportView: View {
     @StateObject private var model = ZettaScanImportViewModel()
+    @State private var pdfPreview: ZettaScanPDFPreviewItem?
+    @State private var excelPreview: ZettaScanExcelPreviewItem?
 
     var body: some View {
         ZStack {
@@ -64,8 +78,19 @@ struct ZettaScanImportView: View {
                             Text(L10n.tr("utilities.zetta_scan.reports_count", model.reports.count))
                                 .font(.headline)
                             ForEach(model.reports) { report in
-                                Text("• \(report.firma) · Z \(report.zNumber) · \(SupplierFormatting.date(report.date)) · \(CashRegisterJournalFormatting.amount(report.totalVanzari))")
-                                    .font(.caption)
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(reportListLine(report))
+                                        .font(.caption)
+                                    Spacer(minLength: 8)
+                                    if ZettaScanPageReader.isWeak(report), model.canReread(report) {
+                                        Button(L10n.tr("utilities.zetta_scan.reread")) {
+                                            Task { await model.reread(report) }
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption)
+                                        .disabled(model.isProcessing)
+                                    }
+                                }
                             }
                         }
                     }
@@ -76,18 +101,19 @@ struct ZettaScanImportView: View {
                                 .font(.headline)
 
                             if let combined = model.generatedCombinedPDFURL {
-                                Text("• \(combined.lastPathComponent)")
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.secondary)
+                                generatedFileRow(title: combined.lastPathComponent) {
+                                    openPDFPreview(url: combined)
+                                }
                             }
                             ForEach(model.generatedPDFURLs, id: \.self) { url in
-                                Text("• \(url.lastPathComponent)")
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.secondary)
+                                generatedFileRow(title: url.lastPathComponent) {
+                                    openPDFPreview(url: url)
+                                }
                             }
                             ForEach(model.generatedExcelURLs, id: \.self) { url in
-                                Text("• \(url.lastPathComponent)")
-                                    .font(.caption)
+                                generatedFileRow(title: url.lastPathComponent) {
+                                    openExcelPreview(title: url.lastPathComponent)
+                                }
                             }
 
                             Button(L10n.tr("utilities.zetta_scan.save_combined_pdf")) {
@@ -126,6 +152,31 @@ struct ZettaScanImportView: View {
             .navigationTitle(L10n.tr("utilities.zetta_scan.title"))
             .navigationBarTitleDisplayMode(.inline)
             .appFullOverlay { LoadingOverlay(isLoading: model.isProcessing) }
+            .sheet(item: $pdfPreview) { item in
+                PDFDocumentPreviewSheet(
+                    title: item.title,
+                    pdfData: item.data,
+                    onClose: { pdfPreview = nil }
+                )
+            }
+            .sheet(item: $excelPreview) { item in
+                NavigationView {
+                    ScrollView {
+                        RowsPreview(rows: item.rows)
+                            .padding()
+                    }
+                    .navigationTitle(item.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(L10n.tr("module.clients.z_reports.preview_close")) {
+                                excelPreview = nil
+                            }
+                        }
+                    }
+                }
+                .navigationViewStyle(.stack)
+            }
             #if os(iOS) || targetEnvironment(macCatalyst)
             .sheet(item: $model.pendingExport) { item in
                 #if targetEnvironment(macCatalyst)
@@ -141,5 +192,42 @@ struct ZettaScanImportView: View {
             }
             #endif
         }
+    }
+
+    private func generatedFileRow(title: String, preview: @escaping () -> Void) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("• \(title)")
+                .font(.caption)
+                .foregroundColor(AppColors.secondary)
+            Spacer(minLength: 8)
+            Button(L10n.tr("utilities.zetta_scan.preview")) {
+                preview()
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+        }
+    }
+
+    private func openPDFPreview(url: URL) {
+        guard let data = model.pdfData(from: url) else {
+            model.errorMessage = L10n.tr("utilities.zetta_scan.error_preview")
+            return
+        }
+        pdfPreview = ZettaScanPDFPreviewItem(title: url.lastPathComponent, data: data)
+    }
+
+    private func openExcelPreview(title: String) {
+        guard !model.generatedExcelRows.isEmpty else {
+            model.errorMessage = L10n.tr("utilities.zetta_scan.error_preview")
+            return
+        }
+        excelPreview = ZettaScanExcelPreviewItem(title: title, rows: model.generatedExcelRows)
+    }
+
+    private func reportListLine(_ report: ZReportData) -> String {
+        let zPart = report.zNumber > 0
+            ? "Z \(report.zNumber)"
+            : L10n.tr("utilities.zetta_scan.unread_mark")
+        return "• \(report.firma) · \(zPart) · \(SupplierFormatting.date(report.date)) · \(CashRegisterJournalFormatting.amount(report.totalVanzari))"
     }
 }

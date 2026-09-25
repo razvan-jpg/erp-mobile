@@ -23,6 +23,7 @@ struct PhysicalInventory: Codable, Identifiable, Hashable, Sendable {
     let dataInventar: Date
     let status: PhysicalInventoryStatus
     let observatii: String?
+    let warehouseId: UUID?
     let createdAt: Date?
     let updatedAt: Date?
     let finalizedAt: Date?
@@ -32,6 +33,7 @@ struct PhysicalInventory: Codable, Identifiable, Hashable, Sendable {
         case companyId = "company_id"
         case numarInventar = "numar_inventar"
         case dataInventar = "data_inventar"
+        case warehouseId = "warehouse_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case finalizedAt = "finalized_at"
@@ -219,5 +221,42 @@ enum PhysicalInventoryError: LocalizedError {
         if message.contains("FORBIDDEN") { return PhysicalInventoryError.forbidden }
         if message.contains("INVALID_COUNTED_QUANTITY") { return PhysicalInventoryError.invalidQuantity }
         return error
+    }
+}
+
+struct InventoryDifferenceReport: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let companyId: UUID
+    let inventoryId: UUID
+    let warehouseId: UUID?
+    let numar: String
+    let dataOra: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, numar
+        case companyId = "company_id"
+        case inventoryId = "inventory_id"
+        case warehouseId = "warehouse_id"
+        case dataOra = "data_ora"
+    }
+}
+
+struct InventoryDifferenceReportLine: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let reportId: UUID
+    let productId: UUID
+    let denumire: String
+    let unitateMasura: String
+    @SupabaseDecimal var stocScriptic: Decimal
+    @SupabaseDecimal var cantitateFaptica: Decimal
+    @SupabaseDecimal var diferenta: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case id, denumire, diferenta
+        case reportId = "report_id"
+        case productId = "product_id"
+        case unitateMasura = "unitate_masura"
+        case stocScriptic = "stoc_scriptic"
+        case cantitateFaptica = "cantitate_faptica"
     }
 }

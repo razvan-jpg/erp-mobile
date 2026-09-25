@@ -61,6 +61,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_dashboard_b5"),
                     L10n.tr("help.section_dashboard_b6"),
                     L10n.tr("help.section_dashboard_b7"),
+                    L10n.tr("help.section_dashboard_b8"),
                 ],
                 screenshotAssetNames: ["HelpDashboard", "HelpCompanyMenu"],
                 tip: L10n.tr("help.section_dashboard_tip")
@@ -169,6 +170,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_suppliers_b4"),
                     L10n.tr("help.section_suppliers_b5"),
                     L10n.tr("help.section_suppliers_b7"),
+                    L10n.tr("help.section_suppliers_b8"),
                 ],
                 screenshotAssetNames: ["HelpSuppliersModule", "HelpNIR"],
                 tip: L10n.tr("help.section_suppliers_tip")
@@ -186,6 +188,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_clients_b3"),
                     L10n.tr("help.section_clients_b4"),
                     L10n.tr("help.section_clients_b6"),
+                    L10n.tr("help.section_clients_b7"),
                 ],
                 screenshotAssetNames: ["HelpClientsModule", "HelpClientSituation"],
                 tip: L10n.tr("help.section_clients_tip")
@@ -223,6 +226,23 @@ enum ERPHelpContent {
                 tip: L10n.tr("help.section_stock_sheet_tip")
             ),
             HelpManualSection(
+                id: "hr",
+                title: L10n.tr("help.section_hr_title"),
+                paragraphs: [
+                    L10n.tr("help.section_hr_p1"),
+                    L10n.tr("help.section_hr_p2"),
+                ],
+                bullets: [
+                    L10n.tr("help.section_hr_b1"),
+                    L10n.tr("help.section_hr_b2"),
+                    L10n.tr("help.section_hr_b3"),
+                    L10n.tr("help.section_hr_b4"),
+                    L10n.tr("help.section_hr_b5"),
+                ],
+                screenshotAssetNames: ["HelpDashboard"],
+                tip: L10n.tr("help.section_hr_tip")
+            ),
+            HelpManualSection(
                 id: "crm",
                 title: L10n.tr("help.section_crm_title"),
                 paragraphs: [
@@ -257,6 +277,9 @@ enum ERPHelpContent {
                     L10n.tr("help.section_cash_register_b5"),
                     L10n.tr("help.section_cash_register_b6"),
                     L10n.tr("help.section_cash_register_b7"),
+                    L10n.tr("help.section_cash_register_b8"),
+                    L10n.tr("help.section_cash_register_b9"),
+                    L10n.tr("help.section_cash_register_b10"),
                 ],
                 screenshotAssetNames: ["HelpUtilitiesCashRegister", "HelpDashboard"],
                 tip: L10n.tr("help.section_cash_register_tip")
@@ -297,6 +320,10 @@ enum ERPHelpContent {
                     L10n.tr("help.section_utilities_b5"),
                     L10n.tr("help.section_utilities_b6"),
                     L10n.tr("help.section_utilities_b7"),
+                    L10n.tr("help.section_utilities_b8"),
+                    L10n.tr("help.section_utilities_b9"),
+                    L10n.tr("help.section_utilities_b10"),
+                    L10n.tr("help.section_utilities_b11"),
                 ],
                 screenshotAssetNames: [
                     "HelpUtilitiesMenu",
@@ -323,6 +350,8 @@ enum ERPHelpContent {
                     L10n.tr("help.section_zetta_category_b2"),
                     L10n.tr("help.section_zetta_category_b3"),
                     L10n.tr("help.section_zetta_category_b4"),
+                    L10n.tr("help.section_zetta_category_b5"),
+                    L10n.tr("help.section_zetta_category_b6"),
                 ],
                 screenshotAssetNames: ["HelpClientsModule", "HelpMainScreen"],
                 tip: L10n.tr("help.section_zetta_category_tip")

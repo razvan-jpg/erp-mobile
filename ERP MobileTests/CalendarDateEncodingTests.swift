@@ -21,7 +21,7 @@ struct CalendarDateEncodingTests {
         #expect(SupabaseDecoding.dateOnlyString(from: localMidnight, calendar: bucharest) == "2026-08-05")
     }
 
-    @Test func dateOnlyParseRoundTripsTheCalendarDayInRomania() {
+    @Test func dateOnlyParseRoundTripsTheCalendarDayInRomania() throws {
         let parsed = SupabaseDecoding.parseDate("2026-08-05", calendar: bucharest)
         let date = try #require(parsed)
         let parts = bucharest.dateComponents([.year, .month, .day], from: date)

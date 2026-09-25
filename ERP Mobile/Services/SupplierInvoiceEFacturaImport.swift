@@ -164,7 +164,7 @@ enum SupplierInvoiceEFacturaImport {
 
             func enqueueNext() {
                 guard let (index, url) = iterator.next() else { return }
-                group.addTask {
+                group.addTask { @MainActor in
                     do {
                         let data = try readFileData(from: url)
                         let parsed = try EFacturaInvoiceParser.parse(data: data)

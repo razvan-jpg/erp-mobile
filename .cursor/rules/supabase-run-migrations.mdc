@@ -26,3 +26,10 @@ If `.tools/supabase` is missing, use `.tools/supabase-go`. If `db push` fails be
 
 - Bump `AppInfo.databaseSchemaVersion` when a new migration is added (already required by release docs).
 - If CLI auth fails, say so clearly — do not skip the push silently.
+- From 30 October 2026 Supabase no longer auto-grants Data API access on new `public` tables. In the same migration that creates a table, add:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.your_table TO authenticated, service_role;
+```
+
+Do not grant `anon` unless that table is intentionally public. RLS policies stay as they are; the grant only lets the Data API reach the table.
