@@ -6,6 +6,7 @@ protocol SupplierInvoiceDuplicateRecord {
     var numarFactura: String { get }
     var dataFactura: Date { get }
     var sumaTotala: Decimal { get }
+    var receptionClosed: Bool { get }
 }
 
 struct SupplierInvoiceDuplicateRef: Decodable, Sendable, SupplierInvoiceDuplicateRecord {
@@ -14,6 +15,7 @@ struct SupplierInvoiceDuplicateRef: Decodable, Sendable, SupplierInvoiceDuplicat
     let numarFactura: String
     let dataFactura: Date
     @SupabaseDecimal var sumaTotala: Decimal
+    var receptionClosed: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -21,6 +23,17 @@ struct SupplierInvoiceDuplicateRef: Decodable, Sendable, SupplierInvoiceDuplicat
         case numarFactura = "numar_factura"
         case dataFactura = "data_factura"
         case sumaTotala = "suma_totala"
+        case receptionClosed = "reception_closed"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        supplierId = try c.decode(UUID.self, forKey: .supplierId)
+        numarFactura = try c.decode(String.self, forKey: .numarFactura)
+        dataFactura = try c.decode(Date.self, forKey: .dataFactura)
+        _sumaTotala = try c.decode(SupabaseDecimal.self, forKey: .sumaTotala)
+        receptionClosed = try c.decodeIfPresent(Bool.self, forKey: .receptionClosed) ?? false
     }
 }
 

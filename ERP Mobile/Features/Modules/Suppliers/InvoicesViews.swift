@@ -9,12 +9,15 @@ struct InvoicesListView: View {
 
     @State private var invoices: [SupplierInvoiceRow] = []
     @State private var invoiceIdsWithNIR: Set<UUID> = []
+    @State private var incompleteReceptionInvoiceIds: Set<UUID> = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showCreate = false
     @State private var invoiceToEdit: SupplierInvoiceRow?
     @State private var invoiceToDelete: SupplierInvoiceRow?
     @State private var showDeleteConfirm = false
+    @State private var invoiceToCloseReception: SupplierInvoiceRow?
+    @State private var showCloseReceptionConfirm = false
     @State private var isSelectionMode = false
     @State private var selectedInvoiceIds = Set<UUID>()
     @State private var showBulkDeleteConfirm = false
@@ -199,13 +202,27 @@ struct InvoicesListView: View {
                             ForEach(displayedInvoices) { invoice in
                                 InvoiceRowView(
                                     invoice: invoice,
-                                    hasNIR: invoiceIdsWithNIR.contains(invoice.id),
+                                    receptionStatus: InvoiceReceptionListStatus.resolve(
+                                        isCreditNote: invoice.isCreditNote,
+                                        status: invoice.status,
+                                        receptionClosed: invoice.receptionClosed,
+                                        hasNIR: invoiceIdsWithNIR.contains(invoice.id),
+                                        isIncomplete: incompleteReceptionInvoiceIds.contains(invoice.id)
+                                    ),
+                                    canEditReception: access.canEdit || access.canCreate,
                                     canDelete: access.canDelete,
                                     isSelectionMode: isSelectionMode && access.canDelete,
                                     isSelected: selectedInvoiceIds.contains(invoice.id),
                                     onToggleSelection: { toggleInvoiceSelection(invoice.id) },
                                     onEdit: {
                                         if access.canEdit { invoiceToEdit = invoice }
+                                    },
+                                    onAddReception: {
+                                        Task { await openReception(for: invoice) }
+                                    },
+                                    onCloseReception: {
+                                        invoiceToCloseReception = invoice
+                                        showCloseReceptionConfirm = true
                                     },
                                     onDelete: { requestDelete(invoice) }
                                 )
@@ -215,8 +232,8 @@ struct InvoicesListView: View {
                             HStack {
                                 Text(L10n.tr("invoices.list_count", displayedInvoices.count))
                                 Spacer()
-                                Text(L10n.tr("invoices.column_has_nir"))
-                                    .frame(width: 56, alignment: .center)
+                                Text(L10n.tr("invoices.column_reception"))
+                                    .frame(minWidth: 120, alignment: .trailing)
                             }
                             .font(.caption.bold())
                             .foregroundColor(AppColors.secondary)
@@ -303,6 +320,20 @@ struct InvoicesListView: View {
             }
         } message: { invoice in
             Text(L10n.tr("invoices.delete_confirm", invoice.numarFactura))
+        }
+        .alert(
+            L10n.tr("invoices.close_reception_title"),
+            isPresented: $showCloseReceptionConfirm,
+            presenting: invoiceToCloseReception
+        ) { invoice in
+            Button(L10n.tr("invoices.close_reception_action")) {
+                Task { await closeReception(invoice) }
+            }
+            Button(L10n.tr("common.cancel"), role: .cancel) {
+                invoiceToCloseReception = nil
+            }
+        } message: { invoice in
+            Text(L10n.tr("invoices.close_reception_confirm", invoice.numarFactura))
         }
         .alert(L10n.tr("invoices.bulk_delete_title"), isPresented: $showBulkDeleteConfirm) {
             Button(L10n.tr("common.delete"), role: .destructive) {
@@ -448,17 +479,21 @@ struct InvoicesListView: View {
             )
             let loaded: [SupplierInvoiceRow]
             var nirInvoiceIds = Set<UUID>()
+            var incompleteIds = Set<UUID>()
             if let companyId = companyManager.currentCompany?.id {
                 async let loadedTask = SupplierService.fetchInvoices(dateFilter: dateFilter)
                 async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: companyId)
+                async let incompleteTask = SupplierNIRService.fetchIncompleteReceptionInvoiceIds(companyId: companyId)
                 loaded = try await loadedTask
                 nirInvoiceIds = try await nirTask
+                incompleteIds = try await incompleteTask
             } else {
                 loaded = try await SupplierService.fetchInvoices(dateFilter: dateFilter)
             }
             await MainActor.run {
                 invoices = loaded
                 invoiceIdsWithNIR = nirInvoiceIds
+                incompleteReceptionInvoiceIds = incompleteIds
                 isLoading = false
             }
         } catch is CancellationError {
@@ -758,6 +793,73 @@ struct InvoicesListView: View {
         }
     }
 
+    private func openReception(for row: SupplierInvoiceRow) async {
+        guard let companyId = companyManager.currentCompany?.id else { return }
+        do {
+            let invoice = try await SupplierService.fetchInvoice(id: row.id)
+            let suppliers = try await SupplierService.fetchSuppliers(ids: [invoice.supplierId])
+            guard let supplier = suppliers.first else {
+                await MainActor.run {
+                    errorMessage = L10n.tr("invoices.reception_supplier_missing")
+                }
+                return
+            }
+            var workLocations = importWorkLocations
+            var warehouses = importWarehouses
+            if workLocations.isEmpty || warehouses.isEmpty {
+                let receptionData = try await InvoiceReceptionSupport.loadOptionsData(companyId: companyId)
+                workLocations = receptionData.workLocations
+                warehouses = receptionData.warehouses
+                await MainActor.run {
+                    importWorkLocations = workLocations
+                    importWarehouses = warehouses
+                    importReceptionRequirements = InvoiceReceptionSupport.requirements(
+                        workLocations: workLocations,
+                        warehouses: warehouses
+                    )
+                }
+            }
+            let defaults = InvoiceReceptionSupport.defaultOptions(
+                workLocations: workLocations,
+                warehouses: warehouses
+            )
+            if invoice.receptionClosed {
+                try await SupplierService.setReceptionClosed(invoiceId: invoice.id, closed: false)
+            }
+            let context = NIREditorContext(
+                invoice: invoice,
+                supplier: supplier,
+                workLocationId: invoice.workLocationId ?? defaults.workLocationId,
+                warehouseId: nil,
+                workLocationName: nil,
+                warehouseName: nil
+            )
+            await MainActor.run {
+                nirEditorContexts = [context]
+                showNIREditorQueue = true
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func closeReception(_ row: SupplierInvoiceRow) async {
+        do {
+            try await SupplierService.setReceptionClosed(invoiceId: row.id, closed: true)
+            await loadInvoices()
+            await onChanged()
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+        await MainActor.run {
+            invoiceToCloseReception = nil
+        }
+    }
+
     private func prepareCreditNoteOffsetQueue(invoiceIds: [UUID]) async {
         var contexts: [CreditNoteOffsetContext] = []
         do {
@@ -830,12 +932,15 @@ struct InvoicesListView: View {
 
 private struct InvoiceRowView: View {
     let invoice: SupplierInvoiceRow
-    let hasNIR: Bool
+    let receptionStatus: InvoiceReceptionListStatus
+    let canEditReception: Bool
     let canDelete: Bool
     var isSelectionMode: Bool = false
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)?
     let onEdit: () -> Void
+    let onAddReception: () -> Void
+    let onCloseReception: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -852,9 +957,11 @@ private struct InvoiceRowView: View {
                 .buttonStyle(.plain)
             } else {
                 Button(action: onEdit) {
-                    rowContent
+                    invoiceMainContent
                 }
                 .buttonStyle(.plain)
+
+                receptionActionsColumn
 
                 if ListRowActions.prefersExplicitDeleteButton && canDelete {
                     Button(action: onDelete) {
@@ -869,6 +976,14 @@ private struct InvoiceRowView: View {
             if !isSelectionMode {
                 Button(action: onEdit) {
                     Label(L10n.tr("common.edit"), systemImage: "pencil")
+                }
+                if canEditReception, receptionStatus == .needsReception {
+                    Button(action: onAddReception) {
+                        Label(L10n.tr("invoices.add_reception"), systemImage: "shippingbox")
+                    }
+                    Button(action: onCloseReception) {
+                        Label(L10n.tr("invoices.close_reception_action"), systemImage: "checkmark.seal")
+                    }
                 }
                 if canDelete {
                     Button(action: onDelete) {
@@ -888,61 +1003,101 @@ private struct InvoiceRowView: View {
 
     private var rowContent: some View {
         HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(invoice.numarFactura)
-                        .font(.headline)
-                        .foregroundColor(AppColors.primary)
-                    Spacer()
-                    Text(invoice.status.label)
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(statusColor(invoice.status).opacity(0.15))
-                        .foregroundColor(statusColor(invoice.status))
-                        .clipShape(Capsule())
-                }
-                Text(invoice.supplierName)
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondary)
-                HStack {
-                    Text(SupplierFormatting.currency(invoice.sumaTotala, code: invoice.moneda))
-                    if invoice.restDePlata != 0 && invoice.status != .anulata {
-                        Text(L10n.tr("invoices.rest", SupplierFormatting.currency(invoice.restDePlata, code: invoice.moneda)))
-                            .foregroundColor(invoice.restDePlata > 0 ? .orange : .green)
-                    }
-                }
-                .font(.caption)
-                HStack {
-                    Text(L10n.tr("invoices.invoice_date", SupplierFormatting.date(invoice.dataFactura)))
-                    if let scadenta = invoice.dataScadenta {
-                        Text(L10n.tr("invoices.due_date", SupplierFormatting.date(scadenta)))
-                            .foregroundColor(scadenta < Date() && invoice.status != .platita ? .red : .secondary)
-                    }
-                }
-                .font(.caption2)
-                .foregroundColor(AppColors.tertiary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            nirIndicator
-                .frame(width: 56, alignment: .center)
+            invoiceMainContent
+            receptionStatusLabel
         }
         .padding(.vertical, 2)
     }
 
+    private var invoiceMainContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(invoice.numarFactura)
+                    .font(.headline)
+                    .foregroundColor(AppColors.primary)
+                Spacer()
+                Text(invoice.status.label)
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(statusColor(invoice.status).opacity(0.15))
+                    .foregroundColor(statusColor(invoice.status))
+                    .clipShape(Capsule())
+            }
+            Text(invoice.supplierName)
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondary)
+            HStack {
+                Text(SupplierFormatting.currency(invoice.sumaTotala, code: invoice.moneda))
+                if invoice.restDePlata != 0 && invoice.status != .anulata {
+                    Text(L10n.tr("invoices.rest", SupplierFormatting.currency(invoice.restDePlata, code: invoice.moneda)))
+                        .foregroundColor(invoice.restDePlata > 0 ? .orange : .green)
+                }
+            }
+            .font(.caption)
+            HStack {
+                Text(L10n.tr("invoices.invoice_date", SupplierFormatting.date(invoice.dataFactura)))
+                if let scadenta = invoice.dataScadenta {
+                    Text(L10n.tr("invoices.due_date", SupplierFormatting.date(scadenta)))
+                        .foregroundColor(scadenta < Date() && invoice.status != .platita ? .red : .secondary)
+                }
+            }
+            .font(.caption2)
+            .foregroundColor(AppColors.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 2)
+    }
+
     @ViewBuilder
-    private var nirIndicator: some View {
-        if hasNIR {
-            Image(systemName: "checkmark")
-                .font(.body.bold())
+    private var receptionStatusLabel: some View {
+        switch receptionStatus {
+        case .notApplicable:
+            EmptyView()
+        case .closed:
+            Text(L10n.tr("invoices.reception_closed_label"))
+                .font(.caption2.weight(.semibold))
                 .foregroundColor(.green)
-                .accessibilityLabel(L10n.tr("invoices.has_nir"))
-        } else {
-            Text("—")
-                .font(.body)
-                .foregroundColor(AppColors.tertiary)
-                .accessibilityLabel(L10n.tr("invoices.no_nir"))
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 100, alignment: .trailing)
+        case .needsReception:
+            if isSelectionMode || !canEditReception {
+                Text(L10n.tr("invoices.reception_open_label"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(.orange)
+                    .multilineTextAlignment(.trailing)
+                    .frame(minWidth: 100, alignment: .trailing)
+            } else {
+                EmptyView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var receptionActionsColumn: some View {
+        if !isSelectionMode, canEditReception, receptionStatus == .needsReception {
+            VStack(alignment: .trailing, spacing: 6) {
+                Button(action: onAddReception) {
+                    Text(L10n.tr("invoices.add_reception"))
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Button(action: onCloseReception) {
+                    Text(L10n.tr("invoices.close_reception_action"))
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .frame(minWidth: 120, alignment: .trailing)
+        } else if !isSelectionMode {
+            receptionStatusLabel
         }
     }
 
@@ -1007,6 +1162,7 @@ struct InvoiceFormView: View {
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var nirEditorContext: NIREditorContext?
     @State private var existingNIRs: [SupplierNIR] = []
+    @State private var invoiceReceptionIncomplete = false
 
     @State private var receptionRequirements = InvoiceReceptionRequirements(workLocations: [], warehouses: [])
 
@@ -1254,6 +1410,11 @@ struct InvoiceFormView: View {
     @ViewBuilder
     private var nirEditSection: some View {
         Section(header: Text(L10n.tr("nir.editor_section_title"))) {
+            if invoiceReceptionIncomplete {
+                Label(L10n.tr("invoices.partial_nir_hint"), systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
             if existingNIRs.isEmpty {
                 Text(L10n.tr("nir.editor_not_created_hint"))
                     .font(.caption)
@@ -1277,7 +1438,9 @@ struct InvoiceFormView: View {
                 openNIREditor(existingNIR: nil)
             } label: {
                 Label(
-                    existingNIRs.isEmpty ? L10n.tr("nir.editor_create_action") : L10n.tr("nir.editor_add_another"),
+                    existingNIRs.isEmpty
+                        ? L10n.tr("nir.editor_create_action")
+                        : L10n.tr("nir.editor_add_another"),
                     systemImage: "doc.badge.plus"
                 )
             }
@@ -1296,9 +1459,23 @@ struct InvoiceFormView: View {
         Task {
             do {
                 let invoice = try await SupplierService.fetchInvoice(id: invoiceRow.id)
+                let usedWarehouseIds = Set(existingNIRs.compactMap(\.warehouseId))
+                let workLocationId = existingNIR?.workLocationId ?? invoice.workLocationId
+                // NIR nou: nu forțăm gestiunea facturii / NIR-ului anterior — se alege alta (sau rest pe aceeași).
+                let warehouseId: UUID?
+                if let existingNIR {
+                    warehouseId = existingNIR.warehouseId
+                } else {
+                    warehouseId = warehouses
+                        .filter(\.isActive)
+                        .first { warehouse in
+                            (workLocationId == nil || warehouse.workLocationId == workLocationId)
+                                && !usedWarehouseIds.contains(warehouse.id)
+                        }?.id
+                }
                 let names = InvoiceReceptionSupport.receptionNames(
-                    workLocationId: invoice.workLocationId,
-                    warehouseId: invoice.warehouseId,
+                    workLocationId: workLocationId,
+                    warehouseId: warehouseId,
                     workLocations: workLocations,
                     warehouses: warehouses
                 )
@@ -1306,8 +1483,8 @@ struct InvoiceFormView: View {
                     nirEditorContext = NIREditorContext(
                         invoice: invoice,
                         supplier: supplier,
-                        workLocationId: invoice.workLocationId,
-                        warehouseId: invoice.warehouseId,
+                        workLocationId: workLocationId,
+                        warehouseId: warehouseId,
                         workLocationName: names.workLocationName,
                         warehouseName: names.warehouseName,
                         existingNIR: existingNIR
@@ -1325,8 +1502,19 @@ struct InvoiceFormView: View {
         guard case .edit(let invoice) = mode else { return }
         do {
             let nirs = try await SupplierNIRService.fetchNIRs(forInvoice: invoice.id)
+            let received = try await SupplierNIRService.receivedInvoiceQuantities(
+                invoiceId: invoice.id,
+                excludingNirId: nil
+            )
+            let lines = try await SupplierService.fetchInvoiceLines(invoiceId: invoice.id)
+            let incomplete = lines.contains { line in
+                guard line.cantitate > 0, !NIRLineEligibility.isGarantieLine(line) else { return false }
+                let got = received[line.id] ?? 0
+                return got + NSDecimalNumber(string: "0.0001").decimalValue < line.cantitate
+            }
             await MainActor.run {
                 existingNIRs = nirs
+                invoiceReceptionIncomplete = incomplete && !nirs.isEmpty
             }
         } catch {
             await MainActor.run {

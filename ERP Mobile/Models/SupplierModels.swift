@@ -139,6 +139,8 @@ struct SupplierInvoice: Codable, Identifiable, Hashable, Sendable {
     var observatii: String?
     var workLocationId: UUID?
     var warehouseId: UUID?
+    /// Recepție închisă manual (restul nu se mai așteaptă). Complet = toate cantitățile pe NIR.
+    var receptionClosed: Bool
     let createdBy: UUID?
     let createdAt: Date?
     let updatedAt: Date?
@@ -154,9 +156,31 @@ struct SupplierInvoice: Codable, Identifiable, Hashable, Sendable {
         case sumaPlatita = "suma_platita"
         case workLocationId = "work_location_id"
         case warehouseId = "warehouse_id"
+        case receptionClosed = "reception_closed"
         case createdBy = "created_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        supplierId = try c.decode(UUID.self, forKey: .supplierId)
+        numarFactura = try c.decode(String.self, forKey: .numarFactura)
+        dataFactura = try c.decode(Date.self, forKey: .dataFactura)
+        dataScadenta = try c.decodeIfPresent(Date.self, forKey: .dataScadenta)
+        _sumaTotala = try c.decode(SupabaseDecimal.self, forKey: .sumaTotala)
+        _sumaTva = try c.decode(SupabaseDecimal.self, forKey: .sumaTva)
+        _sumaPlatita = try c.decode(SupabaseDecimal.self, forKey: .sumaPlatita)
+        moneda = try c.decode(String.self, forKey: .moneda)
+        status = try c.decode(InvoiceStatus.self, forKey: .status)
+        observatii = try c.decodeIfPresent(String.self, forKey: .observatii)
+        workLocationId = try c.decodeIfPresent(UUID.self, forKey: .workLocationId)
+        warehouseId = try c.decodeIfPresent(UUID.self, forKey: .warehouseId)
+        receptionClosed = try c.decodeIfPresent(Bool.self, forKey: .receptionClosed) ?? false
+        createdBy = try c.decodeIfPresent(UUID.self, forKey: .createdBy)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
     }
 
     var restDePlata: Decimal {
@@ -196,6 +220,7 @@ struct SupplierInvoiceRow: Codable, Identifiable, Hashable, Sendable {
     var observatii: String?
     var workLocationId: UUID?
     var warehouseId: UUID?
+    var receptionClosed: Bool
     let createdAt: Date?
     let updatedAt: Date?
     var supplier: SupplierNameRef?
@@ -211,8 +236,30 @@ struct SupplierInvoiceRow: Codable, Identifiable, Hashable, Sendable {
         case sumaPlatita = "suma_platita"
         case workLocationId = "work_location_id"
         case warehouseId = "warehouse_id"
+        case receptionClosed = "reception_closed"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        supplierId = try c.decode(UUID.self, forKey: .supplierId)
+        numarFactura = try c.decode(String.self, forKey: .numarFactura)
+        dataFactura = try c.decode(Date.self, forKey: .dataFactura)
+        dataScadenta = try c.decodeIfPresent(Date.self, forKey: .dataScadenta)
+        _sumaTotala = try c.decode(SupabaseDecimal.self, forKey: .sumaTotala)
+        _sumaTva = try c.decode(SupabaseDecimal.self, forKey: .sumaTva)
+        _sumaPlatita = try c.decode(SupabaseDecimal.self, forKey: .sumaPlatita)
+        moneda = try c.decode(String.self, forKey: .moneda)
+        status = try c.decode(InvoiceStatus.self, forKey: .status)
+        observatii = try c.decodeIfPresent(String.self, forKey: .observatii)
+        workLocationId = try c.decodeIfPresent(UUID.self, forKey: .workLocationId)
+        warehouseId = try c.decodeIfPresent(UUID.self, forKey: .warehouseId)
+        receptionClosed = try c.decodeIfPresent(Bool.self, forKey: .receptionClosed) ?? false
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
+        supplier = try c.decodeIfPresent(SupplierNameRef.self, forKey: .supplier)
     }
 
     var supplierName: String {

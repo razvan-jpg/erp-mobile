@@ -228,8 +228,16 @@ struct StockSheetGenerateView: View {
         do {
             switch action {
             case .print:
-                pdfAttachmentURL = try StockSheetPDFBuilder.writeTemporaryListingPDF(from: snapshot)
+                let url = try StockSheetPDFBuilder.writeTemporaryListingPDF(from: snapshot)
+#if targetEnvironment(macCatalyst)
+                try DocumentExportSupport.printPDF(
+                    url: url,
+                    jobName: L10n.tr("stock_sheet.print_job_list")
+                )
+#else
+                pdfAttachmentURL = url
                 showPrintSheet = true
+#endif
             case .exportPDF:
                 let url = try StockSheetPDFBuilder.writeTemporaryListingPDF(from: snapshot)
                 exportShareItems = [url]

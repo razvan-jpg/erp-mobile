@@ -57,10 +57,11 @@ struct StockListView: View {
         .onChange(of: selectedWarehouseId) { _ in
             Task { await loadRows() }
         }
-        .fullScreenCover(isPresented: $showTransfers) {
-            StockTransferListView {
-                await loadRows()
-            }
+        .fullScreenCover(isPresented: $showTransfers, onDismiss: {
+            Task { await loadRows() }
+        }) {
+            StockTransferListView()
+                .environmentObject(companyManager)
         }
     }
 

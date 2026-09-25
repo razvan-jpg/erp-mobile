@@ -43,8 +43,14 @@ struct PDFDocumentPreviewSheet: View {
         }
         .navigationViewStyle(.stack)
         .onAppear {
-            prepareTemporaryFile()
+            if temporaryURL == nil {
+                Task.detached(priority: .utility) {
+                    let url = Self.writeTemporaryPDFSync(data: pdfData, preferredFileName: title)
+                    await MainActor.run { temporaryURL = url }
+                }
+            }
         }
+#if !targetEnvironment(macCatalyst)
         .sheet(isPresented: $showPrintSheet) {
             PrintDocumentView(
                 pdfData: pdfData,
@@ -52,7 +58,6 @@ struct PDFDocumentPreviewSheet: View {
                 onFinish: { showPrintSheet = false }
             )
         }
-#if !targetEnvironment(macCatalyst)
         .sheet(isPresented: $showShareSheet, onDismiss: { showShareSheet = false }) {
             ActivityShareSheet(
                 items: [temporaryURL].compactMap { $0 },
@@ -73,10 +78,10 @@ struct PDFDocumentPreviewSheet: View {
 
     private func prepareTemporaryFile() {
         guard temporaryURL == nil else { return }
-        temporaryURL = writeTemporaryPDF(data: pdfData, preferredFileName: title)
+        temporaryURL = Self.writeTemporaryPDFSync(data: pdfData, preferredFileName: title)
     }
 
-    private func writeTemporaryPDF(data: Data, preferredFileName: String) -> URL? {
+    private nonisolated static func writeTemporaryPDFSync(data: Data, preferredFileName: String) -> URL? {
         let trimmed = preferredFileName.trimmingCharacters(in: .whitespacesAndNewlines)
         let baseName: String
         if trimmed.lowercased().hasSuffix(".pdf") {
@@ -100,8 +105,16 @@ struct PDFDocumentPreviewSheet: View {
         }
     }
 
+    private func writeTemporaryPDF(data: Data, preferredFileName: String) -> URL? {
+        Self.writeTemporaryPDFSync(data: data, preferredFileName: preferredFileName)
+    }
+
     private func printPDF() {
+#if targetEnvironment(macCatalyst)
+        DocumentExportSupport.printPDF(data: pdfData, jobName: title)
+#else
         showPrintSheet = true
+#endif
     }
 
     private func savePDF() {
@@ -135,6 +148,14 @@ struct PDFDocumentPreviewSheet: View {
 private struct PDFKitDocumentView: UIViewRepresentable {
     let data: Data
 
+    final class Coordinator {
+        var loadedDataCount: Int?
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
         pdfView.autoScales = true
@@ -142,10 +163,14 @@ private struct PDFKitDocumentView: UIViewRepresentable {
         pdfView.displayDirection = .vertical
         pdfView.backgroundColor = .systemBackground
         pdfView.document = PDFDocument(data: data)
+        context.coordinator.loadedDataCount = data.count
         return pdfView
     }
 
     func updateUIView(_ pdfView: PDFView, context: Context) {
+        // Evită re-parsarea PDF la fiecare redraw SwiftUI (blocaje pe Mac).
+        guard context.coordinator.loadedDataCount != data.count else { return }
         pdfView.document = PDFDocument(data: data)
+        context.coordinator.loadedDataCount = data.count
     }
 }

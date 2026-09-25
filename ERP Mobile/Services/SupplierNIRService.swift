@@ -124,26 +124,40 @@ enum SupplierNIRService {
         guard !nirIds.isEmpty else { return [:] }
         struct QtyRow: Decodable {
             let invoiceLineId: UUID
+            let cantitate: Decimal
             let cantitateFactura: Decimal
+            let unitateMasura: String
+            let unitateFactura: String
             enum CodingKeys: String, CodingKey {
+                case cantitate
                 case invoiceLineId = "invoice_line_id"
                 case cantitateFactura = "cantitate_factura"
+                case unitateMasura = "unitate_masura"
+                case unitateFactura = "unitate_factura"
             }
             init(from decoder: Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 invoiceLineId = try container.decode(UUID.self, forKey: .invoiceLineId)
+                cantitate = try container.decode(SupabaseDecimal.self, forKey: .cantitate).wrappedValue
                 cantitateFactura = try container.decode(SupabaseDecimal.self, forKey: .cantitateFactura).wrappedValue
+                unitateMasura = try container.decode(String.self, forKey: .unitateMasura)
+                unitateFactura = try container.decodeIfPresent(String.self, forKey: .unitateFactura) ?? ""
             }
         }
         let rows: [QtyRow] = try await client
             .from("supplier_nir_lines")
-            .select("invoice_line_id, cantitate_factura")
+            .select("invoice_line_id, cantitate, cantitate_factura, unitate_masura, unitate_factura")
             .in("nir_id", values: nirIds.map(\.uuidString))
             .execute()
             .value
         var totals: [UUID: Decimal] = [:]
         for row in rows {
-            totals[row.invoiceLineId, default: 0] += row.cantitateFactura
+            totals[row.invoiceLineId, default: 0] += NIRQuantityAllocation.invoiceQuantityReceived(
+                cantitateFactura: row.cantitateFactura,
+                cantitateStoc: row.cantitate,
+                unitateFactura: row.unitateFactura,
+                unitateStoc: row.unitateMasura
+            )
         }
         return totals
     }
@@ -212,6 +226,118 @@ enum SupplierNIRService {
                 .value
         }
         return Set(rows.map(\.invoiceId))
+    }
+
+    /// Facturi cu cel puțin un NIR, dar cu rest nerecepționat pe linii recepționabile (fără SGR).
+    static func fetchIncompleteReceptionInvoiceIds(companyId: UUID) async throws -> Set<UUID> {
+        struct NIRRef: Decodable {
+            let id: UUID
+            let invoiceId: UUID
+            enum CodingKeys: String, CodingKey {
+                case id
+                case invoiceId = "invoice_id"
+            }
+        }
+        struct LineQty: Decodable {
+            let id: UUID
+            let invoiceId: UUID
+            let denumire: String
+            let cantitate: Decimal
+            enum CodingKeys: String, CodingKey {
+                case id, denumire, cantitate
+                case invoiceId = "invoice_id"
+            }
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                id = try c.decode(UUID.self, forKey: .id)
+                invoiceId = try c.decode(UUID.self, forKey: .invoiceId)
+                denumire = try c.decode(String.self, forKey: .denumire)
+                cantitate = try c.decode(SupabaseDecimal.self, forKey: .cantitate).wrappedValue
+            }
+        }
+        struct ReceivedQty: Decodable {
+            let nirId: UUID
+            let invoiceLineId: UUID
+            let cantitate: Decimal
+            let cantitateFactura: Decimal
+            let unitateMasura: String
+            let unitateFactura: String
+            enum CodingKeys: String, CodingKey {
+                case cantitate
+                case nirId = "nir_id"
+                case invoiceLineId = "invoice_line_id"
+                case cantitateFactura = "cantitate_factura"
+                case unitateMasura = "unitate_masura"
+                case unitateFactura = "unitate_factura"
+            }
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                nirId = try c.decode(UUID.self, forKey: .nirId)
+                invoiceLineId = try c.decode(UUID.self, forKey: .invoiceLineId)
+                cantitate = try c.decode(SupabaseDecimal.self, forKey: .cantitate).wrappedValue
+                cantitateFactura = try c.decode(SupabaseDecimal.self, forKey: .cantitateFactura).wrappedValue
+                unitateMasura = try c.decode(String.self, forKey: .unitateMasura)
+                unitateFactura = try c.decodeIfPresent(String.self, forKey: .unitateFactura) ?? ""
+            }
+        }
+
+        let nirs: [NIRRef] = try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_nirs")
+                .select("id, invoice_id")
+                .eq("company_id", value: companyId.uuidString)
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
+        guard !nirs.isEmpty else { return [] }
+
+        let invoiceIds = Array(Set(nirs.map(\.invoiceId)))
+        let nirIds = nirs.map(\.id)
+
+        let lines: [LineQty] = try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_invoice_lines")
+                .select("id, invoice_id, denumire, cantitate")
+                .in("invoice_id", values: invoiceIds.map(\.uuidString))
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
+
+        let receivedRows: [ReceivedQty] = try await SupabasePaging.fetchAll { from, to in
+            try await client
+                .from("supplier_nir_lines")
+                .select("nir_id, invoice_line_id, cantitate, cantitate_factura, unitate_masura, unitate_factura")
+                .in("nir_id", values: nirIds.map(\.uuidString))
+                .order("id", ascending: true)
+                .range(from: from, to: to)
+                .execute()
+                .value
+        }
+
+        var receivedByLine: [UUID: Decimal] = [:]
+        for row in receivedRows {
+            receivedByLine[row.invoiceLineId, default: 0] += NIRQuantityAllocation.invoiceQuantityReceived(
+                cantitateFactura: row.cantitateFactura,
+                cantitateStoc: row.cantitate,
+                unitateFactura: row.unitateFactura,
+                unitateStoc: row.unitateMasura
+            )
+        }
+
+        let tolerance = NSDecimalNumber(string: "0.0001").decimalValue
+        var incomplete = Set<UUID>()
+        for line in lines {
+            guard line.cantitate > 0, !ProductService.isGarantieProductName(line.denumire) else { continue }
+            let received = receivedByLine[line.id] ?? 0
+            if received + tolerance < line.cantitate {
+                incomplete.insert(line.invoiceId)
+            }
+        }
+        return incomplete
     }
 
     static func deleteNIR(id: UUID) async throws {
@@ -473,7 +599,23 @@ enum SupplierNIRService {
             )
         }
 
+        try await refreshReceptionClosedAfterSave(invoiceId: context.invoice.id)
         return nir
+    }
+
+    /// Marchează factura închisă când toate cantitățile recepționabile sunt pe NIR.
+    private static func refreshReceptionClosedAfterSave(invoiceId: UUID) async throws {
+        let received = try await receivedInvoiceQuantities(invoiceId: invoiceId, excludingNirId: nil)
+        let lines = try await SupplierService.fetchInvoiceLines(invoiceId: invoiceId)
+        let tolerance = NSDecimalNumber(string: "0.0001").decimalValue
+        let incomplete = lines.contains { line in
+            guard line.cantitate > 0, !NIRLineEligibility.isGarantieLine(line) else { return false }
+            let got = received[line.id] ?? 0
+            return got + tolerance < line.cantitate
+        }
+        if !incomplete {
+            try await SupplierService.setReceptionClosed(invoiceId: invoiceId, closed: true)
+        }
     }
 
     static func computeMarkupTotals(

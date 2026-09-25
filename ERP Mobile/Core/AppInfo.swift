@@ -5,7 +5,7 @@ enum AppInfo {
     static let contactEmail = "ERPMobile@dateconta.ro"
 
     /// Ultima migrare Supabase aplicată (actualizați la fiecare `db push`).
-    static let databaseSchemaVersion = "1.0.063"
+    static let databaseSchemaVersion = "1.0.075"
 
     /// Versiunea integrării Resend (Edge Functions + email).
     static let resendIntegrationVersion = "1.0.001"

@@ -148,9 +148,10 @@ private struct InvoiceLineInsert: Encodable {
     let cantitate: Double
     let pretUnitar: Double
     let sumaLinie: Double
-        let sumaTva: Double
-        let cotaTva: Double
-        let unitateMasura: String
+    let sumaTva: Double
+    let cotaTva: Double
+    let unitateMasura: String
+    let needsProductReview: Bool
 
     enum CodingKeys: String, CodingKey {
         case denumire, cantitate
@@ -163,6 +164,7 @@ private struct InvoiceLineInsert: Encodable {
         case sumaTva = "suma_tva"
         case cotaTva = "cota_tva"
         case unitateMasura = "unitate_masura"
+        case needsProductReview = "needs_product_review"
     }
 }
 
@@ -541,12 +543,26 @@ enum SupplierService {
         try await SupabasePaging.fetchAll { from, to in
             try await client
                 .from("supplier_invoices")
-                .select("id, supplier_id, numar_factura, data_factura, suma_totala")
+                .select("id, supplier_id, numar_factura, data_factura, suma_totala, reception_closed")
                 .order("id", ascending: true)
                 .range(from: from, to: to)
                 .execute()
                 .value
         }
+    }
+
+    static func setReceptionClosed(invoiceId: UUID, closed: Bool) async throws {
+        struct Payload: Encodable {
+            let receptionClosed: Bool
+            enum CodingKeys: String, CodingKey {
+                case receptionClosed = "reception_closed"
+            }
+        }
+        try await client
+            .from("supplier_invoices")
+            .update(Payload(receptionClosed: closed))
+            .eq("id", value: invoiceId.uuidString)
+            .execute()
     }
 
     static func fetchInvoices(ids: [UUID]) async throws -> [SupplierInvoice] {
@@ -952,6 +968,7 @@ enum SupplierService {
         let sumaTva: Decimal
         let cotaTva: Decimal
         let unitateMasura: String
+        var needsProductReview: Bool = false
     }
 
     static func createInvoiceLines(
@@ -973,7 +990,8 @@ enum SupplierService {
                 sumaLinie: doubleAmount(line.sumaLinie),
                 sumaTva: doubleAmount(line.sumaTva),
                 cotaTva: doubleAmount(line.cotaTva),
-                unitateMasura: line.unitateMasura
+                unitateMasura: line.unitateMasura,
+                needsProductReview: line.needsProductReview
             )
         }
         try await client
@@ -990,6 +1008,31 @@ enum SupplierService {
             .order("numar_linie", ascending: true)
             .execute()
             .value
+    }
+
+    private struct InvoiceLineProductLinkUpdate: Encodable {
+        let productId: UUID
+        let needsProductReview: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case productId = "product_id"
+            case needsProductReview = "needs_product_review"
+        }
+    }
+
+    static func updateInvoiceLineProductLink(
+        lineId: UUID,
+        productId: UUID,
+        needsProductReview: Bool
+    ) async throws {
+        try await client
+            .from("supplier_invoice_lines")
+            .update(InvoiceLineProductLinkUpdate(
+                productId: productId,
+                needsProductReview: needsProductReview
+            ))
+            .eq("id", value: lineId.uuidString)
+            .execute()
     }
 
     static func replaceInvoiceLines(

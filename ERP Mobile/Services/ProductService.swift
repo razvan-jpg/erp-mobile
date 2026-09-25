@@ -146,6 +146,10 @@ private struct ProductPricingPatch: Encodable {
 enum ProductService {
     nonisolated static let garantieSGRProductName = "Garantie SGR"
     nonisolated static let garantieProductName = "Garantie"
+    /// Fișa unică pentru cartofi albi/noi din facturi (variante de ambalaj/denumire).
+    nonisolated static let canonicalWhitePotatoProductName = "CARTOFI ALBI IMP"
+    nonisolated static let canonicalTomatoProductName = "ROSII RO"
+    nonisolated static let canonicalKapiaProductName = "ARDEI KAPIA ROSU"
 
     private static let client = SupabaseManager.client
 
@@ -154,9 +158,72 @@ enum ProductService {
         return trimmed.range(of: garantieProductName, options: [.caseInsensitive, .diacriticInsensitive]) != nil
     }
 
+    nonisolated private static func foldedProductName(_ denumire: String) -> String {
+        denumire
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "ro_RO"))
+            .lowercased()
+    }
+
+    /// Cartofi albi / noi / MC cartofi albi (nu roșii, dulci, congelați, pai etc.).
+    nonisolated static func isFreshWhitePotatoImportName(_ denumire: String) -> Bool {
+        let folded = foldedProductName(denumire)
+        guard folded.contains("cartofi") else { return false }
+        let excluded = [
+            "rosii", "dulci", "congelat", "julienne", "mccain", "agristo",
+            "cartofiori", "pai", "punga", "portii", "diferenta", "box cartofi"
+        ]
+        if excluded.contains(where: { folded.contains($0) }) { return false }
+        return folded.contains("albi")
+            || folded.contains("noi")
+            || folded.contains("mc cartofi")
+    }
+
+    /// Roșii proaspete din facturi (RO, P, MC ciorchine etc.).
+    nonisolated static func isFreshTomatoImportName(_ denumire: String) -> Bool {
+        let folded = foldedProductName(denumire)
+        guard folded.contains("rosii") else { return false }
+        let excluded = ["sos", "pasta", "bulion", "ketchup", "conserv", "uscate"]
+        return !excluded.contains(where: { folded.contains($0) })
+    }
+
+    /// Ardei kapia (roșu / fără calificativ).
+    nonisolated static func isKapiaImportName(_ denumire: String) -> Bool {
+        foldedProductName(denumire).contains("kapia")
+    }
+
     static func resolvedProductName(for denumire: String) -> String {
         let trimmed = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
-        return isGarantieProductName(trimmed) ? garantieSGRProductName : trimmed
+        if isGarantieProductName(trimmed) { return garantieSGRProductName }
+        return productNameIgnoringLot(trimmed)
+    }
+
+    /// Scoate sufixe de tip LOT / (LOT …) / (dată) din denumirea de pe factură.
+    nonisolated static func productNameIgnoringLot(_ denumire: String) -> String {
+        var name = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return name }
+
+        let patterns = [
+            #"\s*\(\s*LOT\s*[^)]*\)\s*$"#,
+            #"\s+LOT\s+[A-Z0-9./_-]+\s*$"#,
+            #"\s*\(\s*\d{6,8}\s*\)\s*$"#
+        ]
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+                let range = NSRange(name.startIndex..<name.endIndex, in: name)
+                name = regex.stringByReplacingMatches(in: name, options: [], range: range, withTemplate: "")
+            }
+        }
+
+        name = name
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Uniformizează „18L” / „18 L” la final de denumire tip cutie
+        if let regex = try? NSRegularExpression(pattern: #"(\d)\s*[Ll]\s*$"#, options: []) {
+            let range = NSRange(name.startIndex..<name.endIndex, in: name)
+            name = regex.stringByReplacingMatches(in: name, options: [], range: range, withTemplate: "$1 L")
+        }
+        return name
     }
 
     /// Produsul „Garantie SGR” din catalog, folosit doar pentru liniile de garanție.
@@ -592,6 +659,16 @@ enum ProductService {
         L10n.tr("module.products.default_name_from_barcode", barcode)
     }
 
+    struct ProductResolveResult: Sendable {
+        let product: Product
+        let created: Bool
+        /// True = pe NIR trebuie confirmat articolul similar sau creat unul nou.
+        let needsProductReview: Bool
+    }
+
+    /// Prag Dice pe bigrame: sub acesta considerăm că nu e același produs.
+    nonisolated static let provisionalNameSimilarityThreshold: Double = 0.55
+
     static func findOrCreateProduct(
         companyId: UUID,
         cod: String?,
@@ -601,10 +678,13 @@ enum ProductService {
         unitateMasura: String,
         cpv: String?,
         products: inout [Product]
-    ) async throws -> (product: Product, created: Bool) {
+    ) async throws -> ProductResolveResult {
         let trimmedName = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
         let isGarantieProduct = isGarantieProductName(trimmedName)
-        let effectiveName = isGarantieProduct ? garantieSGRProductName : trimmedName
+        // Fără LOT în denumire — aceeași fișă indiferent de lotul de pe factură
+        let effectiveName = isGarantieProduct
+            ? garantieSGRProductName
+            : productNameIgnoringLot(trimmedName)
         let invoiceUnit = isGarantieProduct ? ProductStockUnit.bucata.rawValue : normalizedUnit(unitateMasura)
         let pack = InvoiceNamePackHint.parse(effectiveName)
         let pieceLikeInvoice = InvoiceNamePackHint.isPieceLikeInvoiceUnit(invoiceUnit)
@@ -632,6 +712,28 @@ enum ProductService {
         let trimmedCod = emptyToNil(cod)
         let trimmedBarcode = normalizedBarcode(codBare)
 
+        func certain(_ product: Product) -> ProductResolveResult {
+            ProductResolveResult(product: product, created: false, needsProductReview: false)
+        }
+
+        // Cartofi / roșii / kapia din facturi → fișa canonică pe firmă
+        if !isGarantieProduct {
+            if let canonical = Self.canonicalProduceName(forImportName: effectiveName),
+               let match = try await resolveCanonicalNamedProduct(
+                companyId: companyId,
+                canonicalName: canonical,
+                isFamily: { Self.isSameProduceFamily(importName: effectiveName, productName: $0) },
+                products: &products
+               ) {
+                let enriched = try await enrichProductFromImport(
+                    product: match,
+                    codBare: trimmedBarcode,
+                    products: &products
+                )
+                return certain(enriched)
+            }
+        }
+
         if !isGarantieProduct {
             if let match = try await existingProduct(
                 companyId: companyId,
@@ -644,7 +746,7 @@ enum ProductService {
                     codBare: trimmedBarcode,
                     products: &products
                 )
-                return (enriched, false)
+                return certain(enriched)
             }
 
             if let match = try await existingProduct(
@@ -653,12 +755,13 @@ enum ProductService {
                 barcode: trimmedBarcode,
                 products: &products
             ) {
-                return (match, false)
+                return certain(match)
             }
         }
 
+        // 1) Preferă denumire + UM compatibilă (ignoră LOT pe ambele părți)
         if let match = products.first(where: {
-            $0.denumire.localizedCaseInsensitiveCompare(effectiveName) == .orderedSame
+            Self.namesMatch(productNameIgnoringLot($0.denumire), effectiveName)
                 && (
                     isGarantieProduct
                     || normalizedUnit($0.unitateMasura) == invoiceUnit
@@ -676,14 +779,51 @@ enum ProductService {
                 codBare: trimmedBarcode,
                 products: &products
             )
-            return (enriched, false)
+            return certain(enriched)
         }
+
+        // 2) Aceeași denumire pe firmă (fără LOT), indiferent de UM
+        if let match = products.first(where: {
+            Self.namesMatch(productNameIgnoringLot($0.denumire), effectiveName)
+        }) {
+            let enriched = try await enrichProductFromImport(
+                product: match,
+                codBare: trimmedBarcode,
+                products: &products
+            )
+            return certain(enriched)
+        }
+
+        if let match = try await findProductByName(companyId: companyId, denumire: effectiveName) {
+            remember(match, in: &products)
+            let enriched = try await enrichProductFromImport(
+                product: match,
+                codBare: trimmedBarcode,
+                products: &products
+            )
+            return certain(enriched)
+        }
+
+        // 3) Denumire similară existentă — nu crea fișă nouă; legă provisional și cere confirmare pe NIR
+        if !isGarantieProduct,
+           let similar = bestSimilarProduct(to: effectiveName, in: products),
+           nameSimilarity(similar.denumire, effectiveName) >= provisionalNameSimilarityThreshold {
+            let enriched = try await enrichProductFromImport(
+                product: similar,
+                codBare: trimmedBarcode,
+                products: &products
+            )
+            return ProductResolveResult(product: enriched, created: false, needsProductReview: true)
+        }
+
+        let insertName = (!isGarantieProduct ? Self.canonicalProduceName(forImportName: effectiveName) : nil)
+            ?? effectiveName
 
         let payload = ProductInsert(
             companyId: companyId,
             cod: isGarantieProduct ? nil : trimmedCod,
             codBare: isGarantieProduct ? nil : emptyToNil(trimmedBarcode),
-            denumire: effectiveName,
+            denumire: insertName,
             descriere: isGarantieProduct ? nil : emptyToNil(descriere),
             unitateMasura: stockUnit,
             unitateAchizitie: purchaseUnit,
@@ -707,7 +847,7 @@ enum ProductService {
                 .value
             guard let product = rows.first else { throw ServiceError.invalidResponse }
             remember(product, in: &products)
-            return (product, true)
+            return ProductResolveResult(product: product, created: true, needsProductReview: false)
         } catch {
             guard isProductUniqueConstraintViolation(error),
                   let existing = try await existingProduct(
@@ -723,8 +863,47 @@ enum ProductService {
                 codBare: trimmedBarcode,
                 products: &products
             )
-            return (enriched, false)
+            return certain(enriched)
         }
+    }
+
+    nonisolated static func bestSimilarProduct(to name: String, in products: [Product]) -> Product? {
+        let target = productNameIgnoringLot(name)
+        guard !target.isEmpty else { return nil }
+        return products
+            .filter { !isGarantieProductName($0.denumire) }
+            .map { ($0, nameSimilarity($0.denumire, target)) }
+            .filter { $0.1 < 1 && $0.1 >= provisionalNameSimilarityThreshold }
+            .max(by: { $0.1 < $1.1 })?
+            .0
+    }
+
+    /// Similaritate Dice pe bigrame (0…1), după normalizare (fără LOT, fără diacritice).
+    nonisolated static func nameSimilarity(_ lhs: String, _ rhs: String) -> Double {
+        let a = foldedProductName(productNameIgnoringLot(lhs))
+        let b = foldedProductName(productNameIgnoringLot(rhs))
+        if a.isEmpty || b.isEmpty { return 0 }
+        if a == b { return 1 }
+        if a.contains(b) || b.contains(a) {
+            let shorter = Double(min(a.count, b.count))
+            let longer = Double(max(a.count, b.count))
+            return max(0.6, shorter / longer)
+        }
+        let ba = bigrams(a)
+        let bb = bigrams(b)
+        guard !ba.isEmpty, !bb.isEmpty else { return 0 }
+        let overlap = ba.intersection(bb).count
+        return (2.0 * Double(overlap)) / Double(ba.count + bb.count)
+    }
+
+    nonisolated private static func bigrams(_ value: String) -> Set<String> {
+        let chars = Array(value)
+        guard chars.count >= 2 else { return chars.isEmpty ? [] : [String(chars)] }
+        var result = Set<String>()
+        for i in 0..<(chars.count - 1) {
+            result.insert(String(chars[i...i + 1]))
+        }
+        return result
     }
 
     nonisolated static func shouldSkipNIRProductKindUpdate(lineName: String) -> Bool {
@@ -793,6 +972,74 @@ enum ProductService {
             .execute()
             .value
         return rows.first
+    }
+
+    /// Potrivire pe denumire (case-insensitive) pe firmă — evită fișe duplicate la import.
+    private static func findProductByName(companyId: UUID, denumire: String) async throws -> Product? {
+        let trimmed = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let rows: [Product] = try await client
+            .from("products")
+            .select()
+            .eq("company_id", value: companyId.uuidString)
+            .ilike("denumire", pattern: trimmed)
+            .order("created_at", ascending: true)
+            .limit(5)
+            .execute()
+            .value
+        return rows.first(where: { namesMatch($0.denumire, trimmed) }) ?? rows.first
+    }
+
+    private static func resolveCanonicalWhitePotato(
+        companyId: UUID,
+        products: inout [Product]
+    ) async throws -> Product? {
+        try await resolveCanonicalNamedProduct(
+            companyId: companyId,
+            canonicalName: canonicalWhitePotatoProductName,
+            isFamily: { isFreshWhitePotatoImportName($0) },
+            products: &products
+        )
+    }
+
+    nonisolated static func canonicalProduceName(forImportName denumire: String) -> String? {
+        if isFreshWhitePotatoImportName(denumire) { return canonicalWhitePotatoProductName }
+        if isFreshTomatoImportName(denumire) { return canonicalTomatoProductName }
+        if isKapiaImportName(denumire) { return canonicalKapiaProductName }
+        return nil
+    }
+
+    nonisolated static func isSameProduceFamily(importName: String, productName: String) -> Bool {
+        if isFreshWhitePotatoImportName(importName) { return isFreshWhitePotatoImportName(productName) }
+        if isFreshTomatoImportName(importName) { return isFreshTomatoImportName(productName) }
+        if isKapiaImportName(importName) { return isKapiaImportName(productName) }
+        return false
+    }
+
+    private static func resolveCanonicalNamedProduct(
+        companyId: UUID,
+        canonicalName: String,
+        isFamily: (String) -> Bool,
+        products: inout [Product]
+    ) async throws -> Product? {
+        if let match = products.first(where: { namesMatch($0.denumire, canonicalName) }) {
+            return match
+        }
+        if let match = try await findProductByName(companyId: companyId, denumire: canonicalName) {
+            remember(match, in: &products)
+            return match
+        }
+        if let match = products.first(where: { isFamily($0.denumire) }) {
+            return match
+        }
+        return nil
+    }
+
+    nonisolated static func namesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.trimmingCharacters(in: .whitespacesAndNewlines)
+            .localizedCaseInsensitiveCompare(
+                rhs.trimmingCharacters(in: .whitespacesAndNewlines)
+            ) == .orderedSame
     }
 
     private static func findProductByBarcodeAnyStatus(companyId: UUID, barcode: String) async throws -> Product? {

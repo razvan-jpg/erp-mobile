@@ -27,6 +27,28 @@ struct NIRLineEligibilityTests {
         #expect(NIRQuantityAllocation.remaining(invoiceQuantity: 10, receivedOnOtherNIRs: 12) == 0)
     }
 
+    @Test func invoiceQuantityReceivedUsesStockWhenSameUnit() {
+        // Recepție pe jumătate: cantitate_factura a rămas 120, stoc 60, aceeași UM.
+        let received = NIRQuantityAllocation.invoiceQuantityReceived(
+            cantitateFactura: 120,
+            cantitateStoc: 60,
+            unitateFactura: "kg",
+            unitateStoc: "KG"
+        )
+        #expect(received == 60)
+        #expect(NIRQuantityAllocation.remaining(invoiceQuantity: 120, receivedOnOtherNIRs: received) == 60)
+    }
+
+    @Test func invoiceQuantityReceivedKeepsInvoiceQtyForConversion() {
+        let received = NIRQuantityAllocation.invoiceQuantityReceived(
+            cantitateFactura: 1,
+            cantitateStoc: 10,
+            unitateFactura: "buc",
+            unitateStoc: "kg"
+        )
+        #expect(received == 1)
+    }
+
     @Test func autoExcludesGarantieLines() {
         let garantie = makeLine(denumire: "Garantie")
         let garantieSGR = makeLine(denumire: "Garantie SGR")

@@ -516,8 +516,16 @@ struct SupplierAccountView: View {
         do {
             switch action {
             case .print:
-                pdfAttachmentURL = try SupplierAccountPDFBuilder.writeTemporaryPDF(from: snapshot)
+                let url = try SupplierAccountPDFBuilder.writeTemporaryPDF(from: snapshot)
+#if targetEnvironment(macCatalyst)
+                try DocumentExportSupport.printPDF(
+                    url: url,
+                    jobName: L10n.tr("account.print_job", supplier.denumire)
+                )
+#else
+                pdfAttachmentURL = url
                 showPrintSheet = true
+#endif
             case .exportPDF:
                 let url = try SupplierAccountPDFBuilder.writeTemporaryPDF(from: snapshot)
                 exportShareItems = [url]

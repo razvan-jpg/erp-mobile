@@ -259,12 +259,21 @@ private struct InvoiceImportPreviewRow: View {
                 }
                 Spacer()
                 if item.canImport && !item.isCreditNote {
-                    Toggle(L10n.tr("invoices.create_nir"), isOn: $item.createNIR)
-                        .font(.subheadline)
+                    Toggle(
+                        item.canContinueRemainderNIR
+                            ? L10n.tr("invoices.create_nir_remainder")
+                            : L10n.tr("invoices.create_nir"),
+                        isOn: $item.createNIR
+                    )
+                    .font(.subheadline)
                 }
             }
 
-            if item.canAttachNIR {
+            if item.canContinueRemainderNIR {
+                Text(L10n.tr("invoices.import_preview_incomplete_nir"))
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            } else if item.canAttachNIR {
                 Text(L10n.tr("invoices.import_preview_existing_no_nir"))
                     .font(.caption)
                     .foregroundColor(.orange)

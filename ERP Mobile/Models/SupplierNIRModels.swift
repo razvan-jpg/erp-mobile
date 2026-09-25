@@ -1,5 +1,27 @@
 import Foundation
 
+enum InvoiceReceptionListStatus: Equatable, Sendable {
+    /// Notă de credit / anulat — fără flux de recepție.
+    case notApplicable
+    /// Toată cantitatea pe NIR, sau închisă manual.
+    case closed
+    /// Fără NIR sau cu rest — se poate adăuga recepție / închide.
+    case needsReception
+
+    static func resolve(
+        isCreditNote: Bool,
+        status: InvoiceStatus,
+        receptionClosed: Bool,
+        hasNIR: Bool,
+        isIncomplete: Bool
+    ) -> InvoiceReceptionListStatus {
+        if isCreditNote || status == .anulata { return .notApplicable }
+        if receptionClosed { return .closed }
+        if hasNIR && !isIncomplete { return .closed }
+        return .needsReception
+    }
+}
+
 struct InvoiceReceptionOptions: Equatable, Sendable {
     var workLocationId: UUID?
     var warehouseId: UUID?

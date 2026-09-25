@@ -17,7 +17,7 @@ enum WhatsNewContent {
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.065",
+            targetVersionLabel: "1.0.080",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
@@ -37,6 +37,153 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.079", "25.09.2026",
+                ro: [
+                    "Performanță Mac: fără overlay blocat la editare transfer, PDF generat în fundal, print direct (conturi, fișă stoc, inventar, NIR) fără sheet intermediar.",
+                ],
+                en: [
+                    "Mac performance: no stuck loading overlay when editing transfers, PDF built in the background, direct print (accounts, stock sheet, inventory, GRN) without an intermediate sheet.",
+                ]
+            ),
+            release(
+                "1.0.078", "25.09.2026",
+                ro: [
+                    "Print PDF pe Mac: panoul de tipărire apare imediat din preview (fără blocaj până la Esc).",
+                ],
+                en: [
+                    "PDF print on Mac: the print panel opens immediately from preview (no freeze until Esc).",
+                ]
+            ),
+            release(
+                "1.0.077", "25.09.2026",
+                ro: [
+                    "Bon de transfer: dacă ștergeți toate liniile și salvați, bonul se șterge și stocul revine pe gestiunea de plecare; la modificare, stocurile pe ambele gestiuni se actualizează.",
+                ],
+                en: [
+                    "Transfer note: if you remove all lines and save, the note is deleted and stock returns to the source warehouse; on edit, stocks at both warehouses are updated.",
+                ]
+            ),
+            release(
+                "1.0.076", "25.09.2026",
+                ro: [
+                    "Editare bon de transfer pe Mac: buton coș pe fiecare linie pentru ștergerea articolelor existente.",
+                ],
+                en: [
+                    "Edit transfer note on Mac: trash button on each line to remove existing items.",
+                ]
+            ),
+            release(
+                "1.0.075", "25.09.2026",
+                ro: [
+                    "Import e-Factura: dacă denumirea e doar similară cu un articol existent, nu se creează fișă nouă — pe NIR confirmați (păstrați articolul sau creați unul nou), ca la cantitatea dedusă din denumire.",
+                ],
+                en: [
+                    "e-Invoice import: if the name is only similar to an existing item, no new sheet is created — on the GRN you confirm (keep the item or create a new one), like quantities inferred from the name.",
+                ]
+            ),
+            release(
+                "1.0.074", "25.09.2026",
+                ro: [
+                    "Roșii și ardei kapia din facturi: variantele (RO, P, MC ciorchine, kapia…) se leagă la „ROSII RO” și „ARDEI KAPIA ROSU”; pe Nectarie stocurile au fost unificate.",
+                ],
+                en: [
+                    "Tomatoes and kapia peppers from invoices: variants (RO, P, MC cluster, kapia…) link to “ROSII RO” and “ARDEI KAPIA ROSU”; Nectarie stocks were merged.",
+                ]
+            ),
+            release(
+                "1.0.073", "25.09.2026",
+                ro: [
+                    "Import e-Factura: sufixele LOT din denumire sunt ignorate — o singură fișă pe produs (ex. Doner Vita, ulei palmier).",
+                    "Nectarie: unificate cele 21 fișe Doner pe lot → „DONER VITA TOCAT” și variantele de ulei → o fișă fără LOT.",
+                ],
+                en: [
+                    "e-Invoice import: LOT suffixes in the name are ignored — one sheet per product (e.g. Doner Vita, palm oil).",
+                    "Nectarie: merged 21 Doner lot sheets → “DONER VITA TOCAT” and palm-oil variants → one sheet without LOT.",
+                ]
+            ),
+            release(
+                "1.0.072", "25.09.2026",
+                ro: [
+                    "Cartofi albi/noi din facturi: toate variantele (RO 50+, NOI, MC 10KG…) se leagă la fișa unică „CARTOFI ALBI IMP”; pe Nectarie stocurile au fost unificate.",
+                ],
+                en: [
+                    "White/new potatoes from invoices: all variants (RO 50+, NOI, MC 10KG…) link to the single “CARTOFI ALBI IMP” sheet; Nectarie stocks were merged.",
+                ]
+            ),
+            release(
+                "1.0.071", "25.09.2026",
+                ro: [
+                    "Import e-Factura: dacă există deja un produs cu aceeași denumire pe firmă, se folosește fișa existentă (nu se mai creează duplicat).",
+                    "Curățare Nectarie: unificate fișele duplicate „ardei iute” și „CASTRAVETI MURATI” (stoc cumulativ).",
+                ],
+                en: [
+                    "e-Invoice import: if a product with the same name already exists for the company, the existing sheet is reused (no more duplicates).",
+                    "Nectarie cleanup: merged duplicate “ardei iute” and “CASTRAVETI MURATI” sheets (stock summed).",
+                ]
+            ),
+            release(
+                "1.0.070", "25.09.2026",
+                ro: [
+                    "Bonuri de transfer pe Mac: buton coș de gunoi pe fiecare rând, pe lângă swipe.",
+                ],
+                en: [
+                    "Transfer notes on Mac: trash button on each row, in addition to swipe.",
+                ]
+            ),
+            release(
+                "1.0.069", "25.09.2026",
+                ro: [
+                    "Aviz de expediție (bon de transfer): se deschide în PDF pentru listare/print, cu salvare pe disc ca la NIR.",
+                ],
+                en: [
+                    "Dispatch note (transfer note): opens in PDF for listing/print, with disk save like the GRN.",
+                ]
+            ),
+            release(
+                "1.0.068", "25.09.2026",
+                ro: [
+                    "Bon de transfer: vedeți stocul disponibil pe gestiunea sursă, introduceți cantitatea, iar la salvare stocurile pe gestiuni se actualizează automat.",
+                    "Bon salvat: modificare, ștergere (cu impact pe stoc) și listare PDF ca Aviz de expediție pentru însoțirea mărfii.",
+                ],
+                en: [
+                    "Transfer note: see available stock at the source warehouse, enter the quantity; saving updates warehouse stocks automatically.",
+                    "Saved notes: edit, delete (with stock impact), and list as a PDF dispatch note to accompany the goods.",
+                ]
+            ),
+            release(
+                "1.0.067", "25.09.2026",
+                ro: [
+                    "Lista facturi furnizor: pe fiecare factură vedeți dacă recepția e completă („Factură închisă”) sau puteți Adăuga recepție / Închide restul.",
+                    "Închiderea recepției nu modifică stocul; anularea unui NIR deschis, fără salvare, nici ea.",
+                ],
+                en: [
+                    "Supplier invoice list: each invoice shows if reception is complete (“Invoice closed”) or you can Add reception / Close the remainder.",
+                    "Closing reception does not change stock; cancelling an opened GRN without saving also leaves stock unchanged.",
+                ]
+            ),
+            release(
+                "1.0.066", "25.09.2026",
+                ro: [
+                    "Re-import e-Factura: factura cu NIR pe jumătate de cantitate (aceeași UM) nu mai apare ca duplicat — se deschide NIR pe rest.",
+                    "Bon de transfer: remediat ecranul blocat pe „Se încarcă…” (în special pe Mac).",
+                ],
+                en: [
+                    "e-Invoice re-import: an invoice with a half-quantity GRN (same UoM) is no longer treated as a duplicate — opens a GRN for the remainder.",
+                    "Transfer note: fixed the screen stuck on “Loading…” (especially on Mac).",
+                ]
+            ),
+            release(
+                "1.0.065", "25.09.2026",
+                ro: [
+                    "Factură cu NIR parțial: puteți face un NIR nou pe restul nerecepționat (aceeași sau altă gestiune).",
+                    "Re-import e-Factura pe o factură incompletă: deschide NIR pe rest, fără a importa din nou factura.",
+                ],
+                en: [
+                    "Invoice with a partial GRN: create another GRN for the unreceived remainder (same or another warehouse).",
+                    "Re-importing e-Invoice for an incomplete invoice: open a GRN for the remainder without importing again.",
+                ]
+            ),
             release(
                 "1.0.064", "25.09.2026",
                 ro: [

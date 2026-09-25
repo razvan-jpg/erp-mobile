@@ -56,7 +56,11 @@ struct EditableInvoiceLine: Identifiable, Equatable {
             && (parsedCantitate ?? 0) != 0
     }
 
-    func toCreateInput(numarLinie: Int, productId: UUID) -> SupplierService.InvoiceLineCreateInput? {
+    func toCreateInput(
+        numarLinie: Int,
+        productId: UUID,
+        needsProductReview: Bool = false
+    ) -> SupplierService.InvoiceLineCreateInput? {
         guard isValid,
               let quantity = parsedCantitate,
               let unitPrice = parsedPretUnitar,
@@ -72,7 +76,8 @@ struct EditableInvoiceLine: Identifiable, Equatable {
             sumaLinie: lineTotal,
             sumaTva: parsedSumaTva ?? .zero,
             cotaTva: InvoiceLineVAT.vatRate(amount: parsedSumaTva ?? .zero, lineTotal: lineTotal),
-            unitateMasura: unitateMasura.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "buc" : unitateMasura
+            unitateMasura: unitateMasura.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "buc" : unitateMasura,
+            needsProductReview: needsProductReview
         )
     }
 }
@@ -101,7 +106,11 @@ enum InvoiceLinesPersistence {
                 cpv: nil,
                 products: &products
             )
-            if let input = line.toCreateInput(numarLinie: index + 1, productId: productResult.product.id) {
+            if let input = line.toCreateInput(
+                numarLinie: index + 1,
+                productId: productResult.product.id,
+                needsProductReview: productResult.needsProductReview
+            ) {
                 createInputs.append(input)
             }
         }

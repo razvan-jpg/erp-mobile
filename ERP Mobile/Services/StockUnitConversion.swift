@@ -91,12 +91,13 @@ enum StockUnitConversion {
     static func reception(
         invoiceLine: SupplierInvoiceLine,
         product: Product?,
+        invoiceQuantityOverride: Decimal? = nil,
         factorOverride: Decimal? = nil,
         stockQuantityOverride: Decimal? = nil,
         stockUnitOverride: String? = nil,
         allowsConversion: Bool? = nil
     ) -> Reception {
-        let invoiceQuantity = invoiceLine.cantitate
+        let fullInvoiceQuantity = invoiceLine.cantitate
         let invoiceUnit = invoiceLine.unitateMasura
         let lineName = invoiceLine.denumire
         let canConvert = allowsConversion ?? product?.tip.allowsStockConversion ?? true
@@ -109,24 +110,44 @@ enum StockUnitConversion {
                 allowsConversion: canConvert
             )
             : overrideUnit
+        let defaultF = defaultFactor(
+            product: product,
+            invoiceUnit: invoiceUnit,
+            lineName: lineName,
+            allowsConversion: canConvert
+        )
         let factor: Decimal
         let stockQuantity: Decimal
-        if let stockQuantityOverride, invoiceQuantity > 0 {
+        let invoiceQuantity: Decimal
+        if let stockQuantityOverride, stockQuantityOverride > 0 {
             stockQuantity = stockQuantityOverride
-            factor = stockQuantity / invoiceQuantity
+            if let factorOverride, factorOverride > 0 {
+                factor = factorOverride
+                invoiceQuantity = invoiceQuantityOverride
+                    ?? (factor > 0 ? stockQuantity / factor : stockQuantity)
+            } else if let invoiceQuantityOverride, invoiceQuantityOverride > 0 {
+                invoiceQuantity = invoiceQuantityOverride
+                factor = invoiceQuantity > 0 ? stockQuantity / invoiceQuantity : defaultF
+            } else {
+                // Reducerea cantității NIR = recepție parțială: păstrăm factorul, scădem pe factură.
+                factor = defaultF > 0 ? defaultF : 1
+                invoiceQuantity = factor > 0 ? stockQuantity / factor : stockQuantity
+            }
         } else {
-            factor = factorOverride ?? defaultFactor(
-                product: product,
-                invoiceUnit: invoiceUnit,
-                lineName: lineName,
-                allowsConversion: canConvert
-            )
+            invoiceQuantity = invoiceQuantityOverride ?? fullInvoiceQuantity
+            factor = factorOverride ?? defaultF
             stockQuantity = invoiceQuantity * factor
         }
-        let lineValue = invoiceLine.sumaLinie
+        let cappedInvoice: Decimal = {
+            guard fullInvoiceQuantity > 0 else { return invoiceQuantity }
+            return min(max(0, invoiceQuantity), fullInvoiceQuantity)
+        }()
+        let lineValue = fullInvoiceQuantity > 0
+            ? invoiceLine.sumaLinie * (cappedInvoice / fullInvoiceQuantity)
+            : invoiceLine.sumaLinie
         let stockUnitPrice = stockQuantity > 0 ? lineValue / stockQuantity : invoiceLine.pretUnitar
         return Reception(
-            invoiceQuantity: invoiceQuantity,
+            invoiceQuantity: cappedInvoice,
             invoiceUnit: invoiceUnit,
             factor: factor,
             stockQuantity: stockQuantity,

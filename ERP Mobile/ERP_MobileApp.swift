@@ -15,6 +15,10 @@ struct ERP_MobileApp: App {
     @State private var showLaunchSplash = true
     @State private var showDevelopmentInfo = false
 
+    init() {
+        L10n.preload()
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {

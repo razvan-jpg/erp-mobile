@@ -59,12 +59,23 @@ struct NIREditorView: View {
                         onFinish(nil)
                         presentationMode.wrappedValue.dismiss()
                     }
+                    .accessibilityHint(L10n.tr("nir.editor_cancel_no_stock"))
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(selectedLines.isEmpty ? L10n.tr("nir.editor_skip_action") : L10n.tr("nir.editor_save")) {
                         Task { await save() }
                     }
                     .disabled(isSaving || isLoading)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if context.existingNIR == nil {
+                    Text(L10n.tr("nir.editor_cancel_no_stock"))
+                        .font(.caption2)
+                        .foregroundColor(AppColors.tertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 4)
                 }
             }
             .appFullOverlay { LoadingOverlay(isLoading: isSaving) }
@@ -231,6 +242,7 @@ struct NIREditorView: View {
             }
 
             if selectedLineIds.contains(line.id) {
+                productReviewBlock(for: line)
                 conversionReviewBlock(for: line, reception: reception)
             }
 
@@ -245,6 +257,48 @@ struct NIREditorView: View {
                 removeLine(line)
             } label: {
                 Label(L10n.tr("common.delete"), systemImage: "trash")
+            }
+        }
+    }
+
+    private func productReviewBlock(for line: SupplierInvoiceLine) -> some View {
+        Group {
+            if line.needsProductReview {
+                let linkedName = productsById[line.productId]?.denumire ?? "—"
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                        Text(L10n.tr("nir.editor_product_review", linkedName, line.denumire))
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    HStack(spacing: 8) {
+                        Button {
+                            Task { await confirmKeepLinkedProduct(line) }
+                        } label: {
+                            Text(L10n.tr("nir.editor_product_review_keep"))
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+
+                        Button {
+                            Task { await createNewProductForLine(line) }
+                        } label: {
+                            Text(L10n.tr("nir.editor_product_review_create"))
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 6)
             }
         }
     }
@@ -332,10 +386,25 @@ struct NIREditorView: View {
             )
         }
         let stockUnitOverride = draft.stockUnit.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let quantity = SupplierFormatting.parseAmount(
+        let parsedStock = SupplierFormatting.parseAmount(
             draft.stockQuantityText,
             maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
-        ), quantity > 0 {
+        )
+        let parsedFactor = SupplierFormatting.parseAmount(
+            draft.factorText,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        )
+        if let quantity = parsedStock, quantity > 0, let factor = parsedFactor, factor > 0 {
+            return StockUnitConversion.reception(
+                invoiceLine: line,
+                product: product,
+                factorOverride: factor,
+                stockQuantityOverride: quantity,
+                stockUnitOverride: stockUnitOverride.isEmpty ? nil : stockUnitOverride,
+                allowsConversion: canConvert
+            )
+        }
+        if let quantity = parsedStock, quantity > 0 {
             return StockUnitConversion.reception(
                 invoiceLine: line,
                 product: product,
@@ -344,10 +413,7 @@ struct NIREditorView: View {
                 allowsConversion: canConvert
             )
         }
-        if let factor = SupplierFormatting.parseAmount(
-            draft.factorText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
-        ), factor > 0 {
+        if let factor = parsedFactor, factor > 0 {
             return StockUnitConversion.reception(
                 invoiceLine: line,
                 product: product,
@@ -405,6 +471,7 @@ struct NIREditorView: View {
         let updated = StockUnitConversion.reception(
             invoiceLine: line,
             product: product,
+            invoiceQuantityOverride: current.invoiceQuantity,
             factorOverride: parsed,
             stockUnitOverride: current.stockUnit,
             allowsConversion: allowsConversion(for: line)
@@ -427,6 +494,7 @@ struct NIREditorView: View {
         let updated = StockUnitConversion.reception(
             invoiceLine: line,
             product: product,
+            factorOverride: current.factor,
             stockQuantityOverride: parsed,
             stockUnitOverride: current.stockUnit,
             allowsConversion: allowsConversion(for: line)
@@ -580,10 +648,14 @@ struct NIREditorView: View {
                 ?? context.workLocationId
                 ?? context.invoice.workLocationId
                 ?? initialReception.workLocationId
-            initialReception.warehouseId = context.existingNIR?.warehouseId
-                ?? context.warehouseId
-                ?? context.invoice.warehouseId
-                ?? initialReception.warehouseId
+            if let existingNIR = context.existingNIR {
+                initialReception.warehouseId = existingNIR.warehouseId
+                    ?? context.warehouseId
+                    ?? initialReception.warehouseId
+            } else if let warehouseId = context.warehouseId {
+                initialReception.warehouseId = warehouseId
+            }
+            // NIR nou fără gestiune forțată: păstrăm defaultOptions (utilizatorul alege).
             let receivedElsewhere = try await SupplierNIRService.receivedInvoiceQuantities(
                 invoiceId: context.invoice.id,
                 excludingNirId: context.existingNIR?.id
@@ -604,6 +676,11 @@ struct NIREditorView: View {
                         invoiceQuantity: line.cantitate,
                         receivedOnOtherNIRs: receivedElsewhere[lineId] ?? 0
                     ) > 0
+                }
+            }
+            for line in loadedLines where line.needsProductReview {
+                if NIRLineEligibility.isSelectable(line) {
+                    initialSelection.insert(line.id)
                 }
             }
 
@@ -701,6 +778,9 @@ struct NIREditorView: View {
         do {
             guard receptionRequirements.isValid(receptionOptions) else {
                 throw NIREditorValidationError.missingReception
+            }
+            if selectedLines.contains(where: \.needsProductReview) {
+                throw NIREditorValidationError.unresolvedProductMatch
             }
 
             let conversions = try conversionsForSelectedLines()
@@ -811,6 +891,62 @@ struct NIREditorView: View {
         return salePriceByLineId
     }
 
+    private func confirmKeepLinkedProduct(_ line: SupplierInvoiceLine) async {
+        do {
+            try await SupplierService.updateInvoiceLineProductLink(
+                lineId: line.id,
+                productId: line.productId,
+                needsProductReview: false
+            )
+            await MainActor.run {
+                if let index = invoiceLines.firstIndex(where: { $0.id == line.id }) {
+                    invoiceLines[index].needsProductReview = false
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func createNewProductForLine(_ line: SupplierInvoiceLine) async {
+        do {
+            let created = try await ProductService.createProduct(
+                companyId: company.id,
+                input: ProductCreateInput(
+                    denumire: ProductService.productNameIgnoringLot(line.denumire),
+                    unitateMasura: line.unitateMasura,
+                    tip: .materiePrima,
+                    cotaTva: line.cotaTva
+                ),
+                isVatPayer: company.isVatPayer
+            )
+            try await SupplierService.updateInvoiceLineProductLink(
+                lineId: line.id,
+                productId: created.id,
+                needsProductReview: false
+            )
+            await MainActor.run {
+                productsById[created.id] = created
+                if let index = invoiceLines.firstIndex(where: { $0.id == line.id }) {
+                    invoiceLines[index].productId = created.id
+                    invoiceLines[index].needsProductReview = false
+                    let updated = invoiceLines[index]
+                    linePricingByLineId[line.id] = NIRLinePricingState.make(
+                        line: updated,
+                        product: created,
+                        reception: reception(for: updated)
+                    )
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func persistNIRProductUpdates(_ salePriceByLineId: [UUID: Decimal]) async {
         var kindByProductId: [UUID: ProductKind] = [:]
         var priceByProductId: [UUID: Decimal] = [:]
@@ -824,7 +960,7 @@ struct NIREditorView: View {
             if let linked = productsById[line.productId],
                ProductService.isMislinkedGarantieSGRProduct(linked, lineName: line.denumire) {
                 do {
-                    let (correctProduct, _) = try await ProductService.findOrCreateProduct(
+                    let correctResult = try await ProductService.findOrCreateProduct(
                         companyId: company.id,
                         cod: nil,
                         codBare: nil,
@@ -834,7 +970,7 @@ struct NIREditorView: View {
                         cpv: nil,
                         products: &catalogProducts
                     )
-                    targetProductId = correctProduct.id
+                    targetProductId = correctResult.product.id
                 } catch {
                     continue
                 }
@@ -1056,6 +1192,7 @@ private enum NIREditorValidationError: LocalizedError {
     case invalidSalePrice
     case missingReception
     case invalidConversion
+    case unresolvedProductMatch
 
     var errorDescription: String? {
         switch self {
@@ -1065,6 +1202,8 @@ private enum NIREditorValidationError: LocalizedError {
             return L10n.tr("invoices.reception_required")
         case .invalidConversion:
             return L10n.tr("nir.editor_invalid_conversion")
+        case .unresolvedProductMatch:
+            return L10n.tr("nir.editor_product_review_required")
         }
     }
 }

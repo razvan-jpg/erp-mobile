@@ -8,7 +8,13 @@ enum L10n {
 
     static func setLanguage(_ language: AppLanguage) {
         currentLanguage = language
-        cache.removeAll()
+        // Păstrăm cache-urile deja încărcate — evită re-decodare JSON pe UI thread.
+    }
+
+    /// Încarcă tabelele RO/EN o dată la pornire (evită hitch la primul `tr`).
+    static func preload() {
+        _ = strings(for: .romanian)
+        _ = strings(for: .english)
     }
 
     static func tr(_ key: String) -> String {

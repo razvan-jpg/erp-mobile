@@ -17,13 +17,29 @@ struct EFacturaImportPreviewItem: Identifiable, Sendable {
     var createNIR: Bool
     var existingInvoiceId: UUID? = nil
     var hasExistingNIR: Bool = false
+    /// Are NIR, dar cantitățile nu sunt recepționate integral.
+    var hasIncompleteReception: Bool = false
 
+    /// Factură existentă fără NIR — se poate deschide NIR la confirmare.
     var canAttachNIR: Bool {
         errorMessage == nil && existingInvoiceId != nil && !hasExistingNIR && !isCreditNote
     }
 
+    /// Factură existentă cu recepție incompletă — NIR pe rest, fără re-import.
+    var canContinueRemainderNIR: Bool {
+        errorMessage == nil
+            && existingInvoiceId != nil
+            && hasExistingNIR
+            && hasIncompleteReception
+            && !isCreditNote
+    }
+
+    var wantsRemainderOrAttachNIR: Bool {
+        (canAttachNIR || canContinueRemainderNIR) && createNIR
+    }
+
     var canImport: Bool {
-        errorMessage == nil && (!isDuplicate || canAttachNIR)
+        errorMessage == nil && (!isDuplicate || canAttachNIR || canContinueRemainderNIR)
     }
 }
 
@@ -77,8 +93,16 @@ enum SupplierInvoiceEFacturaImport {
         let importable = items.filter(\.canImport)
         guard !importable.isEmpty else { return false }
 
-        let needsReceptionFields = importable.contains { !$0.createNIR && !$0.isCreditNote }
+        let needsReceptionFields = importable.contains {
+            (!$0.createNIR && !$0.isCreditNote)
+                || $0.wantsRemainderOrAttachNIR
+        }
         if !needsReceptionFields { return true }
+
+        // NIR pe factură nouă / rest / fără NIR: gestiunea se alege în editor.
+        if importable.allSatisfy({ $0.createNIR || $0.isCreditNote }) {
+            return true
+        }
 
         if receptionRequirements.requiresWorkLocation, receptionOptions.workLocationId == nil {
             return false
@@ -94,13 +118,16 @@ enum SupplierInvoiceEFacturaImport {
         let suppliers: [Supplier]
         let existingInvoices: [SupplierInvoiceDuplicateRef]
         let invoiceIdsWithNIR: Set<UUID>
+        let incompleteInvoiceIds: Set<UUID>
         do {
             async let suppliersTask = SupplierService.fetchSuppliers()
             async let invoicesTask = SupplierService.fetchInvoiceDuplicateIndex()
             async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: company.id)
+            async let incompleteTask = SupplierNIRService.fetchIncompleteReceptionInvoiceIds(companyId: company.id)
             suppliers = try await suppliersTask
             existingInvoices = try await invoicesTask
             invoiceIdsWithNIR = try await nirTask
+            incompleteInvoiceIds = try await incompleteTask
         } catch {
             return urls.enumerated().map { index, url in
                 EFacturaImportPreviewItem(
@@ -142,6 +169,7 @@ enum SupplierInvoiceEFacturaImport {
                 suppliers: &supplierCache,
                 existingInvoices: existingInvoices,
                 invoiceIdsWithNIR: invoiceIdsWithNIR,
+                incompleteInvoiceIds: incompleteInvoiceIds,
                 importedKeys: &importedKeys,
                 previewSupplierIds: &previewSupplierIds
             )
@@ -240,7 +268,7 @@ enum SupplierInvoiceEFacturaImport {
         var pendingNIRInvoiceIds: [UUID] = []
         var pendingCreditNoteOffsetInvoiceIds: [UUID] = []
 
-        for item in items where item.isDuplicate && !item.canAttachNIR {
+        for item in items where item.isDuplicate && !item.canAttachNIR && !item.canContinueRemainderNIR {
             if let label = item.duplicateLabel {
                 skippedDuplicates.append(label)
             } else {
@@ -288,15 +316,18 @@ enum SupplierInvoiceEFacturaImport {
         let suppliers: [Supplier]
         let existingInvoices: [SupplierInvoiceDuplicateRef]
         let invoiceIdsWithNIR: Set<UUID>
+        let incompleteInvoiceIds: Set<UUID>
         var products: [Product]
         do {
             async let suppliersTask = SupplierService.fetchSuppliers()
             async let invoicesTask = SupplierService.fetchInvoiceDuplicateIndex()
             async let nirTask = SupplierNIRService.fetchInvoiceIdsWithNIR(companyId: company.id)
+            async let incompleteTask = SupplierNIRService.fetchIncompleteReceptionInvoiceIds(companyId: company.id)
             async let productsTask = ProductService.fetchProducts(companyId: company.id)
             suppliers = try await suppliersTask
             existingInvoices = try await invoicesTask
             invoiceIdsWithNIR = try await nirTask
+            incompleteInvoiceIds = try await incompleteTask
             products = try await productsTask
         } catch {
             failures.append(contentsOf: importableItems.map {
@@ -337,6 +368,7 @@ enum SupplierInvoiceEFacturaImport {
                     suppliers: &supplierCache,
                     existingInvoices: existingInvoices,
                     invoiceIdsWithNIR: invoiceIdsWithNIR,
+                    incompleteInvoiceIds: incompleteInvoiceIds,
                     products: &products,
                     importedKeys: &importedKeys,
                     linesImportedCount: &linesImportedCount,
@@ -375,6 +407,7 @@ enum SupplierInvoiceEFacturaImport {
         suppliers: inout [Supplier],
         existingInvoices: [some SupplierInvoiceDuplicateRecord],
         invoiceIdsWithNIR: Set<UUID>,
+        incompleteInvoiceIds: Set<UUID>,
         importedKeys: inout Set<String>,
         previewSupplierIds: inout [String: UUID]
     ) -> EFacturaImportPreviewItem {
@@ -439,9 +472,19 @@ enum SupplierInvoiceEFacturaImport {
                 suppliers: suppliers
             )
             let hasExistingNIR = existingInvoice.map { invoiceIdsWithNIR.contains($0.id) } ?? false
+            let hasIncompleteReception = existingInvoice.map { incompleteInvoiceIds.contains($0.id) } ?? false
+            let receptionClosed = existingInvoice?.receptionClosed ?? false
             let isDuplicate = existingInvoice != nil
                 || duplicateKeys.contains(where: { importedKeys.contains($0) })
-            let canAttachNIR = existingInvoice != nil && !hasExistingNIR && !parsed.isCreditNote
+            let canAttachNIR = existingInvoice != nil
+                && !hasExistingNIR
+                && !receptionClosed
+                && !parsed.isCreditNote
+            let canContinueRemainderNIR = existingInvoice != nil
+                && hasExistingNIR
+                && hasIncompleteReception
+                && !receptionClosed
+                && !parsed.isCreditNote
 
             let item = EFacturaImportPreviewItem(
                 id: previewId,
@@ -454,12 +497,13 @@ enum SupplierInvoiceEFacturaImport {
                 currency: currency,
                 lineCount: parsed.lines.count,
                 isDuplicate: isDuplicate,
-                duplicateLabel: isDuplicate && !canAttachNIR ? duplicateLabel : nil,
+                duplicateLabel: isDuplicate && !canAttachNIR && !canContinueRemainderNIR ? duplicateLabel : nil,
                 isCreditNote: parsed.isCreditNote,
                 errorMessage: nil,
-                createNIR: !parsed.isCreditNote && (!isDuplicate || canAttachNIR),
+                createNIR: !parsed.isCreditNote && (!isDuplicate || canAttachNIR || canContinueRemainderNIR),
                 existingInvoiceId: existingInvoice?.id,
-                hasExistingNIR: hasExistingNIR
+                hasExistingNIR: hasExistingNIR,
+                hasIncompleteReception: hasIncompleteReception
             )
 
             if item.canImport {
@@ -589,6 +633,7 @@ enum SupplierInvoiceEFacturaImport {
         suppliers: inout [Supplier],
         existingInvoices: [some SupplierInvoiceDuplicateRecord],
         invoiceIdsWithNIR: Set<UUID>,
+        incompleteInvoiceIds: Set<UUID>,
         products: inout [Product],
         importedKeys: inout Set<String>,
         linesImportedCount: inout Int,
@@ -636,10 +681,14 @@ enum SupplierInvoiceEFacturaImport {
             totalAmount: totalAmount
         )
         if let existingInvoice {
-            if createNIR,
-               !parsed.isCreditNote,
-               !invoiceIdsWithNIR.contains(existingInvoice.id),
-               !pendingNIRInvoiceIds.contains(existingInvoice.id) {
+            let hasNIR = invoiceIdsWithNIR.contains(existingInvoice.id)
+            let incomplete = incompleteInvoiceIds.contains(existingInvoice.id)
+            let canOpenNIR = createNIR
+                && !parsed.isCreditNote
+                && !existingInvoice.receptionClosed
+                && !pendingNIRInvoiceIds.contains(existingInvoice.id)
+                && (!hasNIR || incomplete)
+            if canOpenNIR {
                 for key in duplicateKeys {
                     importedKeys.insert(key)
                 }
@@ -704,7 +753,8 @@ enum SupplierInvoiceEFacturaImport {
                             sumaLinie: lineTotal,
                             sumaTva: lineTax,
                             cotaTva: vatRate,
-                            unitateMasura: line.unitCode
+                            unitateMasura: line.unitCode,
+                            needsProductReview: productResult.needsProductReview
                         )
                     )
                 }

@@ -229,8 +229,16 @@ struct PhysicalInventoryDetailView: View {
     private func printPDF() async {
         exportErrorMessage = nil
         do {
-            pdfAttachmentURL = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot())
+            let url = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot())
+#if targetEnvironment(macCatalyst)
+            try DocumentExportSupport.printPDF(
+                url: url,
+                jobName: L10n.tr("inventory.physical_print_job", inventory.numarInventar)
+            )
+#else
+            pdfAttachmentURL = url
             showPrintSheet = true
+#endif
         } catch {
             exportErrorMessage = error.localizedDescription
         }

@@ -54,6 +54,13 @@ struct PrintDocumentView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let controller = UIViewController()
         DispatchQueue.main.async {
+#if targetEnvironment(macCatalyst)
+            // Sheet-ul gol blochează panoul de print pe Mac până la Esc — tipărim direct și închidem sheet-ul.
+            onFinish()
+            DispatchQueue.main.async {
+                DocumentExportSupport.printPDF(data: pdfData, jobName: jobName)
+            }
+#else
             let printInfo = UIPrintInfo(dictionary: nil)
             printInfo.jobName = jobName
             printInfo.outputType = .general
@@ -63,6 +70,7 @@ struct PrintDocumentView: UIViewControllerRepresentable {
             printController.present(animated: true) { _, _, _ in
                 onFinish()
             }
+#endif
         }
         return controller
     }
@@ -196,6 +204,22 @@ enum DocumentExportSupport {
         host.present(controller, animated: true)
     }
 
+    /// Print fără sheet intermediar (altfel panoul Mac rămâne blocat până la Esc).
+    static func printPDF(data: Data, jobName: String) {
+        let printInfo = UIPrintInfo(dictionary: nil)
+        printInfo.jobName = jobName
+        printInfo.outputType = .general
+        let printController = UIPrintInteractionController.shared
+        printController.printInfo = printInfo
+        printController.printingItem = data
+        printController.present(animated: true, completionHandler: nil)
+    }
+
+    static func printPDF(url: URL, jobName: String) throws {
+        let data = try Data(contentsOf: url)
+        printPDF(data: data, jobName: jobName)
+    }
+
     @discardableResult
     private static func presentExportPicker(sourceURL: URL) -> Bool {
         guard let host = MacExportPresenter.topViewController() else { return false }
@@ -210,6 +234,21 @@ enum DocumentExportSupport {
         }
         host.present(picker, animated: true)
         return true
+    }
+#else
+    static func printPDF(data: Data, jobName: String) {
+        let printInfo = UIPrintInfo(dictionary: nil)
+        printInfo.jobName = jobName
+        printInfo.outputType = .general
+        let printController = UIPrintInteractionController.shared
+        printController.printInfo = printInfo
+        printController.printingItem = data
+        printController.present(animated: true, completionHandler: nil)
+    }
+
+    static func printPDF(url: URL, jobName: String) throws {
+        let data = try Data(contentsOf: url)
+        printPDF(data: data, jobName: jobName)
     }
 #endif
 }

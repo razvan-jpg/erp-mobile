@@ -9,9 +9,12 @@ struct StockTransferListView: View {
     @State private var transfers: [StockTransfer] = []
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var isLoading = false
+    @State private var didLoadOnce = false
     @State private var errorMessage: String?
     @State private var showCreate = false
+    @State private var transferToEdit: StockTransfer?
     @State private var transferToDelete: StockTransfer?
+    @State private var avizPreview: StockTransferExportItem?
 
     var body: some View {
         NavigationView {
@@ -25,21 +28,66 @@ struct StockTransferListView: View {
                 } else {
                     List {
                         ForEach(transfers) { transfer in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(L10n.tr("inventory.transfer_number", transfer.numar))
-                                    .font(.headline)
-                                Text(SupplierFormatting.date(transfer.dataBon))
-                                    .font(.subheadline)
-                                    .foregroundColor(AppColors.secondary)
-                                Text(routeLabel(transfer))
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.secondary)
+                            HStack(alignment: .center, spacing: 12) {
+                                Button {
+                                    transferToEdit = transfer
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(L10n.tr("inventory.transfer_number", transfer.numar))
+                                            .font(.headline)
+                                            .foregroundColor(AppColors.primary)
+                                        Text(SupplierFormatting.date(transfer.dataBon))
+                                            .font(.subheadline)
+                                            .foregroundColor(AppColors.secondary)
+                                        Text(routeLabel(transfer))
+                                            .font(.caption)
+                                            .foregroundColor(AppColors.secondary)
+                                    }
+                                    .padding(.vertical, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+
+                                if ListRowActions.prefersExplicitDeleteButton {
+                                    Button {
+                                        transferToDelete = transfer
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .accessibilityLabel(L10n.tr("common.delete"))
+                                }
                             }
-                            .padding(.vertical, 4)
-                        }
-                        .onDelete { offsets in
-                            guard let index = offsets.first else { return }
-                            transferToDelete = transfers[index]
+                            .contextMenu {
+                                Button {
+                                    transferToEdit = transfer
+                                } label: {
+                                    Label(L10n.tr("common.edit"), systemImage: "pencil")
+                                }
+                                Button {
+                                    Task { await exportAviz(transfer) }
+                                } label: {
+                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                                }
+                                Button(role: .destructive) {
+                                    transferToDelete = transfer
+                                } label: {
+                                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                                }
+                            }
+                            .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    Task { await exportAviz(transfer) }
+                                } label: {
+                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                                }
+                                .tint(.blue)
+                                Button(role: .destructive) {
+                                    transferToDelete = transfer
+                                } label: {
+                                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                                }
+                            }
                         }
                     }
                 }
@@ -58,7 +106,7 @@ struct StockTransferListView: View {
                     }
                 }
             }
-            .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
+            .appFullOverlay { LoadingOverlay(isLoading: isLoading && !didLoadOnce) }
             .safeAreaInset(edge: .bottom) {
                 if let errorMessage {
                     Text(errorMessage)
@@ -67,12 +115,27 @@ struct StockTransferListView: View {
                         .padding(8)
                 }
             }
-            .appTask { await load() }
+            .appTask(id: companyManager.currentCompany?.id) { await load() }
             .fullScreenCover(isPresented: $showCreate) {
-                StockTransferEditorView {
+                StockTransferEditorView(existing: nil) {
                     await load()
                     await onChanged()
                 }
+                .environmentObject(companyManager)
+            }
+            .fullScreenCover(item: $transferToEdit) { transfer in
+                StockTransferEditorView(existing: transfer) {
+                    await load()
+                    await onChanged()
+                }
+                .environmentObject(companyManager)
+            }
+            .sheet(item: $avizPreview) { item in
+                PDFDocumentPreviewSheet(
+                    title: item.title,
+                    pdfData: item.pdfData,
+                    onClose: { avizPreview = nil }
+                )
             }
             .alert(
                 L10n.tr("inventory.transfer_delete_title"),
@@ -90,6 +153,7 @@ struct StockTransferListView: View {
                 Text(L10n.tr("inventory.transfer_delete_confirm", transfer.numar))
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private func routeLabel(_ transfer: StockTransfer) -> String {
@@ -99,22 +163,38 @@ struct StockTransferListView: View {
     }
 
     private func load() async {
-        guard let companyId = companyManager.currentCompany?.id else { return }
-        isLoading = true
+        guard let companyId = companyManager.currentCompany?.id else {
+            transfers = []
+            warehouses = []
+            isLoading = false
+            didLoadOnce = true
+            return
+        }
+        if !didLoadOnce {
+            isLoading = true
+        }
         errorMessage = nil
+        defer {
+            isLoading = false
+            didLoadOnce = true
+        }
         do {
             async let loadedTransfers = StockTransferService.fetchTransfers(companyId: companyId)
             async let loadedWarehouses = WarehouseService.fetchWarehouses(companyId: companyId)
-            transfers = try await loadedTransfers
-            warehouses = try await loadedWarehouses
+            let (nextTransfers, nextWarehouses) = try await (loadedTransfers, loadedWarehouses)
+            guard !Task.isCancelled else { return }
+            transfers = nextTransfers
+            warehouses = nextWarehouses
+        } catch is CancellationError {
+            return
         } catch {
-            errorMessage = error.localizedDescription
+            if !Task.isCancelled {
+                errorMessage = error.localizedDescription
+            }
         }
-        isLoading = false
     }
 
     private func delete(_ transfer: StockTransfer) async {
-        isLoading = true
         do {
             try await StockTransferService.deleteTransfer(id: transfer.id)
             await load()
@@ -122,17 +202,39 @@ struct StockTransferListView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoading = false
+    }
+
+    private func exportAviz(_ transfer: StockTransfer) async {
+        do {
+            let lines = try await StockTransferService.fetchLines(transferId: transfer.id)
+            let item = try await StockTransferService.prepareExport(
+                company: companyManager.currentCompany,
+                transfer: transfer,
+                lines: lines,
+                sourceWarehouseName: warehouses.first { $0.id == transfer.sourceWarehouseId }?.denumire ?? "—",
+                destinationWarehouseName: warehouses.first { $0.id == transfer.destinationWarehouseId }?.denumire ?? "—"
+            )
+            avizPreview = item
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
 private struct TransferDraftLine: Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     var product: Product
     var quantityText: String
+
+    init(id: UUID = UUID(), product: Product, quantityText: String) {
+        self.id = id
+        self.product = product
+        self.quantityText = quantityText
+    }
 }
 
 struct StockTransferEditorView: View {
+    let existing: StockTransfer?
     let onSaved: () async -> Void
 
     @Environment(\.presentationMode) private var presentationMode
@@ -140,6 +242,10 @@ struct StockTransferEditorView: View {
 
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var products: [Product] = []
+    @State private var availableByProductId: [UUID: Decimal] = [:]
+    /// Cantități pe bonul curent (la editare), ca să le adăugăm la disponibil pe gestiunea sursă originală.
+    @State private var reservedOnThisTransfer: [UUID: Decimal] = [:]
+    @State private var originalSourceWarehouseId: UUID?
     @State private var dataBon = Date()
     @State private var sourceWarehouseId: UUID?
     @State private var destinationWarehouseId: UUID?
@@ -148,10 +254,14 @@ struct StockTransferEditorView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showProductPicker = false
+    @State private var avizPreview: StockTransferExportItem?
+    @State private var dismissAfterAviz = false
 
     private var activeWarehouses: [CompanyWarehouse] {
         warehouses.filter(\.isActive)
     }
+
+    private var isEditing: Bool { existing != nil }
 
     var body: some View {
         NavigationView {
@@ -164,6 +274,9 @@ struct StockTransferEditorView: View {
                             Text(warehouse.denumire).tag(Optional(warehouse.id))
                         }
                     }
+                    .onChange(of: sourceWarehouseId) { _ in
+                        Task { await reloadAvailableStock() }
+                    }
                     Picker(L10n.tr("inventory.transfer_field_destination"), selection: $destinationWarehouseId) {
                         Text(L10n.tr("common.select")).tag(Optional<UUID>.none)
                         ForEach(activeWarehouses) { warehouse in
@@ -173,25 +286,51 @@ struct StockTransferEditorView: View {
                 }
                 Section(header: Text(L10n.tr("inventory.transfer_lines"))) {
                     ForEach($lines) { $line in
-                        HStack {
-                            VStack(alignment: .leading) {
+                        HStack(alignment: .top, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 Text(line.product.denumire)
+                                    .font(.body.weight(.semibold))
                                 Text(line.product.tip.label)
                                     .font(.caption)
                                     .foregroundColor(AppColors.secondary)
+                                HStack {
+                                    Text(L10n.tr(
+                                        "inventory.transfer_available",
+                                        SupplierFormatting.amountString(availableQuantity(for: line.product.id)),
+                                        line.product.unitateMasura
+                                    ))
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondary)
+                                    Spacer()
+                                    TextField(L10n.tr("inventory.transfer_field_quantity"), text: $line.quantityText)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 88)
+                                    Text(line.product.unitateMasura)
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.secondary)
+                                }
                             }
-                            Spacer()
-                            TextField(L10n.tr("inventory.transfer_field_quantity"), text: $line.quantityText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                            Text(line.product.unitateMasura)
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if ListRowActions.prefersExplicitDeleteButton {
+                                Button {
+                                    lines.removeAll { $0.id == line.id }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel(L10n.tr("common.delete"))
+                            }
                         }
+                        .padding(.vertical, 2)
                     }
                     .onDelete { lines.remove(atOffsets: $0) }
                     Button {
+                        guard sourceWarehouseId != nil else {
+                            errorMessage = L10n.tr("inventory.transfer_select_source_first")
+                            return
+                        }
                         showProductPicker = true
                     } label: {
                         Label(L10n.tr("inventory.transfer_add_line"), systemImage: "plus")
@@ -200,13 +339,26 @@ struct StockTransferEditorView: View {
                 Section(header: Text(L10n.tr("inventory.physical_field_notes"))) {
                     MultilineTextField(placeholder: L10n.tr("inventory.physical_notes_placeholder"), text: $observatii)
                 }
+                if isEditing {
+                    Section {
+                        Button {
+                            Task { await exportAviz() }
+                        } label: {
+                            Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                        }
+                    }
+                }
                 if let errorMessage {
                     Section {
                         Text(errorMessage).foregroundColor(.red).font(.caption)
                     }
                 }
             }
-            .navigationTitle(L10n.tr("inventory.transfer_create_title"))
+            .navigationTitle(
+                isEditing
+                    ? L10n.tr("inventory.transfer_edit_title")
+                    : L10n.tr("inventory.transfer_create_title")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -220,11 +372,30 @@ struct StockTransferEditorView: View {
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
             .appTask { await loadOptions() }
             .sheet(isPresented: $showProductPicker) {
-                StockTransferProductPicker(products: availableProducts) { product in
-                    lines.append(TransferDraftLine(product: product, quantityText: ""))
+                StockTransferProductPicker(
+                    products: availableProducts,
+                    availableByProductId: availableByProductIdForPicker
+                ) { product in
+                    let available = availableQuantity(for: product.id)
+                    let suggested = available > 0 ? SupplierFormatting.amountString(available) : ""
+                    lines.append(TransferDraftLine(product: product, quantityText: suggested))
                 }
             }
+            .sheet(item: $avizPreview) { item in
+                PDFDocumentPreviewSheet(
+                    title: item.title,
+                    pdfData: item.pdfData,
+                    onClose: {
+                        avizPreview = nil
+                        if dismissAfterAviz {
+                            dismissAfterAviz = false
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                )
+            }
         }
+        .navigationViewStyle(.stack)
     }
 
     private var availableProducts: [Product] {
@@ -234,18 +405,83 @@ struct StockTransferEditorView: View {
             .sorted { $0.denumire.localizedStandardCompare($1.denumire) == .orderedAscending }
     }
 
+    private var availableByProductIdForPicker: [UUID: Decimal] {
+        Dictionary(uniqueKeysWithValues: availableProducts.map { ($0.id, availableQuantity(for: $0.id)) })
+    }
+
+    private func availableQuantity(for productId: UUID) -> Decimal {
+        let onHand = availableByProductId[productId] ?? 0
+        let reserved: Decimal
+        if sourceWarehouseId != nil, sourceWarehouseId == originalSourceWarehouseId {
+            reserved = reservedOnThisTransfer[productId] ?? 0
+        } else {
+            reserved = 0
+        }
+        return onHand + reserved
+    }
+
     private func loadOptions() async {
         guard let companyId = companyManager.currentCompany?.id else { return }
         isLoading = true
+        defer { isLoading = false }
         do {
             async let loadedWarehouses = WarehouseService.fetchWarehouses(companyId: companyId)
             async let loadedProducts = ProductService.fetchProducts(companyId: companyId)
-            warehouses = try await loadedWarehouses
-            products = try await loadedProducts
+            let (nextWarehouses, nextProducts) = try await (loadedWarehouses, loadedProducts)
+            guard !Task.isCancelled else { return }
+            warehouses = nextWarehouses
+            products = nextProducts
+
+            if let existing {
+                dataBon = existing.dataBon
+                sourceWarehouseId = existing.sourceWarehouseId
+                destinationWarehouseId = existing.destinationWarehouseId
+                originalSourceWarehouseId = existing.sourceWarehouseId
+                observatii = existing.observatii ?? ""
+                let loadedLines = try await StockTransferService.fetchLines(transferId: existing.id)
+                guard !Task.isCancelled else { return }
+                let productsById = Dictionary(uniqueKeysWithValues: nextProducts.map { ($0.id, $0) })
+                var reserved: [UUID: Decimal] = [:]
+                var drafts: [TransferDraftLine] = []
+                for line in loadedLines {
+                    guard let product = productsById[line.productId] else { continue }
+                    reserved[line.productId, default: 0] += line.cantitate
+                    drafts.append(
+                        TransferDraftLine(
+                            product: product,
+                            quantityText: SupplierFormatting.amountString(line.cantitate)
+                        )
+                    )
+                }
+                reservedOnThisTransfer = reserved
+                lines = drafts
+            }
+            await reloadAvailableStock()
+        } catch is CancellationError {
+            return
         } catch {
-            errorMessage = error.localizedDescription
+            if !Task.isCancelled {
+                errorMessage = error.localizedDescription
+            }
         }
-        isLoading = false
+    }
+
+    private func reloadAvailableStock() async {
+        guard let companyId = companyManager.currentCompany?.id,
+              let sourceWarehouseId else {
+            availableByProductId = [:]
+            return
+        }
+        do {
+            availableByProductId = try await StockTransferService.fetchAvailableQuantities(
+                companyId: companyId,
+                warehouseId: sourceWarehouseId
+            )
+        } catch {
+            if !Task.isCancelled {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private func save() async {
@@ -255,37 +491,121 @@ struct StockTransferEditorView: View {
             errorMessage = L10n.tr("inventory.transfer_error_warehouses")
             return
         }
-        let parsed: [(productId: UUID, quantity: Decimal)] = lines.compactMap { line in
-            guard let quantity = SupplierFormatting.parseAmount(line.quantityText, maxFractionDigits: 4),
-                  quantity > 0 else { return nil }
-            return (line.product.id, quantity)
+        if sourceWarehouseId == destinationWarehouseId {
+            errorMessage = L10n.tr("inventory.transfer_error_same_warehouse")
+            return
         }
-        guard parsed.count == lines.count, !parsed.isEmpty else {
-            errorMessage = L10n.tr("inventory.transfer_error_no_lines")
+        var parsed: [(productId: UUID, quantity: Decimal)] = []
+        for line in lines {
+            let trimmedQty = line.quantityText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedQty.isEmpty {
+                continue
+            }
+            guard let quantity = SupplierFormatting.parseAmount(line.quantityText, maxFractionDigits: 4),
+                  quantity > 0 else {
+                errorMessage = L10n.tr("inventory.transfer_error_no_lines")
+                return
+            }
+            let available = availableQuantity(for: line.product.id)
+            if quantity > available {
+                errorMessage = L10n.tr(
+                    "inventory.transfer_error_exceeds_available",
+                    line.product.denumire,
+                    SupplierFormatting.amountString(available)
+                )
+                return
+            }
+            parsed.append((line.product.id, quantity))
+        }
+        if parsed.isEmpty {
+            if let existing {
+                // Fără linii ⇒ șterge bonul și readuce stocul pe gestiunea de plecare.
+                isLoading = true
+                errorMessage = nil
+                do {
+                    try await StockTransferService.deleteTransfer(id: existing.id)
+                    await onSaved()
+                    isLoading = false
+                    presentationMode.wrappedValue.dismiss()
+                } catch {
+                    errorMessage = error.localizedDescription
+                    isLoading = false
+                }
+            } else {
+                errorMessage = L10n.tr("inventory.transfer_error_no_lines")
+            }
             return
         }
         isLoading = true
         errorMessage = nil
         do {
-            _ = try await StockTransferService.postTransfer(
-                companyId: companyId,
-                dataBon: dataBon,
-                sourceWarehouseId: sourceWarehouseId,
-                destinationWarehouseId: destinationWarehouseId,
-                observatii: observatii,
-                lines: parsed
-            )
+            let savedId: UUID
+            if let existing {
+                try await StockTransferService.updateTransfer(
+                    id: existing.id,
+                    dataBon: dataBon,
+                    sourceWarehouseId: sourceWarehouseId,
+                    destinationWarehouseId: destinationWarehouseId,
+                    observatii: observatii,
+                    lines: parsed
+                )
+                savedId = existing.id
+            } else {
+                savedId = try await StockTransferService.postTransfer(
+                    companyId: companyId,
+                    dataBon: dataBon,
+                    sourceWarehouseId: sourceWarehouseId,
+                    destinationWarehouseId: destinationWarehouseId,
+                    observatii: observatii,
+                    lines: parsed
+                )
+            }
             await onSaved()
-            presentationMode.wrappedValue.dismiss()
+            let transfer = try await StockTransferService.fetchTransfer(id: savedId)
+            let exportLines = try await StockTransferService.fetchLines(transferId: savedId)
+            let company = companyManager.currentCompany
+            let sourceName = warehouses.first { $0.id == transfer.sourceWarehouseId }?.denumire ?? "—"
+            let destinationName = warehouses.first { $0.id == transfer.destinationWarehouseId }?.denumire ?? "—"
+            // Eliberăm UI înainte de generarea PDF (poate dura).
+            isLoading = false
+            let item = try await StockTransferService.prepareExport(
+                company: company,
+                transfer: transfer,
+                lines: exportLines,
+                sourceWarehouseName: sourceName,
+                destinationWarehouseName: destinationName
+            )
+            dismissAfterAviz = true
+            avizPreview = item
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+
+    private func exportAviz() async {
+        guard let existing else { return }
+        do {
+            let fresh = try await StockTransferService.fetchTransfer(id: existing.id)
+            let lines = try await StockTransferService.fetchLines(transferId: existing.id)
+            let item = try await StockTransferService.prepareExport(
+                company: companyManager.currentCompany,
+                transfer: fresh,
+                lines: lines,
+                sourceWarehouseName: warehouses.first { $0.id == fresh.sourceWarehouseId }?.denumire ?? "—",
+                destinationWarehouseName: warehouses.first { $0.id == fresh.destinationWarehouseId }?.denumire ?? "—"
+            )
+            dismissAfterAviz = false
+            avizPreview = item
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoading = false
     }
 }
 
 private struct StockTransferProductPicker: View {
     let products: [Product]
+    let availableByProductId: [UUID: Decimal]
     let onSelect: (Product) -> Void
 
     @Environment(\.presentationMode) private var presentationMode
@@ -307,11 +627,21 @@ private struct StockTransferProductPicker: View {
                     onSelect(product)
                     presentationMode.wrappedValue.dismiss()
                 } label: {
-                    VStack(alignment: .leading) {
-                        Text(product.denumire)
-                        Text(product.tip.label)
-                            .font(.caption)
-                            .foregroundColor(AppColors.secondary)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(product.denumire)
+                            Text(product.tip.label)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(SupplierFormatting.amountString(availableByProductId[product.id] ?? 0))
+                                .font(.subheadline.weight(.semibold))
+                            Text(product.unitateMasura)
+                                .font(.caption2)
+                                .foregroundColor(AppColors.secondary)
+                        }
                     }
                 }
             }
@@ -324,5 +654,6 @@ private struct StockTransferProductPicker: View {
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 }

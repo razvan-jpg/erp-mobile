@@ -102,7 +102,7 @@ struct SupplierInvoiceLine: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let companyId: UUID
     let invoiceId: UUID
-    let productId: UUID
+    var productId: UUID
     var numarLinie: Int
     var denumire: String
     @SupabaseDecimal var cantitate: Decimal
@@ -111,6 +111,8 @@ struct SupplierInvoiceLine: Codable, Identifiable, Hashable, Sendable {
     @SupabaseDecimal var sumaTva: Decimal
     @SupabaseDecimal var cotaTva: Decimal
     var unitateMasura: String
+    /// Importul a legat un articol similar și așteaptă confirmare pe NIR.
+    var needsProductReview: Bool
     let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
@@ -125,6 +127,57 @@ struct SupplierInvoiceLine: Codable, Identifiable, Hashable, Sendable {
         case sumaTva = "suma_tva"
         case cotaTva = "cota_tva"
         case unitateMasura = "unitate_masura"
+        case needsProductReview = "needs_product_review"
         case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        companyId = try container.decode(UUID.self, forKey: .companyId)
+        invoiceId = try container.decode(UUID.self, forKey: .invoiceId)
+        productId = try container.decode(UUID.self, forKey: .productId)
+        numarLinie = try container.decode(Int.self, forKey: .numarLinie)
+        denumire = try container.decode(String.self, forKey: .denumire)
+        _cantitate = try container.decode(SupabaseDecimal.self, forKey: .cantitate)
+        _pretUnitar = try container.decode(SupabaseDecimal.self, forKey: .pretUnitar)
+        _sumaLinie = try container.decode(SupabaseDecimal.self, forKey: .sumaLinie)
+        _sumaTva = try container.decode(SupabaseDecimal.self, forKey: .sumaTva)
+        _cotaTva = try container.decode(SupabaseDecimal.self, forKey: .cotaTva)
+        unitateMasura = try container.decode(String.self, forKey: .unitateMasura)
+        needsProductReview = try container.decodeIfPresent(Bool.self, forKey: .needsProductReview) ?? false
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
+    }
+
+    init(
+        id: UUID,
+        companyId: UUID,
+        invoiceId: UUID,
+        productId: UUID,
+        numarLinie: Int,
+        denumire: String,
+        cantitate: Decimal,
+        pretUnitar: Decimal,
+        sumaLinie: Decimal,
+        sumaTva: Decimal,
+        cotaTva: Decimal,
+        unitateMasura: String,
+        needsProductReview: Bool = false,
+        createdAt: Date? = nil
+    ) {
+        self.id = id
+        self.companyId = companyId
+        self.invoiceId = invoiceId
+        self.productId = productId
+        self.numarLinie = numarLinie
+        self.denumire = denumire
+        self.cantitate = cantitate
+        self.pretUnitar = pretUnitar
+        self.sumaLinie = sumaLinie
+        self.sumaTva = sumaTva
+        self.cotaTva = cotaTva
+        self.unitateMasura = unitateMasura
+        self.needsProductReview = needsProductReview
+        self.createdAt = createdAt
     }
 }

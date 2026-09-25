@@ -193,10 +193,17 @@ struct NIRMarkupAccountingView: View {
             case .print:
                 guard let snapshot = makeSnapshot() else { return }
                 let url = try NIRMarkupAccountingPDFBuilder.writeTemporaryPDF(from: snapshot)
+#if targetEnvironment(macCatalyst)
+                try DocumentExportSupport.printPDF(
+                    url: url,
+                    jobName: L10n.tr("nir.markup_accounting_print_job", SupplierFormatting.monthYear(report.month))
+                )
+#else
                 await MainActor.run {
                     pdfAttachmentURL = url
                     showPrintSheet = true
                 }
+#endif
             case .exportPDF:
                 guard let snapshot = makeSnapshot() else { return }
                 let url = try NIRMarkupAccountingPDFBuilder.writeTemporaryPDF(from: snapshot)
