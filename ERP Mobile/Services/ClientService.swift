@@ -579,27 +579,65 @@ enum ClientService {
         observatii: String?,
         createdBy: UUID?
     ) async throws -> ClientInvoice {
-        let payload = InvoiceInsert(
-            companyId: companyId,
+        let localId = UUID()
+        let optimistic = OfflineOptimistic.clientInvoice(
+            id: localId,
             clientId: clientId,
             numarFactura: numarFactura,
-            dataFactura: dateString(dataFactura),
-            dataScadenta: dataScadenta.map(dateString),
-            sumaTotala: doubleAmount(sumaTotala),
-            sumaTva: doubleAmount(sumaTva),
+            dataFactura: dataFactura,
+            dataScadenta: dataScadenta,
+            sumaTotala: sumaTotala,
+            sumaTva: sumaTva,
             moneda: moneda,
-            status: status.rawValue,
-            observatii: emptyToNil(observatii),
+            status: status,
+            observatii: observatii,
             createdBy: createdBy
         )
-        let rows: [ClientInvoice] = try await client
-            .from("client_invoices")
-            .insert(payload)
-            .select()
-            .execute()
-            .value
-        guard let invoice = rows.first else { throw ServiceError.invalidResponse }
-        return invoice
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .clientInvoiceCreate,
+            entityKind: LocalDocumentEntityKind.clientInvoice.rawValue,
+            entityId: localId,
+            title: numarFactura,
+            payload: SyncPayloads.ClientInvoiceCreate(
+                id: localId,
+                companyId: companyId,
+                clientId: clientId,
+                numarFactura: numarFactura,
+                dataFactura: dataFactura,
+                dataScadenta: dataScadenta,
+                sumaTotala: sumaTotala,
+                sumaTva: sumaTva,
+                moneda: moneda,
+                status: status,
+                observatii: observatii,
+                createdBy: createdBy
+            ),
+            optimistic: optimistic,
+            remote: {
+                let payload = InvoiceInsert(
+                    companyId: companyId,
+                    clientId: clientId,
+                    numarFactura: numarFactura,
+                    dataFactura: dateString(dataFactura),
+                    dataScadenta: dataScadenta.map(dateString),
+                    sumaTotala: doubleAmount(sumaTotala),
+                    sumaTva: doubleAmount(sumaTva),
+                    moneda: moneda,
+                    status: status.rawValue,
+                    observatii: emptyToNil(observatii),
+                    createdBy: createdBy
+                )
+                let rows: [ClientInvoice] = try await client
+                    .from("client_invoices")
+                    .insert(payload)
+                    .select()
+                    .execute()
+                    .value
+                guard let invoice = rows.first else { throw ServiceError.invalidResponse }
+                return invoice
+            }
+        )
     }
 
     static func updateInvoice(
@@ -614,31 +652,70 @@ enum ClientService {
         status: InvoiceStatus,
         observatii: String?
     ) async throws -> ClientInvoice {
-        let payload = InvoiceUpdate(
+        let companyId = await OfflineCompany.requireId()
+        let optimistic = OfflineOptimistic.clientInvoice(
+            id: id,
             clientId: clientId,
             numarFactura: numarFactura,
-            dataFactura: dateString(dataFactura),
-            dataScadenta: dataScadenta.map(dateString),
-            sumaTotala: doubleAmount(sumaTotala),
-            sumaTva: doubleAmount(sumaTva),
+            dataFactura: dataFactura,
+            dataScadenta: dataScadenta,
+            sumaTotala: sumaTotala,
+            sumaTva: sumaTva,
             moneda: moneda,
-            status: status.rawValue,
-            observatii: emptyToNil(observatii)
+            status: status,
+            observatii: observatii,
+            createdBy: nil
         )
-        let rows: [ClientInvoice] = try await client
-            .from("client_invoices")
-            .update(payload)
-            .eq("id", value: id.uuidString)
-            .select()
-            .execute()
-            .value
-        guard let invoice = rows.first else { throw ServiceError.invalidResponse }
-        return invoice
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .clientInvoiceUpdate,
+            entityKind: LocalDocumentEntityKind.clientInvoice.rawValue,
+            entityId: id,
+            title: numarFactura,
+            payload: SyncPayloads.ClientInvoiceUpdate(
+                id: id,
+                clientId: clientId,
+                numarFactura: numarFactura,
+                dataFactura: dataFactura,
+                dataScadenta: dataScadenta,
+                sumaTotala: sumaTotala,
+                sumaTva: sumaTva,
+                moneda: moneda,
+                status: status,
+                observatii: observatii
+            ),
+            optimistic: optimistic,
+            remote: {
+                let payload = InvoiceUpdate(
+                    clientId: clientId,
+                    numarFactura: numarFactura,
+                    dataFactura: dateString(dataFactura),
+                    dataScadenta: dataScadenta.map(dateString),
+                    sumaTotala: doubleAmount(sumaTotala),
+                    sumaTva: doubleAmount(sumaTva),
+                    moneda: moneda,
+                    status: status.rawValue,
+                    observatii: emptyToNil(observatii)
+                )
+                let rows: [ClientInvoice] = try await client
+                    .from("client_invoices")
+                    .update(payload)
+                    .eq("id", value: id.uuidString)
+                    .select()
+                    .execute()
+                    .value
+                guard let invoice = rows.first else { throw ServiceError.invalidResponse }
+                return invoice
+            }
+        )
     }
 
     static func deleteInvoice(id: UUID) async throws {
-        if try await invoiceHasPayments(invoiceId: id) {
-            throw InvoiceDeleteError.hasRegisteredPayments
+        let online = await MainActor.run { NetworkMonitor.shared.isOnline }
+        if OfflineWriteContext.isSyncDrain || online {
+            if try await invoiceHasPayments(invoiceId: id) {
+                throw InvoiceDeleteError.hasRegisteredPayments
+            }
         }
 
         struct DeleteInvoiceParams: Encodable {
@@ -653,25 +730,36 @@ enum ClientService {
             let id: UUID
         }
 
-        do {
-            try await client
-                .rpc("delete_client_invoice", params: DeleteInvoiceParams(pInvoiceId: id))
-                .execute()
-        } catch {
-            throw InvoiceDeleteError.map(error)
-        }
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .clientInvoiceDelete,
+            entityKind: LocalDocumentEntityKind.clientInvoice.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.client_invoice"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                do {
+                    try await client
+                        .rpc("delete_client_invoice", params: DeleteInvoiceParams(pInvoiceId: id))
+                        .execute()
+                } catch {
+                    throw InvoiceDeleteError.map(error)
+                }
 
-        let remaining: [DeletedInvoiceRef] = try await client
-            .from("client_invoices")
-            .select("id")
-            .eq("id", value: id.uuidString)
-            .limit(1)
-            .execute()
-            .value
+                let remaining: [DeletedInvoiceRef] = try await client
+                    .from("client_invoices")
+                    .select("id")
+                    .eq("id", value: id.uuidString)
+                    .limit(1)
+                    .execute()
+                    .value
 
-        if !remaining.isEmpty {
-            throw InvoiceDeleteError.deleteFailed
-        }
+                if !remaining.isEmpty {
+                    throw InvoiceDeleteError.deleteFailed
+                }
+            }
+        )
     }
 
     static func invoiceHasPayments(invoiceId: UUID) async throws -> Bool {
@@ -733,25 +821,59 @@ enum ClientService {
         observatii: String?,
         createdBy: UUID?
     ) async throws -> ClientPayment {
-        let payload = PaymentInsert(
-            companyId: companyId,
+        let localId = UUID()
+        let optimistic = OfflineOptimistic.clientPayment(
+            id: localId,
             clientId: clientId,
             invoiceId: invoiceId,
-            dataPlata: dateString(dataPlata),
-            suma: doubleAmount(suma),
-            metodaPlata: metodaPlata.rawValue,
-            referinta: emptyToNil(referinta),
-            observatii: emptyToNil(observatii),
+            dataPlata: dataPlata,
+            suma: suma,
+            metodaPlata: metodaPlata,
+            referinta: referinta,
+            observatii: observatii,
             createdBy: createdBy
         )
-        let rows: [ClientPayment] = try await client
-            .from("client_payments")
-            .insert(payload)
-            .select()
-            .execute()
-            .value
-        guard let payment = rows.first else { throw ServiceError.invalidResponse }
-        return payment
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .clientPaymentCreate,
+            entityKind: LocalDocumentEntityKind.clientPayment.rawValue,
+            entityId: localId,
+            title: L10n.tr("offline.entity.client_payment"),
+            payload: SyncPayloads.ClientPaymentCreate(
+                id: localId,
+                companyId: companyId,
+                clientId: clientId,
+                invoiceId: invoiceId,
+                dataPlata: dataPlata,
+                suma: suma,
+                metodaPlata: metodaPlata,
+                referinta: referinta,
+                observatii: observatii,
+                createdBy: createdBy
+            ),
+            optimistic: optimistic,
+            remote: {
+                let payload = PaymentInsert(
+                    companyId: companyId,
+                    clientId: clientId,
+                    invoiceId: invoiceId,
+                    dataPlata: dateString(dataPlata),
+                    suma: doubleAmount(suma),
+                    metodaPlata: metodaPlata.rawValue,
+                    referinta: emptyToNil(referinta),
+                    observatii: emptyToNil(observatii),
+                    createdBy: createdBy
+                )
+                let rows: [ClientPayment] = try await client
+                    .from("client_payments")
+                    .insert(payload)
+                    .select()
+                    .execute()
+                    .value
+                guard let payment = rows.first else { throw ServiceError.invalidResponse }
+                return payment
+            }
+        )
     }
 
     static func createPaymentsFromPlan(
@@ -805,32 +927,75 @@ enum ClientService {
         referinta: String?,
         observatii: String?
     ) async throws -> ClientPayment {
-        let payload = PaymentUpdate(
+        let companyId = await OfflineCompany.requireId()
+        let optimistic = OfflineOptimistic.clientPayment(
+            id: id,
             clientId: clientId,
             invoiceId: invoiceId,
-            dataPlata: dateString(dataPlata),
-            suma: doubleAmount(suma),
-            metodaPlata: metodaPlata.rawValue,
-            referinta: emptyToNil(referinta),
-            observatii: emptyToNil(observatii)
+            dataPlata: dataPlata,
+            suma: suma,
+            metodaPlata: metodaPlata,
+            referinta: referinta,
+            observatii: observatii,
+            createdBy: nil
         )
-        let rows: [ClientPayment] = try await client
-            .from("client_payments")
-            .update(payload)
-            .eq("id", value: id.uuidString)
-            .select()
-            .execute()
-            .value
-        guard let payment = rows.first else { throw ServiceError.invalidResponse }
-        return payment
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .clientPaymentUpdate,
+            entityKind: LocalDocumentEntityKind.clientPayment.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.client_payment"),
+            payload: SyncPayloads.ClientPaymentUpdate(
+                id: id,
+                clientId: clientId,
+                invoiceId: invoiceId,
+                dataPlata: dataPlata,
+                suma: suma,
+                metodaPlata: metodaPlata,
+                referinta: referinta,
+                observatii: observatii
+            ),
+            optimistic: optimistic,
+            remote: {
+                let payload = PaymentUpdate(
+                    clientId: clientId,
+                    invoiceId: invoiceId,
+                    dataPlata: dateString(dataPlata),
+                    suma: doubleAmount(suma),
+                    metodaPlata: metodaPlata.rawValue,
+                    referinta: emptyToNil(referinta),
+                    observatii: emptyToNil(observatii)
+                )
+                let rows: [ClientPayment] = try await client
+                    .from("client_payments")
+                    .update(payload)
+                    .eq("id", value: id.uuidString)
+                    .select()
+                    .execute()
+                    .value
+                guard let payment = rows.first else { throw ServiceError.invalidResponse }
+                return payment
+            }
+        )
     }
 
     static func deletePayment(id: UUID) async throws {
-        try await client
-            .from("client_payments")
-            .delete()
-            .eq("id", value: id.uuidString)
-            .execute()
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .clientPaymentDelete,
+            entityKind: LocalDocumentEntityKind.clientPayment.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.client_payment"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                try await client
+                    .from("client_payments")
+                    .delete()
+                    .eq("id", value: id.uuidString)
+                    .execute()
+            }
+        )
     }
 
     private static func emptyToNil(_ value: String?) -> String? {

@@ -75,6 +75,28 @@ struct PhysicalInventoryLine: Codable, Identifiable, Hashable, Sendable {
         case unitateMasura = "unitate_masura"
     }
 
+    init(
+        id: UUID,
+        inventoryId: UUID,
+        companyId: UUID,
+        productId: UUID,
+        stocScriptic: Decimal,
+        cantitateNumarata: Decimal?,
+        unitateMasura: String,
+        observatii: String?,
+        product: PhysicalInventoryProductRef?
+    ) {
+        self.id = id
+        self.inventoryId = inventoryId
+        self.companyId = companyId
+        self.productId = productId
+        self.stocScriptic = stocScriptic
+        self.cantitateNumarata = cantitateNumarata
+        self.unitateMasura = unitateMasura
+        self.observatii = observatii
+        self.product = product
+    }
+
     nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)

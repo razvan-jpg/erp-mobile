@@ -51,38 +51,82 @@ enum CashRegisterEntryService {
         lastSyncWarning = nil
         CashRegisterManualEntryStore.upsert(entry, companyId: companyId)
         do {
-            let saved = try await upsertRemote(entry, companyId: companyId)
-            usesLocalFallback = false
-            CashRegisterManualEntryStore.upsert(saved, companyId: companyId)
+            let saved = try await OfflineAwareGateway.run(
+                companyId: companyId,
+                operation: .cashRegisterUpsert,
+                entityKind: LocalDocumentEntityKind.cashRegisterEntry.rawValue,
+                entityId: entry.id,
+                title: entry.documentNumber.isEmpty
+                    ? L10n.tr("offline.entity.cash_register")
+                    : entry.documentNumber,
+                payload: SyncPayloads.CashRegisterUpsert(entry: entry, companyId: companyId),
+                optimistic: entry,
+                remote: {
+                    let saved = try await upsertRemote(entry, companyId: companyId)
+                    usesLocalFallback = false
+                    CashRegisterManualEntryStore.upsert(saved, companyId: companyId)
+                    LocalDocumentStore.upsert(
+                        id: saved.id,
+                        companyId: companyId,
+                        kind: .cashRegisterEntry,
+                        value: saved,
+                        pendingSync: false
+                    )
+                    return saved
+                }
+            )
+            let pending = LocalDocumentStore.isPending(id: entry.id, companyId: companyId)
+                || SyncOutbox.load(companyId: companyId).contains {
+                    $0.entityId == entry.id && $0.operationType == .cashRegisterUpsert && $0.isPendingLike
+                }
+            if pending {
+                LocalDocumentStore.upsert(
+                    id: entry.id,
+                    companyId: companyId,
+                    kind: .cashRegisterEntry,
+                    value: entry,
+                    pendingSync: true
+                )
+                lastSyncWarning = L10n.tr("offline.saved_pending_sync")
+            }
             return saved
         } catch {
             if isMissingRemoteTableError(error) {
                 usesLocalFallback = true
                 return entry
             }
-            usesLocalFallback = true
-            lastSyncWarning = error.localizedDescription
-            return entry
+            throw error
         }
     }
 
     static func delete(id: UUID, companyId: UUID) async throws {
         CashRegisterManualEntryStore.delete(id: id, companyId: companyId)
-        do {
-            _ = try await client
-                .from("company_cash_register_entries")
-                .delete()
-                .eq("company_id", value: companyId.uuidString)
-                .eq("id", value: id.uuidString)
-                .execute()
-            usesLocalFallback = false
-        } catch {
-            if isMissingRemoteTableError(error) {
-                usesLocalFallback = true
-                return
+        LocalDocumentStore.remove(id: id, companyId: companyId, kind: .cashRegisterEntry)
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .cashRegisterDelete,
+            entityKind: LocalDocumentEntityKind.cashRegisterEntry.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.cash_register"),
+            payload: SyncPayloads.CashRegisterDelete(id: id, companyId: companyId),
+            remote: {
+                do {
+                    _ = try await client
+                        .from("company_cash_register_entries")
+                        .delete()
+                        .eq("company_id", value: companyId.uuidString)
+                        .eq("id", value: id.uuidString)
+                        .execute()
+                    usesLocalFallback = false
+                } catch {
+                    if isMissingRemoteTableError(error) {
+                        usesLocalFallback = true
+                        return
+                    }
+                    throw error
+                }
             }
-            throw error
-        }
+        )
     }
 
     static func migrateLocalEntriesIfNeeded(companyId: UUID) async {
@@ -90,7 +134,20 @@ enum CashRegisterEntryService {
         guard !local.isEmpty else { return }
         do {
             let remote = try await fetchRemoteEntries(companyId: companyId)
-            await pushLocalOnly(local: local, remote: remote, companyId: companyId)
+            let remoteIds = Set(remote.map(\.id))
+            for entry in local where !remoteIds.contains(entry.id) {
+                try? SyncOutbox.enqueue(
+                    companyId: companyId,
+                    operationType: .cashRegisterUpsert,
+                    entityKind: LocalDocumentEntityKind.cashRegisterEntry.rawValue,
+                    entityId: entry.id,
+                    title: entry.documentNumber,
+                    payload: SyncPayloads.CashRegisterUpsert(entry: entry, companyId: companyId)
+                )
+            }
+            await MainActor.run {
+                SyncEngine.shared.scheduleSync(reason: "cash_register_migrate")
+            }
         } catch {
             usesLocalFallback = true
         }

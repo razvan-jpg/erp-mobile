@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 25 septembrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · September 25, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 7 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 7, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.080",
+            targetVersionLabel: "1.0.086",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
@@ -37,6 +37,62 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.085", "07.10.2026",
+                ro: [
+                    "Lucru offline: poți salva NIR, facturi, transferuri, inventar, casă, Rapoarte Z și catalog CM fără internet; se sincronizează automat la reconectare.",
+                    "Bara de jos arată Offline / N în sync; în Setări → Sync offline poți reîncerca sau renunța la operațiile în așteptare.",
+                ],
+                en: [
+                    "Offline work: save NIR, invoices, transfers, inventory, cash register, Z reports and CM catalog without internet; they sync automatically when back online.",
+                    "Bottom bar shows Offline / N pending; Settings → Offline sync lets you retry or discard queued operations.",
+                ]
+            ),
+            release(
+                "1.0.084", "05.10.2026",
+                ro: [
+                    "Liste: ultimele rânduri nu mai intră sub bara de jos (Catalog / grupe CM și restul ecranelor).",
+                ],
+                en: [
+                    "Lists: last rows no longer sit under the bottom status bar (Catalog / CM groups and other screens).",
+                ]
+            ),
+            release(
+                "1.0.083", "05.10.2026",
+                ro: [
+                    "Setări: Utilizatori (și Societăți admin) se deschid din nou corect pe Mac/iPad.",
+                ],
+                en: [
+                    "Settings: Users (and admin Companies) open correctly again on Mac/iPad.",
+                ]
+            ),
+            release(
+                "1.0.082", "05.10.2026",
+                ro: [
+                    "Nomenclatoare → Catalog: tab-uri Grupe CM (grupe, Meniuri, Produse fără grupă) și Produse; pe fișa produsului — Grupa CM (1–2 grupe).",
+                ],
+                en: [
+                    "Master data → Catalog: CM Groups tab (groups, Menus, Ungrouped products) and Products; product sheet — CM group (1–2 groups).",
+                ]
+            ),
+            release(
+                "1.0.081", "05.10.2026",
+                ro: [
+                    "Vânzări: două tab-uri — Preluare BF din BINA și Vânzare casă marcat.",
+                ],
+                en: [
+                    "Sales: two tabs — Import BF from BINA and Fiscal cash register sale.",
+                ]
+            ),
+            release(
+                "1.0.080", "05.10.2026",
+                ro: [
+                    "Acasă: tile nou Vânzări.",
+                ],
+                en: [
+                    "Home: new Sales tile.",
+                ]
+            ),
             release(
                 "1.0.079", "25.09.2026",
                 ro: [

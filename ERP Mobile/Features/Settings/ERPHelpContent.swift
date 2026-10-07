@@ -26,6 +26,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_intro_b2"),
                     L10n.tr("help.section_intro_b3"),
                     L10n.tr("help.section_intro_b4"),
+                    L10n.tr("help.section_intro_b5"),
                 ],
                 screenshotAssetNames: ["HelpDashboard"],
                 tip: L10n.tr("help.section_intro_tip")
@@ -62,6 +63,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_dashboard_b6"),
                     L10n.tr("help.section_dashboard_b7"),
                     L10n.tr("help.section_dashboard_b8"),
+                    L10n.tr("help.section_dashboard_b9"),
                 ],
                 screenshotAssetNames: ["HelpDashboard", "HelpCompanyMenu"],
                 tip: L10n.tr("help.section_dashboard_tip")
@@ -97,6 +99,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_settings_b5"),
                     L10n.tr("help.section_settings_b6"),
                     L10n.tr("help.section_settings_b7"),
+                    L10n.tr("help.section_settings_b8"),
                 ],
                 screenshotAssetNames: ["HelpSettings"],
                 tip: L10n.tr("help.section_settings_tip")
@@ -152,6 +155,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_nomenclatoare_b3"),
                     L10n.tr("help.section_nomenclatoare_b4"),
                     L10n.tr("help.section_nomenclatoare_b5"),
+                    L10n.tr("help.section_nomenclatoare_b6"),
                 ],
                 screenshotAssetNames: ["HelpNomenclatoare"],
                 tip: L10n.tr("help.section_nomenclatoare_tip")

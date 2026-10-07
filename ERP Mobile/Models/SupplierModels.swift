@@ -162,6 +162,44 @@ struct SupplierInvoice: Codable, Identifiable, Hashable, Sendable {
         case updatedAt = "updated_at"
     }
 
+    init(
+        id: UUID,
+        supplierId: UUID,
+        numarFactura: String,
+        dataFactura: Date,
+        dataScadenta: Date?,
+        sumaTotala: Decimal,
+        sumaTva: Decimal,
+        sumaPlatita: Decimal = 0,
+        moneda: String,
+        status: InvoiceStatus,
+        observatii: String?,
+        workLocationId: UUID?,
+        warehouseId: UUID?,
+        receptionClosed: Bool = false,
+        createdBy: UUID?,
+        createdAt: Date? = nil,
+        updatedAt: Date? = nil
+    ) {
+        self.id = id
+        self.supplierId = supplierId
+        self.numarFactura = numarFactura
+        self.dataFactura = dataFactura
+        self.dataScadenta = dataScadenta
+        _sumaTotala = SupabaseDecimal(wrappedValue: sumaTotala)
+        _sumaTva = SupabaseDecimal(wrappedValue: sumaTva)
+        _sumaPlatita = SupabaseDecimal(wrappedValue: sumaPlatita)
+        self.moneda = moneda
+        self.status = status
+        self.observatii = observatii
+        self.workLocationId = workLocationId
+        self.warehouseId = warehouseId
+        self.receptionClosed = receptionClosed
+        self.createdBy = createdBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)

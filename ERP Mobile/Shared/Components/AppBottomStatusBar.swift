@@ -37,6 +37,8 @@ extension EnvironmentValues {
 struct AppBottomStatusBar: View {
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var companyManager: CompanyManager
+    @ObservedObject private var syncEngine = SyncEngine.shared
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @Environment(\.openUsers) private var openUsers
     @Environment(\.openCompanySettings) private var openCompanySettings
     @Environment(\.openAboutApp) private var openAboutApp
@@ -47,12 +49,50 @@ struct AppBottomStatusBar: View {
             HStack(alignment: .top, spacing: 8) {
                 userSection
                 companySection
+                syncBadge
                 versionSection
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
             .appBarBackground()
+        }
+        .onAppear {
+            SyncEngine.shared.start()
+            if let companyId = companyManager.currentCompany?.id {
+                SyncEngine.shared.setActiveCompany(companyId)
+            }
+        }
+        .onChange(of: companyManager.currentCompany?.id) { companyId in
+            SyncEngine.shared.setActiveCompany(companyId)
+        }
+    }
+
+    @ViewBuilder
+    private var syncBadge: some View {
+        let pending = syncEngine.pendingCount + syncEngine.failedCount
+        if !networkMonitor.isOnline || pending > 0 {
+            VStack(spacing: 2) {
+                Image(systemName: networkMonitor.isOnline ? "arrow.triangle.2.circlepath" : "wifi.slash")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(syncEngine.failedCount > 0 ? .red : AppColors.secondary)
+                Text(
+                    networkMonitor.isOnline
+                        ? L10n.tr("offline.badge.pending", pending)
+                        : L10n.tr("offline.badge.offline")
+                )
+                .font(.caption2)
+                .foregroundColor(AppColors.secondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: 72)
+            .accessibilityLabel(
+                networkMonitor.isOnline
+                    ? L10n.tr("offline.badge.pending", pending)
+                    : L10n.tr("offline.badge.offline")
+            )
         }
     }
 
@@ -152,18 +192,30 @@ struct AppBottomStatusBar: View {
 }
 
 extension View {
+    @ViewBuilder
     func withAppBottomStatusBar(
         onOpenUsers: (() -> Void)? = nil,
         onOpenCompanySettings: (() -> Void)? = nil,
         onOpenAboutApp: (() -> Void)? = nil
     ) -> some View {
-        appSafeAreaInsetBottom {
-            AppBottomStatusBar()
-                .environment(\.openUsers, onOpenUsers)
-                .environment(\.openCompanySettings, onOpenCompanySettings)
-                .environment(\.openAboutApp, onOpenAboutApp)
+        let bar = AppBottomStatusBar()
+            .environment(\.openUsers, onOpenUsers)
+            .environment(\.openCompanySettings, onOpenCompanySettings)
+            .environment(\.openAboutApp, onOpenAboutApp)
+
+        if #available(iOS 17, *) {
+            // contentMargins reaches nested List/ScrollView; safeAreaInset alone is not enough on Catalyst.
+            self
+                .appSafeAreaInsetBottom { bar }
+                .contentMargins(.bottom, AppChrome.bottomStatusBarHeight, for: .scrollContent)
+                .environment(\.appBottomBarClearance, AppChrome.bottomStatusBarHeight)
+                .environment(\.appGlobalScrollBottomPadding, true)
+        } else {
+            self
+                .appSafeAreaInsetBottom { bar }
+                .environment(\.appBottomBarClearance, AppChrome.bottomStatusBarHeight)
+                .environment(\.appGlobalScrollBottomPadding, false)
         }
-        .environment(\.appBottomBarClearance, AppChrome.bottomStatusBarHeight)
     }
 
     func floatingBottomTrailing<OverlayContent: View>(
@@ -181,10 +233,20 @@ private struct AppBottomBarClearanceKey: EnvironmentKey {
     static let defaultValue: CGFloat = AppChrome.bottomStatusBarHeight
 }
 
+private struct AppGlobalScrollBottomPaddingKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var appBottomBarClearance: CGFloat {
         get { self[AppBottomBarClearanceKey.self] }
         set { self[AppBottomBarClearanceKey.self] = newValue }
+    }
+
+    /// True when the root chrome already applied scroll contentMargins (iOS 17+).
+    var appGlobalScrollBottomPadding: Bool {
+        get { self[AppGlobalScrollBottomPaddingKey.self] }
+        set { self[AppGlobalScrollBottomPaddingKey.self] = newValue }
     }
 }
 
@@ -207,9 +269,12 @@ private struct FloatingBottomTrailingModifier<OverlayContent: View>: ViewModifie
 
 private struct AppScrollBottomPaddingModifier: ViewModifier {
     @Environment(\.appBottomBarClearance) private var bottomBarClearance
+    @Environment(\.appGlobalScrollBottomPadding) private var globalPaddingApplied
 
     func body(content: Content) -> some View {
-        if #available(iOS 17, *) {
+        if globalPaddingApplied {
+            content
+        } else if #available(iOS 17, *) {
             content
                 .contentMargins(.bottom, bottomBarClearance, for: .scrollContent)
         } else {

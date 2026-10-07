@@ -68,6 +68,7 @@ final class CompanyManager: ObservableObject {
             try await CompanyService.setSelectedCompany(id: company.id)
             currentCompany = company
             profile?.selectedCompanyId = company.id
+            SyncEngine.shared.setActiveCompany(company.id)
         } catch {
             if !Task.isCancelled {
                 errorMessage = error.localizedDescription
@@ -128,6 +129,7 @@ final class CompanyManager: ObservableObject {
         if let selectedId = profile.selectedCompanyId,
            let selected = switchableCompanies.first(where: { $0.id == selectedId }) {
             currentCompany = selected
+            SyncEngine.shared.setActiveCompany(selected.id)
             return
         }
 
@@ -135,9 +137,11 @@ final class CompanyManager: ObservableObject {
             try await CompanyService.setSelectedCompany(id: only.id)
             currentCompany = only
             self.profile?.selectedCompanyId = only.id
+            SyncEngine.shared.setActiveCompany(only.id)
             return
         }
 
         currentCompany = nil
+        SyncEngine.shared.setActiveCompany(nil)
     }
 }

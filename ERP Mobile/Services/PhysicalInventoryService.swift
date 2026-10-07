@@ -89,25 +89,56 @@ enum PhysicalInventoryService {
         warehouseId: UUID?,
         populateFromStock: Bool
     ) async throws -> PhysicalInventory {
-        let payload = InventoryInsert(
+        let localId = UUID()
+        let online = await MainActor.run { NetworkMonitor.shared.isOnline }
+        // populateFromStock requires live RPC; offline creates empty inventory.
+        let populate = populateFromStock && (OfflineWriteContext.isSyncDrain || online)
+        let optimistic = OfflineOptimistic.physicalInventory(
+            id: localId,
             companyId: companyId,
-            dataInventar: dateString(dataInventar),
-            observatii: emptyToNil(observatii),
-            createdBy: createdBy,
+            dataInventar: dataInventar,
+            observatii: observatii,
             warehouseId: warehouseId
         )
-        let rows: [PhysicalInventory] = try await client
-            .from("physical_inventories")
-            .insert(payload)
-            .select("id, company_id, numar_inventar, data_inventar, status, observatii, warehouse_id, created_at, updated_at, finalized_at")
-            .execute()
-            .value
-        guard let inventory = rows.first else { throw ServiceError.invalidResponse }
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .physicalInventoryCreate,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: localId,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.PhysicalInventoryCreate(
+                id: localId,
+                companyId: companyId,
+                dataInventar: dataInventar,
+                observatii: observatii,
+                createdBy: createdBy,
+                warehouseId: warehouseId,
+                populateFromStock: populate,
+                numarInventar: "LOCAL"
+            ),
+            optimistic: optimistic,
+            remote: {
+                let payload = InventoryInsert(
+                    companyId: companyId,
+                    dataInventar: dateString(dataInventar),
+                    observatii: emptyToNil(observatii),
+                    createdBy: createdBy,
+                    warehouseId: warehouseId
+                )
+                let rows: [PhysicalInventory] = try await client
+                    .from("physical_inventories")
+                    .insert(payload)
+                    .select("id, company_id, numar_inventar, data_inventar, status, observatii, warehouse_id, created_at, updated_at, finalized_at")
+                    .execute()
+                    .value
+                guard let inventory = rows.first else { throw ServiceError.invalidResponse }
 
-        if populateFromStock {
-            _ = try await loadProductsFromStock(inventoryId: inventory.id)
-        }
-        return inventory
+                if populate {
+                    _ = try await loadProductsFromStock(inventoryId: inventory.id)
+                }
+                return inventory
+            }
+        )
     }
 
     static func loadProductsFromStock(inventoryId: UUID) async throws -> Int {
@@ -128,41 +159,92 @@ enum PhysicalInventoryService {
         cantitateNumarata: Decimal,
         observatii: String? = nil
     ) async throws -> PhysicalInventoryLine {
-        let params = UpsertLineParams(
-            pInventoryId: inventoryId,
-            pProductId: productId,
-            pCantitateNumarata: doubleAmount(cantitateNumarata),
-            pObservatii: emptyToNil(observatii)
+        let companyId = await OfflineCompany.requireId()
+        let entityId = productId
+        // Optimistic stub — UI refreshes from server when online; offline keeps outbox.
+        let optimistic = PhysicalInventoryLine(
+            id: entityId,
+            inventoryId: inventoryId,
+            companyId: companyId,
+            productId: productId,
+            stocScriptic: 0,
+            cantitateNumarata: cantitateNumarata,
+            unitateMasura: "",
+            observatii: observatii,
+            product: nil
         )
-
-        do {
-            return try await client
-                .rpc("upsert_physical_inventory_line", params: params)
-                .execute()
-                .value
-        } catch {
-            throw PhysicalInventoryError.map(error)
-        }
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .physicalInventoryUpsertLine,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: entityId,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.PhysicalInventoryUpsertLine(
+                inventoryId: inventoryId,
+                productId: productId,
+                cantitateNumarata: cantitateNumarata,
+                observatii: observatii
+            ),
+            optimistic: optimistic,
+            remote: {
+                let params = UpsertLineParams(
+                    pInventoryId: inventoryId,
+                    pProductId: productId,
+                    pCantitateNumarata: doubleAmount(cantitateNumarata),
+                    pObservatii: emptyToNil(observatii)
+                )
+                do {
+                    return try await client
+                        .rpc("upsert_physical_inventory_line", params: params)
+                        .execute()
+                        .value
+                } catch {
+                    throw PhysicalInventoryError.map(error)
+                }
+            }
+        )
     }
 
     static func finalize(inventoryId: UUID) async throws {
-        do {
-            try await client
-                .rpc("finalize_physical_inventory", params: InventoryIdParams(pInventoryId: inventoryId))
-                .execute()
-        } catch {
-            throw PhysicalInventoryError.map(error)
-        }
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .physicalInventoryFinalize,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: inventoryId,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.UUIDPayload(id: inventoryId),
+            remote: {
+                do {
+                    try await client
+                        .rpc("finalize_physical_inventory", params: InventoryIdParams(pInventoryId: inventoryId))
+                        .execute()
+                } catch {
+                    throw PhysicalInventoryError.map(error)
+                }
+            }
+        )
     }
 
     static func deleteInventory(id: UUID) async throws {
-        do {
-            try await client
-                .rpc("delete_physical_inventory", params: InventoryIdParams(pInventoryId: id))
-                .execute()
-        } catch {
-            throw PhysicalInventoryError.map(error)
-        }
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .physicalInventoryDelete,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                do {
+                    try await client
+                        .rpc("delete_physical_inventory", params: InventoryIdParams(pInventoryId: id))
+                        .execute()
+                } catch {
+                    throw PhysicalInventoryError.map(error)
+                }
+            }
+        )
     }
 
     static func fetchDifferenceReports(companyId: UUID) async throws -> [InventoryDifferenceReport] {
@@ -185,11 +267,22 @@ enum PhysicalInventoryService {
     }
 
     static func deleteLine(id: UUID) async throws {
-        try await client
-            .from("physical_inventory_lines")
-            .delete()
-            .eq("id", value: id.uuidString)
-            .execute()
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .physicalInventoryDeleteLine,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                try await client
+                    .from("physical_inventory_lines")
+                    .delete()
+                    .eq("id", value: id.uuidString)
+                    .execute()
+            }
+        )
     }
 
     private static func dateString(_ date: Date) -> String {

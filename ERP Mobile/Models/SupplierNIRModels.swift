@@ -84,6 +84,30 @@ struct SupplierNIR: Codable, Identifiable, Hashable, Sendable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+
+    init(
+        id: UUID,
+        companyId: UUID,
+        invoiceId: UUID,
+        numarNir: String,
+        dataNir: Date,
+        workLocationId: UUID?,
+        warehouseId: UUID?,
+        createdBy: UUID?,
+        createdAt: Date? = nil,
+        updatedAt: Date? = nil
+    ) {
+        self.id = id
+        self.companyId = companyId
+        self.invoiceId = invoiceId
+        self.numarNir = numarNir
+        self.dataNir = dataNir
+        self.workLocationId = workLocationId
+        self.warehouseId = warehouseId
+        self.createdBy = createdBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 struct NIRComputedLine: Sendable {

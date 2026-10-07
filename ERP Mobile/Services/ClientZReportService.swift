@@ -16,31 +16,40 @@ enum ClientZReportService {
     }
 
     static func upsertReports(companyId: UUID, reports: [ZReportData]) async throws -> Int {
-        let rows = reports.compactMap { report -> CompanyZReportUpsert? in
-            guard report.zNumber > 0, report.importDedupKey != nil else { return nil }
-            return CompanyZReportUpsert(companyId: companyId, report: report)
-        }
-        guard !rows.isEmpty else { return 0 }
+        let valid = reports.filter { $0.zNumber > 0 && $0.importDedupKey != nil }
+        guard !valid.isEmpty else { return 0 }
+        let batchId = valid.first?.id ?? UUID()
+        let dto = valid.map { SyncPayloads.ZReportOfflineDTO(report: $0) }
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .zReportUpsertBatch,
+            entityKind: LocalDocumentEntityKind.zReport.rawValue,
+            entityId: batchId,
+            title: L10n.tr("offline.entity.z_report"),
+            payload: SyncPayloads.ZReportUpsertBatch(companyId: companyId, reports: dto),
+            optimistic: valid.count,
+            remote: {
+                let rows = valid.map { CompanyZReportUpsert(companyId: companyId, report: $0) }
+                var saved: [CompanyZReportRecord] = try await client
+                    .from("company_z_reports")
+                    .upsert(rows, onConflict: "company_id,dedup_key")
+                    .select()
+                    .execute()
+                    .value
 
-        var saved: [CompanyZReportRecord] = try await client
-            .from("company_z_reports")
-            .upsert(rows, onConflict: "company_id,dedup_key")
-            .select()
-            .execute()
-            .value
+                if saved.isEmpty {
+                    let dedupKeys = Set(rows.map(\.dedupKey))
+                    let existing = try await fetchReports(companyId: companyId)
+                    saved = existing.filter { dedupKeys.contains($0.dedupKey) }
+                }
 
-        if saved.isEmpty {
-            // Fallback: `.in(dedup_key, …)` nu e sigur pentru chei cu `:` / `|`.
-            let dedupKeys = Set(rows.map(\.dedupKey))
-            let existing = try await fetchReports(companyId: companyId)
-            saved = existing.filter { dedupKeys.contains($0.dedupKey) }
-        }
+                for record in saved {
+                    try await syncCollections(for: record)
+                }
 
-        for record in saved {
-            try await syncCollections(for: record)
-        }
-
-        return saved.isEmpty ? 0 : saved.count
+                return saved.isEmpty ? 0 : saved.count
+            }
+        )
     }
 
     static func deleteReport(id: UUID, companyId: UUID) async throws {
@@ -49,12 +58,24 @@ enum ClientZReportService {
 
     static func deleteReports(ids: [UUID], companyId: UUID) async throws {
         guard !ids.isEmpty else { return }
-        _ = try await client
-            .from("company_z_reports")
-            .delete()
-            .eq("company_id", value: companyId.uuidString)
-            .in("id", values: ids.map(\.uuidString))
-            .execute()
+        for id in ids {
+            try await OfflineAwareGateway.runVoid(
+                companyId: companyId,
+                operation: .zReportDelete,
+                entityKind: LocalDocumentEntityKind.zReport.rawValue,
+                entityId: id,
+                title: L10n.tr("offline.entity.z_report"),
+                payload: SyncPayloads.UUIDPayload(id: id),
+                remote: {
+                    _ = try await client
+                        .from("company_z_reports")
+                        .delete()
+                        .eq("company_id", value: companyId.uuidString)
+                        .eq("id", value: id.uuidString)
+                        .execute()
+                }
+            )
+        }
     }
 
     /// Resincronizează încasările (casă / bancă / plată modernă) pentru un Raport Z salvat.

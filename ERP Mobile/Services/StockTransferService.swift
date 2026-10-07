@@ -100,12 +100,22 @@ enum StockTransferService {
         companyId: UUID,
         warehouseId: UUID
     ) async throws -> [UUID: Decimal] {
-        let rows = try await InventoryService.fetchStockRows(companyId: companyId, warehouseId: warehouseId)
-        var map: [UUID: Decimal] = [:]
-        for row in rows {
-            map[row.productId] = row.cantitate
+        do {
+            let rows = try await InventoryService.fetchStockRows(companyId: companyId, warehouseId: warehouseId)
+            var map: [UUID: Decimal] = [:]
+            for row in rows {
+                map[row.productId] = row.cantitate
+            }
+            LocalDocumentStore.cacheStock(map, warehouseId: warehouseId, companyId: companyId)
+            return map
+        } catch {
+            let offline = await MainActor.run { !NetworkMonitor.shared.isOnline }
+            if let cached = LocalDocumentStore.cachedStock(warehouseId: warehouseId, companyId: companyId),
+               OfflineNetwork.isTransient(error) || offline {
+                return cached
+            }
+            throw error
         }
-        return map
     }
 
     static func postTransfer(
@@ -116,28 +126,51 @@ enum StockTransferService {
         observatii: String?,
         lines: [(productId: UUID, quantity: Decimal)]
     ) async throws -> UUID {
-        let payload = PostParams(
-            pCompanyId: companyId,
-            pDataBon: SupabaseDecoding.dateOnlyString(from: dataBon),
-            pSourceWarehouseId: sourceWarehouseId,
-            pDestinationWarehouseId: destinationWarehouseId,
-            pObservatii: observatii,
-            pLines: lines.map {
-                TransferLineParam(
-                    productId: $0.productId,
-                    cantitate: NSDecimalNumber(decimal: $0.quantity).doubleValue
+        let localId = UUID()
+        let lineDrafts = lines.map {
+            SyncPayloads.StockTransferLineDraft(productId: $0.productId, quantity: $0.quantity)
+        }
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .stockTransferPost,
+            entityKind: LocalDocumentEntityKind.stockTransfer.rawValue,
+            entityId: localId,
+            title: L10n.tr("offline.entity.stock_transfer"),
+            payload: SyncPayloads.StockTransferPost(
+                localId: localId,
+                companyId: companyId,
+                dataBon: dataBon,
+                sourceWarehouseId: sourceWarehouseId,
+                destinationWarehouseId: destinationWarehouseId,
+                observatii: observatii,
+                lines: lineDrafts
+            ),
+            optimistic: localId,
+            remote: {
+                let payload = PostParams(
+                    pCompanyId: companyId,
+                    pDataBon: SupabaseDecoding.dateOnlyString(from: dataBon),
+                    pSourceWarehouseId: sourceWarehouseId,
+                    pDestinationWarehouseId: destinationWarehouseId,
+                    pObservatii: observatii,
+                    pLines: lines.map {
+                        TransferLineParam(
+                            productId: $0.productId,
+                            cantitate: NSDecimalNumber(decimal: $0.quantity).doubleValue
+                        )
+                    }
                 )
+                do {
+                    let id: UUID = try await client
+                        .rpc("post_stock_transfer", params: payload)
+                        .execute()
+                        .value
+                    return id
+                } catch {
+                    throw StockTransferError.map(error)
+                }
             }
         )
-        do {
-            let id: UUID = try await client
-                .rpc("post_stock_transfer", params: payload)
-                .execute()
-                .value
-            return id
-        } catch {
-            throw StockTransferError.map(error)
-        }
     }
 
     static func updateTransfer(
@@ -148,36 +181,68 @@ enum StockTransferService {
         observatii: String?,
         lines: [(productId: UUID, quantity: Decimal)]
     ) async throws {
-        let payload = UpdateParams(
-            pTransferId: id,
-            pDataBon: SupabaseDecoding.dateOnlyString(from: dataBon),
-            pSourceWarehouseId: sourceWarehouseId,
-            pDestinationWarehouseId: destinationWarehouseId,
-            pObservatii: observatii,
-            pLines: lines.map {
-                TransferLineParam(
-                    productId: $0.productId,
-                    cantitate: NSDecimalNumber(decimal: $0.quantity).doubleValue
+        let companyId = await OfflineCompany.requireId()
+        let lineDrafts = lines.map {
+            SyncPayloads.StockTransferLineDraft(productId: $0.productId, quantity: $0.quantity)
+        }
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .stockTransferUpdate,
+            entityKind: LocalDocumentEntityKind.stockTransfer.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.stock_transfer"),
+            payload: SyncPayloads.StockTransferUpdate(
+                id: id,
+                dataBon: dataBon,
+                sourceWarehouseId: sourceWarehouseId,
+                destinationWarehouseId: destinationWarehouseId,
+                observatii: observatii,
+                lines: lineDrafts
+            ),
+            remote: {
+                let payload = UpdateParams(
+                    pTransferId: id,
+                    pDataBon: SupabaseDecoding.dateOnlyString(from: dataBon),
+                    pSourceWarehouseId: sourceWarehouseId,
+                    pDestinationWarehouseId: destinationWarehouseId,
+                    pObservatii: observatii,
+                    pLines: lines.map {
+                        TransferLineParam(
+                            productId: $0.productId,
+                            cantitate: NSDecimalNumber(decimal: $0.quantity).doubleValue
+                        )
+                    }
                 )
+                do {
+                    try await client
+                        .rpc("update_stock_transfer", params: payload)
+                        .execute()
+                } catch {
+                    throw StockTransferError.map(error)
+                }
             }
         )
-        do {
-            try await client
-                .rpc("update_stock_transfer", params: payload)
-                .execute()
-        } catch {
-            throw StockTransferError.map(error)
-        }
     }
 
     static func deleteTransfer(id: UUID) async throws {
-        do {
-            try await client
-                .rpc("delete_stock_transfer", params: DeleteParams(pTransferId: id))
-                .execute()
-        } catch {
-            throw StockTransferError.map(error)
-        }
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .stockTransferDelete,
+            entityKind: LocalDocumentEntityKind.stockTransfer.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.stock_transfer"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                do {
+                    try await client
+                        .rpc("delete_stock_transfer", params: DeleteParams(pTransferId: id))
+                        .execute()
+                } catch {
+                    throw StockTransferError.map(error)
+                }
+            }
+        )
     }
 
     static func prepareExport(
@@ -195,15 +260,17 @@ enum StockTransferService {
             destinationWarehouseName: destinationWarehouseName,
             generatedAt: Date()
         )
-        return try await Task.detached(priority: .userInitiated) {
+        let title = StockTransferPDFBuilder.exportFileName(from: snapshot)
+        // UIKit PDF rendering is MainActor-isolated (Swift 6); build on the main actor.
+        return try await MainActor.run {
             let pdfURL = try StockTransferPDFBuilder.writeTemporaryPDF(from: snapshot)
             let pdfData = try Data(contentsOf: pdfURL)
             return StockTransferExportItem(
-                title: StockTransferPDFBuilder.exportFileName(from: snapshot),
+                title: title,
                 pdfData: pdfData,
                 pdfURL: pdfURL
             )
-        }.value
+        }
     }
 }
 

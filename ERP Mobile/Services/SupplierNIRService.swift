@@ -353,25 +353,36 @@ enum SupplierNIRService {
             let id: UUID
         }
 
-        do {
-            try await client
-                .rpc("delete_supplier_nir", params: DeleteNIRParams(pNirId: id))
-                .execute()
-        } catch {
-            throw NIRDeleteError.map(error)
-        }
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .supplierNIRDelete,
+            entityKind: LocalDocumentEntityKind.supplierNIR.rawValue,
+            entityId: id,
+            title: L10n.tr("offline.entity.nir"),
+            payload: SyncPayloads.UUIDPayload(id: id),
+            remote: {
+                do {
+                    try await client
+                        .rpc("delete_supplier_nir", params: DeleteNIRParams(pNirId: id))
+                        .execute()
+                } catch {
+                    throw NIRDeleteError.map(error)
+                }
 
-        let remaining: [DeletedNIRRef] = try await client
-            .from("supplier_nirs")
-            .select("id")
-            .eq("id", value: id.uuidString)
-            .limit(1)
-            .execute()
-            .value
+                let remaining: [DeletedNIRRef] = try await client
+                    .from("supplier_nirs")
+                    .select("id")
+                    .eq("id", value: id.uuidString)
+                    .limit(1)
+                    .execute()
+                    .value
 
-        if !remaining.isEmpty {
-            throw NIRDeleteError.deleteFailed
-        }
+                if !remaining.isEmpty {
+                    throw NIRDeleteError.deleteFailed
+                }
+            }
+        )
     }
 
     static func fetchNIRLines(nirId: UUID) async throws -> [SupplierNIRLine] {
@@ -554,53 +565,97 @@ enum SupplierNIRService {
             throw NIRSaveError.noReceivableLines
         }
 
-        let receivedElsewhere = try await receivedInvoiceQuantities(
-            invoiceId: context.invoice.id,
-            excludingNirId: context.existingNIR?.id
-        )
-        for line in selectedLines {
-            let reception = conversions[line.id]
-                ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
-            let already = receivedElsewhere[line.id] ?? 0
-            let tolerance = NSDecimalNumber(string: "0.0001").decimalValue
-            if reception.invoiceQuantity + already > line.cantitate + tolerance {
-                throw NIRSaveError.quantityExceedsRemaining
+        let online = await MainActor.run { NetworkMonitor.shared.isOnline }
+        if OfflineWriteContext.isSyncDrain || online {
+            let receivedElsewhere = try await receivedInvoiceQuantities(
+                invoiceId: context.invoice.id,
+                excludingNirId: context.existingNIR?.id
+            )
+            for line in selectedLines {
+                let reception = conversions[line.id]
+                    ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
+                let already = receivedElsewhere[line.id] ?? 0
+                let tolerance = NSDecimalNumber(string: "0.0001").decimalValue
+                if reception.invoiceQuantity + already > line.cantitate + tolerance {
+                    throw NIRSaveError.quantityExceedsRemaining
+                }
             }
         }
 
-        let nir: SupplierNIR
-        if let existingNIR = context.existingNIR {
-            try await replaceNIRLines(
-                nirId: existingNIR.id,
-                companyId: companyId,
-                invoiceLines: selectedLines,
-                productsById: productsById,
-                conversions: conversions,
-                workLocationId: workLocationId,
-                warehouseId: warehouseId,
-                updateReceptionBeforeInsert: true
-            )
-            nir = try await fetchNIR(id: existingNIR.id)
-        } else {
-            nir = try await createNIR(
-                companyId: companyId,
-                invoiceId: context.invoice.id,
-                dataNir: context.invoice.dataFactura,
-                workLocationId: workLocationId,
-                warehouseId: warehouseId,
-                createdBy: createdBy
-            )
-            try await replaceNIRLines(
-                nirId: nir.id,
-                companyId: companyId,
-                invoiceLines: selectedLines,
-                productsById: productsById,
-                conversions: conversions
-            )
+        let nirId = context.existingNIR?.id ?? UUID()
+        let isUpdate = context.existingNIR != nil
+        let conversionPayloads = selectedLines.map { line in
+            let reception = conversions[line.id]
+                ?? StockUnitConversion.reception(invoiceLine: line, product: productsById[line.productId])
+            return SyncPayloads.ReceptionConversion(lineId: line.id, reception: reception)
         }
+        let syncPayload = SyncPayloads.SupplierNIRSave(
+            nirId: nirId,
+            companyId: companyId,
+            invoiceId: context.invoice.id,
+            dataNir: context.invoice.dataFactura,
+            workLocationId: workLocationId,
+            warehouseId: warehouseId,
+            createdBy: createdBy,
+            isUpdate: isUpdate,
+            invoiceLines: selectedLines,
+            conversions: conversionPayloads,
+            products: Array(productsById.values)
+        )
+        let optimistic = OfflineOptimistic.supplierNIR(
+            id: nirId,
+            companyId: companyId,
+            invoiceId: context.invoice.id,
+            dataNir: context.invoice.dataFactura,
+            workLocationId: workLocationId,
+            warehouseId: warehouseId,
+            createdBy: createdBy
+        )
 
-        try await refreshReceptionClosedAfterSave(invoiceId: context.invoice.id)
-        return nir
+        return try await OfflineAwareGateway.run(
+            companyId: companyId,
+            operation: .supplierNIRSave,
+            entityKind: LocalDocumentEntityKind.supplierNIR.rawValue,
+            entityId: nirId,
+            title: context.existingNIR?.numarNir ?? L10n.tr("offline.entity.nir"),
+            payload: syncPayload,
+            optimistic: optimistic,
+            remote: {
+                let nir: SupplierNIR
+                if let existingNIR = context.existingNIR {
+                    try await replaceNIRLines(
+                        nirId: existingNIR.id,
+                        companyId: companyId,
+                        invoiceLines: selectedLines,
+                        productsById: productsById,
+                        conversions: conversions,
+                        workLocationId: workLocationId,
+                        warehouseId: warehouseId,
+                        updateReceptionBeforeInsert: true
+                    )
+                    nir = try await fetchNIR(id: existingNIR.id)
+                } else {
+                    nir = try await createNIR(
+                        companyId: companyId,
+                        invoiceId: context.invoice.id,
+                        dataNir: context.invoice.dataFactura,
+                        workLocationId: workLocationId,
+                        warehouseId: warehouseId,
+                        createdBy: createdBy
+                    )
+                    try await replaceNIRLines(
+                        nirId: nir.id,
+                        companyId: companyId,
+                        invoiceLines: selectedLines,
+                        productsById: productsById,
+                        conversions: conversions
+                    )
+                }
+
+                try await refreshReceptionClosedAfterSave(invoiceId: context.invoice.id)
+                return nir
+            }
+        )
     }
 
     /// Marchează factura închisă când toate cantitățile recepționabile sunt pe NIR.

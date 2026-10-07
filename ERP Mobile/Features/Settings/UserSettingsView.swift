@@ -1,8 +1,10 @@
 import SwiftUI
 
-enum SettingsDeepLink: Equatable {
+enum SettingsDeepLink: String, Equatable, Identifiable {
     case adminCompanies
     case users
+
+    var id: String { rawValue }
 }
 
 struct UserSettingsView: View {
@@ -16,7 +18,7 @@ struct UserSettingsView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var savedMessage: String?
-    @State private var settingsNavigation: SettingsDeepLink?
+    @State private var presentedDestination: SettingsDeepLink?
 
     init(
         useNavigationView: Bool = true,
@@ -51,6 +53,15 @@ struct UserSettingsView: View {
         .onChange(of: pendingDestination) { _ in
             openPendingDestinationIfNeeded()
         }
+        .fullScreenCover(item: $presentedDestination) { destination in
+            NavigationView {
+                settingsDestinationView(destination)
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
+            .environmentObject(session)
+            .environmentObject(companyManager)
+            .environmentObject(localeManager)
+        }
 #if targetEnvironment(macCatalyst)
         .sheet(isPresented: $showDesktopFolderPicker) {
             DocumentDirectoryPicker(
@@ -72,15 +83,16 @@ struct UserSettingsView: View {
                     accountHeader(profile)
                 }
 
-                    VStack(spacing: 10) {
-                        languageMenuButton
-                        currentCompanyMenuButton
-                        usersLink
-                        zettaSettingsLink
-                        macDesktopShortcutButton
-                        adminCompaniesLink
-                        logoutButton
-                    }
+                VStack(spacing: 10) {
+                    languageMenuButton
+                    currentCompanyMenuButton
+                    usersLink
+                    pendingSyncLink
+                    zettaSettingsLink
+                    macDesktopShortcutButton
+                    adminCompaniesLink
+                    logoutButton
+                }
 
                 if let savedMessage {
                     Text(savedMessage)
@@ -105,7 +117,6 @@ struct UserSettingsView: View {
         }
         .appScrollBottomPadding()
         .navigationTitle(L10n.tr("settings.title"))
-        .background(adminCompaniesNavigationLink)
     }
 
     @ViewBuilder
@@ -192,11 +203,28 @@ struct UserSettingsView: View {
     @ViewBuilder
     private var usersLink: some View {
         if session.isAdmin {
-            NavigationLink(destination: UserListView(useNavigationView: true)) {
+            Button {
+                presentedDestination = .users
+            } label: {
                 SettingsMenuButtonLabel(
                     title: L10n.tr("settings.users.title"),
                     subtitle: L10n.tr("settings.users.hint"),
                     systemImage: "person.3.fill",
+                    showsChevron: true
+                )
+            }
+            .buttonStyle(SettingsMenuButtonStyle())
+        }
+    }
+
+    @ViewBuilder
+    private var pendingSyncLink: some View {
+        if companyManager.currentCompany != nil {
+            NavigationLink(destination: PendingSyncView()) {
+                SettingsMenuButtonLabel(
+                    title: L10n.tr("settings.offline_sync.title"),
+                    subtitle: L10n.tr("settings.offline_sync.hint"),
+                    systemImage: "arrow.triangle.2.circlepath.circle",
                     showsChevron: true
                 )
                 .settingsMenuButtonChrome()
@@ -242,18 +270,17 @@ struct UserSettingsView: View {
     @ViewBuilder
     private var adminCompaniesLink: some View {
         if session.isSuperAdmin {
-            NavigationLink(
-                destination: AdminSettingsView(useNavigationView: true)
-            ) {
+            Button {
+                presentedDestination = .adminCompanies
+            } label: {
                 SettingsMenuButtonLabel(
                     title: L10n.tr("settings.admin_companies"),
                     subtitle: L10n.tr("settings.admin_companies_hint"),
                     systemImage: "building.columns",
                     showsChevron: true
                 )
-                .settingsMenuButtonChrome()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(SettingsMenuButtonStyle())
         }
     }
 
@@ -272,29 +299,32 @@ struct UserSettingsView: View {
     }
 
     @ViewBuilder
-    private var adminCompaniesNavigationLink: some View {
-        NavigationLink(
-            destination: AdminSettingsView(useNavigationView: false),
-            tag: SettingsDeepLink.adminCompanies,
-            selection: $settingsNavigation
-        ) {
-            EmptyView()
+    private func settingsDestinationView(_ destination: SettingsDeepLink) -> some View {
+        switch destination {
+        case .users:
+            UserListView(useNavigationView: false)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.tr("common.done")) {
+                            presentedDestination = nil
+                        }
+                    }
+                }
+        case .adminCompanies:
+            AdminSettingsView(useNavigationView: false)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.tr("common.done")) {
+                            presentedDestination = nil
+                        }
+                    }
+                }
         }
-        .hidden()
-
-        NavigationLink(
-            destination: UserListView(useNavigationView: false),
-            tag: SettingsDeepLink.users,
-            selection: $settingsNavigation
-        ) {
-            EmptyView()
-        }
-        .hidden()
     }
 
     private func openPendingDestinationIfNeeded() {
-        guard pendingDestination != nil else { return }
-        settingsNavigation = pendingDestination
+        guard let destination = pendingDestination else { return }
+        presentedDestination = destination
         pendingDestination = nil
     }
 

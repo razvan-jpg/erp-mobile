@@ -50,6 +50,7 @@ struct ERP_MobileApp: App {
                 }
             }
             .onAppear {
+                SyncEngine.shared.start()
 #if targetEnvironment(macCatalyst)
                 MacInstallSupport.configureOnLaunch()
 #endif
