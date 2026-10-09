@@ -11,6 +11,8 @@ struct ModuleDestinationView: View {
             SupplierInvoicesPaymentsView(module: module)
         case ModuleCode.clientInvoicesPayments:
             ClientsModuleView(module: module)
+        case ModuleCode.sales:
+            SalesModuleView(module: module)
         case ModuleCode.cashRegister:
             CashRegisterModuleView(module: module)
         case ModuleCode.bankStatement:
@@ -23,6 +25,8 @@ struct ModuleDestinationView: View {
             HRModuleView(module: module)
         case ModuleCode.products:
             ProductsView(module: module)
+        case ModuleCode.cashier:
+            CasierModuleView(module: module)
         default:
             ModulePlaceholderView(module: module)
         }

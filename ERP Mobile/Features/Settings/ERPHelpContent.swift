@@ -27,6 +27,8 @@ enum ERPHelpContent {
                     L10n.tr("help.section_intro_b3"),
                     L10n.tr("help.section_intro_b4"),
                     L10n.tr("help.section_intro_b5"),
+                    L10n.tr("help.section_intro_b6"),
+                    L10n.tr("help.section_intro_b7"),
                 ],
                 screenshotAssetNames: ["HelpDashboard"],
                 tip: L10n.tr("help.section_intro_tip")
@@ -64,9 +66,42 @@ enum ERPHelpContent {
                     L10n.tr("help.section_dashboard_b7"),
                     L10n.tr("help.section_dashboard_b8"),
                     L10n.tr("help.section_dashboard_b9"),
+                    L10n.tr("help.section_dashboard_b10"),
                 ],
                 screenshotAssetNames: ["HelpDashboard", "HelpCompanyMenu"],
                 tip: L10n.tr("help.section_dashboard_tip")
+            ),
+            HelpManualSection(
+                id: "pos",
+                title: L10n.tr("help.section_pos_title"),
+                paragraphs: [
+                    L10n.tr("help.section_pos_p1"),
+                    L10n.tr("help.section_pos_p2"),
+                ],
+                bullets: [
+                    L10n.tr("help.section_pos_b1"),
+                    L10n.tr("help.section_pos_b2"),
+                    L10n.tr("help.section_pos_b3"),
+                    L10n.tr("help.section_pos_b4"),
+                    L10n.tr("help.section_pos_b5"),
+                    L10n.tr("help.section_pos_b6"),
+                    L10n.tr("help.section_pos_b7"),
+                    L10n.tr("help.section_pos_b8"),
+                    L10n.tr("help.section_pos_b9"),
+                    L10n.tr("help.section_pos_b10"),
+                    L10n.tr("help.section_pos_b11"),
+                    L10n.tr("help.section_pos_b12"),
+                    L10n.tr("help.section_pos_b13"),
+                    L10n.tr("help.section_pos_b14"),
+                    L10n.tr("help.section_pos_b15"),
+                    L10n.tr("help.section_pos_b16"),
+                    L10n.tr("help.section_pos_b17"),
+                    L10n.tr("help.section_pos_b18"),
+                    L10n.tr("help.section_pos_b19"),
+                    L10n.tr("help.section_pos_b20"),
+                    L10n.tr("help.section_pos_b21"),
+                ],
+                tip: L10n.tr("help.section_pos_tip")
             ),
             HelpManualSection(
                 id: "company",
@@ -100,6 +135,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_settings_b6"),
                     L10n.tr("help.section_settings_b7"),
                     L10n.tr("help.section_settings_b8"),
+                    L10n.tr("help.section_settings_b9"),
                 ],
                 screenshotAssetNames: ["HelpSettings"],
                 tip: L10n.tr("help.section_settings_tip")
@@ -156,6 +192,8 @@ enum ERPHelpContent {
                     L10n.tr("help.section_nomenclatoare_b4"),
                     L10n.tr("help.section_nomenclatoare_b5"),
                     L10n.tr("help.section_nomenclatoare_b6"),
+                    L10n.tr("help.section_nomenclatoare_b7"),
+                    L10n.tr("help.section_nomenclatoare_b8"),
                 ],
                 screenshotAssetNames: ["HelpNomenclatoare"],
                 tip: L10n.tr("help.section_nomenclatoare_tip")

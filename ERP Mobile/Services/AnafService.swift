@@ -15,6 +15,7 @@ struct AnafCompanyLookup: Sendable {
     let hqPostalCode: String?
     let hqStreet: String?
     let hqStreetNumber: String?
+    let fiscalBlockStatus: String?
 
     var hasAnyData: Bool {
         !denumire.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -95,11 +96,13 @@ private struct AnafFoundCompany: Decodable {
     let dateGenerale: AnafGeneralData
     let adresaSediuSocial: AnafOfficeAddress?
     let inregistrareScopTva: AnafVatRegistration?
+    let stareInactiv: AnafInactiveState?
 
     enum CodingKeys: String, CodingKey {
         case dateGenerale = "date_generale"
         case adresaSediuSocial = "adresa_sediu_social"
         case inregistrareScopTva = "inregistrare_scop_Tva"
+        case stareInactiv = "stare_inactiv"
     }
 
     func toLookup(normalizedCUI: String) -> AnafCompanyLookup {
@@ -132,8 +135,23 @@ private struct AnafFoundCompany: Decodable {
             hqCity: nonEmpty(office?.localityName),
             hqPostalCode: nonEmpty(office?.postalCode),
             hqStreet: nonEmpty(office?.streetName),
-            hqStreetNumber: nonEmpty(office?.streetNumber)
+            hqStreetNumber: nonEmpty(office?.streetNumber),
+            fiscalBlockStatus: fiscalBlockStatus(general: general, inactive: stareInactiv)
         )
+    }
+
+    private func fiscalBlockStatus(general: AnafGeneralData, inactive: AnafInactiveState?) -> String? {
+        let registration = nonEmpty(general.stareInregistrare) ?? ""
+        let folded = registration.folding(options: .diacriticInsensitive, locale: Locale(identifier: "ro_RO")).uppercased()
+        let radiated = folded.contains("RADIAT") || folded.contains("RADIERE")
+        let namedInactive = folded.contains("INACTIV")
+        if radiated, !registration.isEmpty {
+            return registration
+        }
+        if inactive?.statusInactivi == true || namedInactive {
+            return namedInactive && !registration.isEmpty ? registration : "INACTIV"
+        }
+        return nil
     }
 
     private func buildAddress(general: AnafGeneralData, office: AnafOfficeAddress?) -> String? {
@@ -167,8 +185,45 @@ private struct AnafFoundCompany: Decodable {
     }
 }
 
+private struct AnafInactiveState: Decodable {
+    let statusInactivi: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case statusInactivi
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let flag = try? container.decode(Bool.self, forKey: .statusInactivi) {
+            statusInactivi = flag
+        } else if let number = try? container.decode(Int.self, forKey: .statusInactivi) {
+            statusInactivi = number != 0
+        } else {
+            statusInactivi = nil
+        }
+    }
+}
+
 private struct AnafVatRegistration: Decodable {
     let scpTVA: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case scpTVA
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let flag = try? container.decode(Bool.self, forKey: .scpTVA) {
+            scpTVA = flag
+        } else if let number = try? container.decode(Int.self, forKey: .scpTVA) {
+            scpTVA = number != 0
+        } else if let text = try? container.decode(String.self, forKey: .scpTVA) {
+            let folded = text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            scpTVA = folded == "TRUE" || folded == "1" || folded == "DA"
+        } else {
+            scpTVA = nil
+        }
+    }
 }
 
 private struct AnafGeneralData: Decodable {

@@ -130,6 +130,9 @@ struct ClientInvoiceRow: Codable, Identifiable, Hashable, Sendable {
     var moneda: String
     var status: InvoiceStatus
     var observatii: String?
+    var efacturaStatus: EFacturaSendStatus
+    var efacturaSentAt: Date?
+    var efacturaChannel: String?
     let createdAt: Date?
     let updatedAt: Date?
     var client: ClientNameRef?
@@ -143,8 +146,53 @@ struct ClientInvoiceRow: Codable, Identifiable, Hashable, Sendable {
         case sumaTotala = "suma_totala"
         case sumaTva = "suma_tva"
         case sumaPlatita = "suma_platita"
+        case efacturaStatus = "efactura_status"
+        case efacturaSentAt = "efactura_sent_at"
+        case efacturaChannel = "efactura_channel"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        clientId = try c.decode(UUID.self, forKey: .clientId)
+        numarFactura = try c.decode(String.self, forKey: .numarFactura)
+        dataFactura = try c.decode(Date.self, forKey: .dataFactura)
+        dataScadenta = try c.decodeIfPresent(Date.self, forKey: .dataScadenta)
+        _sumaTotala = try c.decode(SupabaseDecimal.self, forKey: .sumaTotala)
+        _sumaTva = try c.decode(SupabaseDecimal.self, forKey: .sumaTva)
+        _sumaPlatita = try c.decode(SupabaseDecimal.self, forKey: .sumaPlatita)
+        moneda = try c.decodeIfPresent(String.self, forKey: .moneda) ?? "RON"
+        status = try c.decode(InvoiceStatus.self, forKey: .status)
+        observatii = try c.decodeIfPresent(String.self, forKey: .observatii)
+        efacturaStatus = try c.decodeIfPresent(EFacturaSendStatus.self, forKey: .efacturaStatus) ?? .none
+        efacturaSentAt = try c.decodeIfPresent(Date.self, forKey: .efacturaSentAt)
+        efacturaChannel = try c.decodeIfPresent(String.self, forKey: .efacturaChannel)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
+        client = try c.decodeIfPresent(ClientNameRef.self, forKey: .client)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(clientId, forKey: .clientId)
+        try c.encode(numarFactura, forKey: .numarFactura)
+        try c.encode(dataFactura, forKey: .dataFactura)
+        try c.encodeIfPresent(dataScadenta, forKey: .dataScadenta)
+        try c.encode(_sumaTotala, forKey: .sumaTotala)
+        try c.encode(_sumaTva, forKey: .sumaTva)
+        try c.encode(_sumaPlatita, forKey: .sumaPlatita)
+        try c.encode(moneda, forKey: .moneda)
+        try c.encode(status, forKey: .status)
+        try c.encodeIfPresent(observatii, forKey: .observatii)
+        try c.encode(efacturaStatus, forKey: .efacturaStatus)
+        try c.encodeIfPresent(efacturaSentAt, forKey: .efacturaSentAt)
+        try c.encodeIfPresent(efacturaChannel, forKey: .efacturaChannel)
+        try c.encodeIfPresent(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(updatedAt, forKey: .updatedAt)
+        try c.encodeIfPresent(client, forKey: .client)
     }
 
     var clientName: String {
@@ -163,6 +211,8 @@ struct ClientInvoiceRow: Codable, Identifiable, Hashable, Sendable {
 
 struct ClientNameRef: Codable, Hashable, Sendable {
     let denumire: String
+    var cui: String?
+    var adresa: String?
 }
 
 struct ClientPayment: Codable, Identifiable, Hashable, Sendable {

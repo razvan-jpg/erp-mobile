@@ -279,6 +279,30 @@ enum SyncPayloads {
         let name: String
         let pretVanzare: Decimal
         let productIds: [UUID]
+        let permiteSecundareMultiple: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id, companyId, name, pretVanzare, productIds, permiteSecundareMultiple
+        }
+
+        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
+            self.id = id
+            self.companyId = companyId
+            self.name = name
+            self.pretVanzare = pretVanzare
+            self.productIds = productIds
+            self.permiteSecundareMultiple = permiteSecundareMultiple
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            companyId = try container.decode(UUID.self, forKey: .companyId)
+            name = try container.decode(String.self, forKey: .name)
+            pretVanzare = try container.decode(Decimal.self, forKey: .pretVanzare)
+            productIds = try container.decode([UUID].self, forKey: .productIds)
+            permiteSecundareMultiple = try container.decodeIfPresent(Bool.self, forKey: .permiteSecundareMultiple) ?? false
+        }
     }
 
     struct CMMenuUpdate: Codable {
@@ -288,6 +312,32 @@ enum SyncPayloads {
         let pretVanzare: Decimal
         let isActive: Bool
         let productIds: [UUID]
+        let permiteSecundareMultiple: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id, companyId, name, pretVanzare, isActive, productIds, permiteSecundareMultiple
+        }
+
+        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, isActive: Bool, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
+            self.id = id
+            self.companyId = companyId
+            self.name = name
+            self.pretVanzare = pretVanzare
+            self.isActive = isActive
+            self.productIds = productIds
+            self.permiteSecundareMultiple = permiteSecundareMultiple
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            companyId = try container.decode(UUID.self, forKey: .companyId)
+            name = try container.decode(String.self, forKey: .name)
+            pretVanzare = try container.decode(Decimal.self, forKey: .pretVanzare)
+            isActive = try container.decode(Bool.self, forKey: .isActive)
+            productIds = try container.decode([UUID].self, forKey: .productIds)
+            permiteSecundareMultiple = try container.decodeIfPresent(Bool.self, forKey: .permiteSecundareMultiple) ?? false
+        }
     }
 }
 

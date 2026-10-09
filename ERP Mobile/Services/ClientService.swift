@@ -55,6 +55,7 @@ private struct InvoiceInsert: Encodable {
     let status: String
     let observatii: String?
     let createdBy: UUID?
+    let sourceFiscalReceiptId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case moneda, status, observatii
@@ -66,6 +67,7 @@ private struct InvoiceInsert: Encodable {
         case sumaTotala = "suma_totala"
         case sumaTva = "suma_tva"
         case createdBy = "created_by"
+        case sourceFiscalReceiptId = "source_fiscal_receipt_id"
     }
 }
 
@@ -134,7 +136,7 @@ private struct PaymentUpdate: Encodable {
 enum ClientService {
     private static let client = SupabaseManager.client
 
-    private static func dateString(_ date: Date) -> String {
+    nonisolated private static func dateString(_ date: Date) -> String {
         SupabaseDecoding.dateOnlyString(from: date)
     }
 
@@ -484,7 +486,7 @@ enum ClientService {
         let rows: [ClientInvoiceRow] = try await SupabasePaging.fetchAll { from, to in
             var query = client
                 .from("client_invoices")
-                .select("*, client:clients(denumire)")
+                .select("*, client:clients(denumire,cui,adresa)")
             query = applyDateFilter(query, dateFilter)
             return try await query
                 .order("created_at", ascending: false)
@@ -517,13 +519,30 @@ enum ClientService {
     static func fetchInvoiceRow(id: UUID) async throws -> ClientInvoiceRow {
         let rows: [ClientInvoiceRow] = try await client
             .from("client_invoices")
-            .select("*, client:clients(denumire)")
+            .select("*, client:clients(denumire,cui,adresa)")
             .eq("id", value: id.uuidString)
             .limit(1)
             .execute()
             .value
         guard let row = rows.first else { throw ServiceError.invalidResponse }
         return row
+    }
+
+    static func markInvoiceEFacturaSent(
+        id: UUID,
+        status: EFacturaSendStatus = .sentToAccountant,
+        channel: String = "accountant_email"
+    ) async throws {
+        let payload = ClientInvoiceEFacturaUpdate(
+            efacturaStatus: status.rawValue,
+            efacturaSentAt: Date(),
+            efacturaChannel: channel
+        )
+        try await client
+            .from("client_invoices")
+            .update(payload)
+            .eq("id", value: id.uuidString)
+            .execute()
     }
 
     static func fetchInvoices(forClient clientId: UUID) async throws -> [ClientInvoice] {
@@ -577,7 +596,8 @@ enum ClientService {
         moneda: String,
         status: InvoiceStatus,
         observatii: String?,
-        createdBy: UUID?
+        createdBy: UUID?,
+        sourceFiscalReceiptId: UUID? = nil
     ) async throws -> ClientInvoice {
         let localId = UUID()
         let optimistic = OfflineOptimistic.clientInvoice(
@@ -626,7 +646,8 @@ enum ClientService {
                     moneda: moneda,
                     status: status.rawValue,
                     observatii: emptyToNil(observatii),
-                    createdBy: createdBy
+                    createdBy: createdBy,
+                    sourceFiscalReceiptId: sourceFiscalReceiptId
                 )
                 let rows: [ClientInvoice] = try await client
                     .from("client_invoices")

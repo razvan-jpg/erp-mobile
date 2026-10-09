@@ -75,7 +75,7 @@ struct NomenclatoareCompaniesView: View {
         .navigationTitle(L10n.tr("module.nomenclatoare.tile.companies"))
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }
@@ -86,10 +86,7 @@ struct NomenclatoareCompaniesView: View {
         case .parametrizare:
             parametrizareContent
         case .documentSeries:
-            NomenclatoareCompaniesPlaceholderTab(
-                title: Tab.documentSeries.title,
-                systemImage: Tab.documentSeries.icon
-            )
+            DocumentSeriesListView(access: access)
         case .workLocations:
             WorkLocationsListView(access: access) {}
         case .warehouses:

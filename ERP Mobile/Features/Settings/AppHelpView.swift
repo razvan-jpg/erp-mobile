@@ -48,7 +48,7 @@ struct AppHelpView: View {
         .navigationTitle(L10n.tr("tab.help"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: consumePendingLegalDestination)
-        .onChange(of: pendingLegalDestination) { _ in
+        .onChange(of: pendingLegalDestination) { _, _ in
             consumePendingLegalDestination()
         }
         .fullScreenCover(item: $presentedLegal) { destination in

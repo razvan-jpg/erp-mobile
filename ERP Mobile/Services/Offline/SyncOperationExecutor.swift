@@ -344,7 +344,8 @@ enum SyncOperationExecutor {
                 companyId: p.companyId,
                 name: p.name,
                 pretVanzare: p.pretVanzare,
-                productIds: p.productIds
+                productIds: p.productIds,
+                permiteSecundareMultiple: p.permiteSecundareMultiple
             )
             if created.id != p.id {
                 LocalDocumentStore.remap(localId: p.id, to: created.id, companyId: companyId)
@@ -358,7 +359,8 @@ enum SyncOperationExecutor {
                 name: p.name,
                 pretVanzare: p.pretVanzare,
                 isActive: p.isActive,
-                productIds: p.productIds
+                productIds: p.productIds,
+                permiteSecundareMultiple: p.permiteSecundareMultiple
             )
 
         case .cmMenuDelete:

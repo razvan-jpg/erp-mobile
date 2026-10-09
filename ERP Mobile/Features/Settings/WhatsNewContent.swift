@@ -9,18 +9,21 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 7 octombrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · October 7, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 9 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 9, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.086",
+            targetVersionLabel: "1.0.151",
             romanianItems: [
                 "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
+                "POS: tipărire bon fiscal, raport X și raport Z pe Datecs FP-700.",
+                "Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z).",
+                "e-Factura: încărcare directă ANAF SPV (OAuth) pe lângă canalul contabil.",
                 "Manual Ajutor: capturi de ecran reale din modul Registru de casă.",
                 "MT940: șabloane suplimentare de parsare extras bancă (formate bănci românești).",
                 "Registru de casă: export direct în folder (ca la Rapoarte Z), fine-tuning pixel-perfect pe model PDF.",
@@ -28,6 +31,9 @@ enum WhatsNewContent {
             englishItems: [
                 "BINA Smart Business: stabilize Z report listing by date range and batch Romanian PDF download (final validation).",
                 "Z report extraction: Memgest, BOCP, and Generic HTTP connectors (in addition to BINA).",
+                "POS: print the fiscal receipt, X report, and Z report on a Datecs FP-700.",
+                "BINA BF import: detailed receipt line items (beyond slots generated from Z Documents).",
+                "e-Factura: direct ANAF SPV upload (OAuth) in addition to the accountant channel.",
                 "Help manual: real in-app screenshots for the Cash register module.",
                 "MT940: additional bank statement parsing templates (Romanian bank formats).",
                 "Cash register: direct folder export (like Z reports), pixel-perfect PDF template tuning.",
@@ -37,6 +43,609 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.150", "09.10.2026",
+                ro: [
+                    "Dacă la emitere nu este internet, bonul și factura se salvează fără codul QR și fără mesaj de eroare.",
+                ],
+                en: [
+                    "If there is no internet when issuing, the receipt and the invoice are saved without the QR code and without an error.",
+                ]
+            ),
+            release(
+                "1.0.149", "09.10.2026",
+                ro: [
+                    "Pe tile, meniul arată denumirea dată la creare, nu numele produsului principal.",
+                ],
+                en: [
+                    "On the tile, a menu shows the name given when it was created, not the main product's name.",
+                ]
+            ),
+            release(
+                "1.0.148", "09.10.2026",
+                ro: [
+                    "Codul QR mare de pe bon și de pe factură deschide PDF-ul documentului.",
+                    "Discountul procentual se aplică la restul bonului. SGR rămâne la prețul întreg.",
+                ],
+                en: [
+                    "The large QR code on the receipt and on the invoice opens that document's PDF.",
+                    "The percentage discount applies to the rest of the receipt. SGR stays at its full price.",
+                ]
+            ),
+            release(
+                "1.0.147", "09.10.2026",
+                ro: [
+                    "Codul QR cu datele bonului și ale facturii este un pătrat cât lățimea hârtiei. Sub el, pe același rând, sunt două coduri mai mici: factura.dateconta.ro și beautymanager.net.",
+                ],
+                en: [
+                    "The QR code with the receipt and invoice data is a square as wide as the paper. Under it, on the same row, are two smaller codes: factura.dateconta.ro and beautymanager.net.",
+                ]
+            ),
+            release(
+                "1.0.146", "09.10.2026",
+                ro: [
+                    "Jos, pe bonul fiscal și pe factură, apare un cod QR cu toate datele documentului. Același cod se tipărește și la casa de marcat, când imprimanta este legată.",
+                ],
+                en: [
+                    "At the bottom of the fiscal receipt and the invoice there is a QR code with the whole document. The same code is printed on the fiscal printer when it is connected.",
+                ]
+            ),
+            release(
+                "1.0.145", "09.10.2026",
+                ro: [
+                    "Pe factură, fiecare linie arată și procentul de TVA. Jos scrie Baza, TVA și Total, fără semnul egal.",
+                ],
+                en: [
+                    "On the invoice, each line also shows its VAT percent. Below, Baza, VAT, and Total are written without an equals sign.",
+                ]
+            ),
+            release(
+                "1.0.144", "09.10.2026",
+                ro: [
+                    "La emiterea bonului, stocul produselor se scade fără eroarea de dată lipsă.",
+                ],
+                en: [
+                    "When the receipt is issued, product stock decreases without the missing-date error.",
+                ]
+            ),
+            release(
+                "1.0.143", "09.10.2026",
+                ro: [
+                    "Pe Windows, la pornire apare aceeași animație ca pe Mac, timp de 10 secunde: 5 secunde „Se inițializează...” cu versiunea, apoi 5 secunde „Se încarcă societățile”.",
+                ],
+                en: [
+                    "On Windows, startup shows the same animation as on Mac, for 10 seconds: 5 seconds of “Initializing...” with the version, then 5 seconds of “Loading companies”.",
+                ]
+            ),
+            release(
+                "1.0.142", "09.10.2026",
+                ro: [
+                    "CUI-ul clientului de pe bon și de pe factură se scrie ca la ANAF: cu RO dacă firma este plătitoare de TVA, fără RO dacă nu este.",
+                ],
+                en: [
+                    "The client tax ID on the receipt and on the invoice is written as ANAF shows it: with RO when the company is a VAT payer, and without RO when it is not.",
+                ]
+            ),
+            release(
+                "1.0.141", "09.10.2026",
+                ro: [
+                    "Pe bon, înainte de metoda de plată, puteți aplica un discount procentual. Totalul de încasat și cotele de TVA scad cu acel procent.",
+                ],
+                en: [
+                    "On the receipt, before the payment method, you can apply a percentage discount. The amount due and the VAT bands decrease by that percent.",
+                ]
+            ),
+            release(
+                "1.0.140", "09.10.2026",
+                ro: [
+                    "La crearea meniului, o bifă stabilește dacă la vânzare se pot alege mai multe produse secundare. Fără bifă se alege un singur secundar. Fiecare meniu primește un cod de produs unic.",
+                ],
+                en: [
+                    "When a menu is created, a checkbox sets whether the sale can include several secondary products. Without it, only one secondary can be chosen. Each menu receives a unique product code.",
+                ]
+            ),
+            release(
+                "1.0.139", "09.10.2026",
+                ro: [
+                    "Manualul povestește unde se creează meniurile, cum se trece CUI-ul pe bon și unde se listează facturile clienților.",
+                ],
+                en: [
+                    "The manual explains where menus are created, how the tax ID is entered on the receipt, and where client invoices are listed.",
+                ]
+            ),
+            release(
+                "1.0.138", "09.10.2026",
+                ro: [
+                    "Dacă ANAF arată că firma de pe CUI este radiată sau inactivă, nu se poate emite bonul sau factura. Mesajul roșu arată denumirea, CUI-ul și starea, cu variantele Fără CUI sau Corectează.",
+                ],
+                en: [
+                    "If ANAF shows that the company for the tax ID is struck off or inactive, the receipt and the invoice cannot be issued. The red message shows the name, the tax ID, and the status, with the choices to drop the tax ID or correct it.",
+                ]
+            ),
+            release(
+                "1.0.137", "09.10.2026",
+                ro: [
+                    "La casă, alegeți secundarele meniului, inclusiv pe cel obligatoriu, și trebuie ales cel puțin unul. Pe bon, secundarul are prețul întreg, iar sub el apare discount 100%.",
+                ],
+                en: [
+                    "At the register you choose the menu’s secondary products, including the required one, and at least one must be selected. On the receipt the secondary shows its full price, with a 100% discount line under it.",
+                ]
+            ),
+            release(
+                "1.0.136", "09.10.2026",
+                ro: [
+                    "În grupa Meniuri, coșul de gunoi este în dreapta fiecărui meniu. Pe Windows, Meniu nou, Modifică și Șterge deschid meniul ca să adăugați, schimbați sau ștergeți produsele din el.",
+                ],
+                en: [
+                    "In the Menus group, the trash can sits on the right of each menu. On Windows, New menu, Edit, and Delete open the menu so you can add, change, or remove its products.",
+                ]
+            ),
+            release(
+                "1.0.135", "09.10.2026",
+                ro: [
+                    "Meniul arată poza produsului principal, la casă și în listă.",
+                ],
+                en: [
+                    "A menu shows the photo of its main product, at the register and in the list.",
+                ]
+            ),
+            release(
+                "1.0.134", "09.10.2026",
+                ro: [
+                    "Pe factură, fiecare linie de pe bon arată cantitatea, prețul fără TVA, valoarea și TVA-ul.",
+                ],
+                en: [
+                    "On the invoice, each receipt line shows the quantity, the price without VAT, the value, and the VAT.",
+                ]
+            ),
+            release(
+                "1.0.133", "09.10.2026",
+                ro: [
+                    "Pe bon, fiecare produs din meniu își păstrează cota de TVA și este marcat cu ea, de exemplu A 21% sau B 11%.",
+                ],
+                en: [
+                    "On the receipt, each product in a menu keeps its own VAT rate and is marked with it, for example A 21% or B 11%.",
+                ]
+            ),
+            release(
+                "1.0.132", "09.10.2026",
+                ro: [
+                    "Un meniu are un produs principal și produse secundare: unul obligatoriu și până la 10 opționale. La casă alegeți secundarele vândute. Pe bon, meniul nu are cotă și preț; principalul ia prețul meniului, secundarele au discount 100%, iar SGR-ul se scade din principal. Stocul produselor din meniu scade la emitere.",
+                ],
+                en: [
+                    "A menu has one main product and secondary products: one required and up to 10 optional. At the register you choose which optional products are sold. On the receipt the menu has no VAT rate and no price; the main product carries the menu price, secondaries show a 100% discount, and SGR is deducted from the main product. Stock for the menu products decreases when the receipt is issued.",
+                ]
+            ),
+            release(
+                "1.0.131", "09.10.2026",
+                ro: [
+                    "Bonul fiscal și factura fiscală sunt pe lățimea hârtiei de 80 mm, ca rola imprimantei.",
+                ],
+                en: [
+                    "The fiscal receipt and the fiscal invoice use 80 mm paper, the width of the printer roll.",
+                ]
+            ),
+            release(
+                "1.0.130", "09.10.2026",
+                ro: [
+                    "La Articole, criteriul de grupe include Meniuri. Alegerea lui arată meniurile, nu doar grupele de produse.",
+                ],
+                en: [
+                    "In Articles, the group filter includes Menus. Choosing it shows the menus, not only the product groups.",
+                ]
+            ),
+            release(
+                "1.0.129", "09.10.2026",
+                ro: [
+                    "Pe bonul fiscal, sub total, apar brutul și TVA-ul pe fiecare cotă. Pe factură, înainte de total, scrie baza și TVA-ul.",
+                ],
+                en: [
+                    "On the fiscal receipt, under the total, the gross and VAT appear for each rate. On the invoice, the base and the VAT are written before the total.",
+                ]
+            ),
+            release(
+                "1.0.128", "09.10.2026",
+                ro: [
+                    "Pe bon, cantitatea 1 nu se mai scrie lângă produs. Apare doar când este mai mare, iar la SGR-ul cumulat se scrie mereu.",
+                ],
+                en: [
+                    "On the receipt, a quantity of 1 is no longer written next to the product. It appears only when it is higher, and the cumulated SGR always shows its quantity.",
+                ]
+            ),
+            release(
+                "1.0.127", "09.10.2026",
+                ro: [
+                    "Garanția SGR de pe mai multe produse se adună într-un singur rând, pe bonul de pe ecran și în PDF.",
+                ],
+                en: [
+                    "The SGR deposit from several products is added into a single line, on the receipt on screen and in the PDF.",
+                ]
+            ),
+            release(
+                "1.0.126", "09.10.2026",
+                ro: [
+                    "Pe bonul și factura fiscală salvate în PDF, lângă denumirea produsului nu mai apare litera de TVA.",
+                ],
+                en: [
+                    "On the fiscal receipt and invoice saved as PDF, the VAT letter no longer appears next to the product name.",
+                ]
+            ),
+            release(
+                "1.0.125", "09.10.2026",
+                ro: [
+                    "Pe bonul și factura fiscală salvate în PDF, ultimul rând este „Document generat cu ERP Mobile by DateConta”, centrat.",
+                ],
+                en: [
+                    "On the fiscal receipt and invoice saved as PDF, the last line is “Document generat cu ERP Mobile by DateConta”, centered.",
+                ]
+            ),
+            release(
+                "1.0.124", "09.10.2026",
+                ro: [
+                    "Pe bonul și factura fiscală salvate în PDF, denumirea lungă trece pe rândul următor și nu mai acoperă prețul.",
+                ],
+                en: [
+                    "On the fiscal receipt and invoice saved as PDF, a long name wraps onto the next line and no longer covers the price.",
+                ]
+            ),
+            release(
+                "1.0.123", "09.10.2026",
+                ro: [
+                    "În POS, punctele de lucru se aleg din tile-uri așezate unul lângă altul.",
+                ],
+                en: [
+                    "In POS, work locations are chosen from tiles placed side by side.",
+                ]
+            ),
+            release(
+                "1.0.122", "09.10.2026",
+                ro: [
+                    "Pe bon, fiecare produs se poate șterge cu × înainte să închideți bonul.",
+                ],
+                en: [
+                    "On the receipt, each product can be removed with × before you close the receipt.",
+                ]
+            ),
+            release(
+                "1.0.121", "09.10.2026",
+                ro: [
+                    "În POS, încasările de pe bara de jos sunt centrate, iar produsele încap câte patru pe rând.",
+                ],
+                en: [
+                    "In POS, the takings on the bottom bar are centered, and four products fit on each row.",
+                ]
+            ),
+            release(
+                "1.0.120", "09.10.2026",
+                ro: [
+                    "În Ajutor, capitolul Casier — vânzare POS explică pas cu pas catalogul, bonul, CUI-ul, factura fiscală și încasările de la ultimul Z.",
+                ],
+                en: [
+                    "In Help, the Cashier — POS sale chapter explains the catalog, the receipt, the tax ID, the fiscal invoice, and the takings since the last Z, step by step.",
+                ]
+            ),
+            release(
+                "1.0.119", "09.10.2026",
+                ro: [
+                    "Dacă pe bon este trecut CUI, butonul Modernă devine inactiv.",
+                ],
+                en: [
+                    "If a client tax ID is on the receipt, the Modern button becomes inactive.",
+                ]
+            ),
+            release(
+                "1.0.118", "09.10.2026",
+                ro: [
+                    "La plata modernă alegeți Glovo, Bolt sau Wolt. Pe bara de jos a POS-ului se văd încasările de la ultimul Z: numerar, card, Glovo, Bolt și Wolt.",
+                ],
+                en: [
+                    "Modern payment asks you to choose Glovo, Bolt, or Wolt. The POS bottom bar shows takings since the last Z: cash, card, Glovo, Bolt, and Wolt.",
+                ]
+            ),
+            release(
+                "1.0.117", "09.10.2026",
+                ro: [
+                    "Cu bifa Tipărește și factură fiscală, butonul devine Emite bon și FF. Dacă imprimanta nu este legată, se salvează două PDF-uri: bonul și factura.",
+                ],
+                en: [
+                    "With Also print a fiscal invoice checked, the button becomes Issue receipt and invoice. If the printer is not connected, two PDFs are saved: the receipt and the invoice.",
+                ]
+            ),
+            release(
+                "1.0.116", "09.10.2026",
+                ro: [
+                    "După verificarea CUI-ului la ANAF, pe bon apare denumirea clientului, sub câmpul CUI.",
+                ],
+                en: [
+                    "After the tax ID is checked with ANAF, the client name appears on the receipt, under the tax ID field.",
+                ]
+            ),
+            release(
+                "1.0.115", "09.10.2026",
+                ro: [
+                    "Setări → e-Factura (SPV): trimiteți email contabilului pentru autorizare cu semnătura lui electronică. Acolo vedeți starea și până când este valabilă.",
+                ],
+                en: [
+                    "Settings → e-Factura (SPV): email the accountant to authorize the company with their electronic signature. The same screen shows the status and how long the authorization is valid.",
+                ]
+            ),
+            release(
+                "1.0.114", "09.10.2026",
+                ro: [
+                    "Dacă bonul are CUI, apare bifa Tipărește și factură fiscală. La emitere se tipărește întâi bonul fiscal, apoi factura fiscală pe 57 mm. Seria fiecărui punct de lucru se stabilește în Nomenclatoare → Societăți → Serii documente.",
+                ],
+                en: [
+                    "When a receipt has a tax ID, the checkbox Also print a fiscal invoice appears. On issue, the fiscal receipt is printed first, then the 57 mm fiscal invoice. Each work location series is set in Master data → Companies → Document series.",
+                ]
+            ),
+            release(
+                "1.0.113", "09.10.2026",
+                ro: [
+                    "Pe Windows, Enter la CUI-ul de pe bon îl verifică la ANAF. Dacă este corect rămâne pe bon; dacă nu, îl puteți corecta sau reveni fără CUI.",
+                ],
+                en: [
+                    "On Windows, Enter on the receipt tax ID checks it with ANAF. If it is valid it stays on the receipt; if not, you can correct it or go back without a tax ID.",
+                ]
+            ),
+            release(
+                "1.0.112", "09.10.2026",
+                ro: [
+                    "Pe Windows, click pe CUI client din POS deschide aceeași tastatură numerică. Enter o închide.",
+                ],
+                en: [
+                    "On Windows, clicking the client tax ID in POS opens the same numeric keypad. Enter closes it.",
+                ]
+            ),
+            release(
+                "1.0.111", "09.10.2026",
+                ro: [
+                    "Pe Windows, click pe suma primită din POS deschide o tastatură numerică. Enter o închide.",
+                ],
+                en: [
+                    "On Windows, clicking the amount received in POS opens a numeric keypad. Enter closes it.",
+                ]
+            ),
+            release(
+                "1.0.110", "09.10.2026",
+                ro: [
+                    "Pe bonul din POS: cotă A 21%, B 11% sau D 0%. Încasare numerar, card sau plată modernă (Glovo, Bolt, Wolt). La numerar introduceți suma primită și vedeți restul. Până la 4 bonuri deschise, fiecare cu CUI client.",
+                ],
+                en: [
+                    "On the POS receipt: VAT group A 21%, B 11%, or D 0%. Payment by cash, card, or modern payment (Glovo, Bolt, Wolt). For cash, enter the amount received and see the change. Up to 4 open receipts, each with a client tax ID.",
+                ]
+            ),
+            release(
+                "1.0.109", "09.10.2026",
+                ro: [
+                    "După punctul de lucru, POS arată ecranul de vânzare: catalogul în stânga și bonul în dreapta. Produsul apăsat intră pe bon, cu SGR-ul din fișă.",
+                ],
+                en: [
+                    "After the work location, POS shows the sale screen: the catalog on the left and the receipt on the right. A tapped product is added to the receipt, with the SGR from its sheet.",
+                ]
+            ),
+            release(
+                "1.0.108", "08.10.2026",
+                ro: [
+                    "Pe Windows, modificarea unui articol folosește aceeași fișă ca pe Mac, cu poza articolului.",
+                ],
+                en: [
+                    "On Windows, editing an article uses the same sheet as on Mac, including the article photo.",
+                ]
+            ),
+            release(
+                "1.0.107", "08.10.2026",
+                ro: [
+                    "În POS, denumirea produsului este centrată pe tile.",
+                ],
+                en: [
+                    "In POS, the product name is centered on the tile.",
+                ]
+            ),
+            release(
+                "1.0.106", "08.10.2026",
+                ro: [
+                    "La Articole, căutarea găsește și codul. Lista se poate filtra opțional după grupa de catalog.",
+                ],
+                en: [
+                    "In Articles, search also matches the code. The list can optionally be filtered by catalog group.",
+                ]
+            ),
+            release(
+                "1.0.105", "08.10.2026",
+                ro: [
+                    "În POS, Înapoi la grupe este buton, în stânga jos, când sunteți într-o grupă.",
+                ],
+                en: [
+                    "In POS, Back to groups is a button at the bottom left when you are inside a group.",
+                ]
+            ),
+            release(
+                "1.0.104", "08.10.2026",
+                ro: [
+                    "Pe Windows, aplicația acoperă tot ecranul, inclusiv bara de start, până la Închidere.",
+                ],
+                en: [
+                    "On Windows, the app covers the whole screen, including the taskbar, until you close it.",
+                ]
+            ),
+            release(
+                "1.0.103", "08.10.2026",
+                ro: [
+                    "Pe tile-ul din POS, codul produsului este în stânga, în fața denumirii.",
+                ],
+                en: [
+                    "On the POS product tile, the product code is on the left, in front of the name.",
+                ]
+            ),
+            release(
+                "1.0.102", "08.10.2026",
+                ro: [
+                    "În POS, grupele de catalog și produsele din grupă sunt afișate în ordine alfabetică.",
+                ],
+                en: [
+                    "In POS, catalog groups and the products inside a group are shown in alphabetical order.",
+                ]
+            ),
+            release(
+                "1.0.101", "08.10.2026",
+                ro: [
+                    "În POS, Ieșire este în dreapta jos. Înapoi la grupe apare în stânga aceleiași bare, când sunteți într-o grupă.",
+                ],
+                en: [
+                    "In POS, Exit is at the bottom right. Back to groups appears on the left of the same bar when you are inside a group.",
+                ]
+            ),
+            release(
+                "1.0.100", "08.10.2026",
+                ro: [
+                    "Acasă → Casier: Producție (Bon producție, Bon transfer) și POS. POS umple ecranul, pe punctul de lucru ales, cu grupele de catalog și produsele ca tile-uri (poză, cod, denumire, preț în RON).",
+                ],
+                en: [
+                    "Home → Cashier: Production (production note, transfer note) and POS. POS fills the screen for the chosen work location, with catalog groups and products as tiles (photo, code, name, price in RON).",
+                ]
+            ),
+            release(
+                "1.0.099", "08.10.2026",
+                ro: [
+                    "Pe Windows, Ajutor conține același manual de utilizare ca pe Mac și iPhone: cuprins, capitole și capturi.",
+                ],
+                en: [
+                    "On Windows, Help contains the same user manual as on Mac and iPhone: contents, chapters and screenshots.",
+                ]
+            ),
+            release(
+                "1.0.098", "08.10.2026",
+                ro: [
+                    "Când revine internetul, datele rămase nesincronizate se trimit singure, pe Mac și pe Windows.",
+                ],
+                en: [
+                    "When the internet returns, unsynced data is sent automatically on Mac and Windows.",
+                ]
+            ),
+            release(
+                "1.0.097", "08.10.2026",
+                ro: [
+                    "Nomenclatoare pe Windows are aceleași intrări ca pe Mac: Societăți, Parteneri, Catalog, Articole, Persoane și Conturi. La Societăți sunt Parametrizare, puncte de lucru și depozite.",
+                    "Clienți, HR și Fișa de stoc se deschid pe aceleași secțiuni ca pe Mac.",
+                    "Setări → Înapoi rămâne în aplicație. Sync offline arată conexiunea și operațiile salvate fără internet, cu Sincronizează acum și Renunță.",
+                ],
+                en: [
+                    "Nomenclatoare on Windows uses the same entries as on Mac: Companies, Partners, Catalog, Articles, People and Accounts. Companies includes setup, work locations and warehouses.",
+                    "Clients, HR and the stock sheet open on the same sections as on Mac.",
+                    "Settings → Back stays in the app. Offline sync shows the connection and operations saved without internet, with Sync now and Discard.",
+                ]
+            ),
+            release(
+                "1.0.096", "08.10.2026",
+                ro: [
+                    "Utilitare Windows: Creare fișier import ZETTA citește PDF-urile și pozele de Raport Z, arată sumele ca să le corectați și salvează Excel-ul de notă contabilă.",
+                    "Z-uri scanate → import Zetta pe Windows: fiecare pagină este un Z, Nr. înreg. pornește de la numărul ales, iar Excel-ul se salvează pe firmă.",
+                ],
+                en: [
+                    "Windows utilities: Create ZETTA import file reads Z-report PDFs and photos, shows the amounts so you can correct them, and saves the journal Excel.",
+                    "Scanned Z reports → Zetta import on Windows: each page is one Z, Nr. înreg. starts from the number you choose, and the Excel is saved per company.",
+                ]
+            ),
+            release(
+                "1.0.095", "08.10.2026",
+                ro: [
+                    "Pe Windows, Ieșire a fost scos din bara din stânga. Delogarea este în Setări → Deconectare. Închidere rămâne în bară și nu vă deloghează.",
+                ],
+                en: [
+                    "On Windows, Sign out was removed from the left bar. Sign out is in Settings → Sign out. Close stays on the bar and does not sign you out.",
+                ]
+            ),
+            release(
+                "1.0.094", "08.10.2026",
+                ro: [
+                    "Aplicația Windows are aceeași versiune cu Mac și iPhone. Rămâneți autentificat până la Ieșire; Închidere închide fereastra fără delogare.",
+                    "Setări Windows: limbă, utilizatori, sync, setări Zetta, scurtătură pe Desktop, administrare societăți și deconectare — aceleași intrări ca pe Mac.",
+                    "La modificare, categoria articolului și celelalte câmpuri cu variante se aleg din listă.",
+                    "Utilitare Windows: arhivă MT940 din extrasul bancar și Excel NextUp din nota contabilă PDF.",
+                ],
+                en: [
+                    "The Windows app uses the same version as Mac and iPhone. You stay signed in until Sign out; Close quits the window without signing out.",
+                    "Windows Settings: language, users, sync, Zetta settings, desktop shortcut, company administration and sign out — the same entries as on Mac.",
+                    "When editing, the article category and the other choice fields use a list.",
+                    "Windows utilities: an MT940 archive from the bank statement and a NextUp Excel file from the payroll journal PDF.",
+                ]
+            ),
+            release(
+                "1.0.093", "07.10.2026",
+                ro: [
+                    "Vânzări → Facturi clienți: autentificare RO e-Factura prin email către contabil, apoi Trimite în e-Factura (XML UBL + PDF) cu stare pe factură.",
+                ],
+                en: [
+                    "Sales → Customer invoices: RO e-Factura authentication via email to the accountant, then Send to e-Factura (UBL XML + PDF) with per-invoice status.",
+                ]
+            ),
+            release(
+                "1.0.092", "07.10.2026",
+                ro: [
+                    "Vânzări → Vânzare casă marcat: listă Rapoarte Z tip BINA (Detalii, PDF, Documente, Sumă), fișă Z cu plăți/TVA, bonuri pe Z (PDF/Email/Crează factură) și grid Facturi clienți.",
+                    "Preluare BF: generare sloturi de bonuri din câmpul Documente al Rapoartelor Z deja importate.",
+                ],
+                en: [
+                    "Sales → Fiscal cash sale: BINA-style Z report list (Details, PDF, Documents, Total), Z sheet with payments/VAT, receipts per Z (PDF/Email/Create invoice) and customer invoice cards.",
+                    "BF import: generate receipt slots from the Documents field of already imported Z reports.",
+                ]
+            ),
+            release(
+                "1.0.091", "07.10.2026",
+                ro: [
+                    "Fișa produsului: Produse adiționale (bon) — legați ex. Garantie SGR; la vânzare apar pe bon ca linii separate, cu prețul și cota TVA ale adiționalului (fără marcare manuală pe casă).",
+                ],
+                en: [
+                    "Product sheet: Add-on products (receipt) — link e.g. SGR deposit; on sale they appear as separate receipt lines with the add-on’s own price and VAT (no manual ringing at the till).",
+                ]
+            ),
+            release(
+                "1.0.090", "07.10.2026",
+                ro: [
+                    "Nomenclatoare → Catalog → Grupe CM: fiecare grupă afișează câte produse (sau meniuri) conține.",
+                ],
+                en: [
+                    "Master data → Catalog → CM groups: each group shows how many products (or menus) it contains.",
+                ]
+            ),
+            release(
+                "1.0.089", "07.10.2026",
+                ro: [
+                    "Vânzări → Vânzare casă marcat: alegeți întâi Rapoarte X sau Rapoarte Z; la Z vedeți lista pe punct de lucru și bonurile aferente (implicit cele de la ultimul Z / tura deschisă).",
+                ],
+                en: [
+                    "Sales → Fiscal cash register sale: choose X or Z reports first; for Z you see the list per work location and related receipts (default: since last Z / open shift).",
+                ]
+            ),
+            release(
+                "1.0.088", "07.10.2026",
+                ro: [
+                    "Facturi furnizor: la creare/import, avertisment dacă există deja o factură cu aceeași dată, furnizor, număr și valoare (sau aceeași dată+furnizor+valoare când numărul e greșit) — puteți continua totuși.",
+                    "NIR: pe formular apar valoarea totală a facturii și bifa „Factură plătită cash” (implicit inactivă); la activare se creează plata prin chitanță cu data facturii în registrul de casă al punctului de lucru.",
+                ],
+                en: [
+                    "Supplier invoices: on create/import, a warning if an invoice already exists with the same date, supplier, number and amount (or same date+supplier+amount when the number is wrong) — you can still continue.",
+                    "GRN: the form shows the invoice total and an “Invoice paid in cash” checkbox (off by default); when on, a cash receipt payment is created on the invoice date in the cash register for that work location.",
+                ]
+            ),
+            release(
+                "1.0.087", "07.10.2026",
+                ro: [
+                    "Vânzări → Vânzare casă marcat: bonuri fiscale pe punct de lucru, dată și tură (tura se închide la emiterea Raportului Z). Pentru Nectarie: cele 2 puncte din nomenclator; la alte firme — punctele definite.",
+                ],
+                en: [
+                    "Sales → Fiscal cash register sale: fiscal receipts by work location, date and shift (a shift closes when a Z report is issued). For Nectarie: the 2 locations from master data; for other companies — their defined locations.",
+                ]
+            ),
+            release(
+                "1.0.086", "07.10.2026",
+                ro: [
+                    "Vânzări → Preluare BF din BINA: ecranul este pe hold deocamdată (mesaj pe ecran); rămâne tab-ul pentru reluare ulterioară.",
+                ],
+                en: [
+                    "Sales → Import BF from BINA: screen is on hold for now (in-app message); tab kept for a later return.",
+                ]
+            ),
             release(
                 "1.0.085", "07.10.2026",
                 ro: [

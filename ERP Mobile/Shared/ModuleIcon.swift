@@ -9,6 +9,8 @@ enum ModuleIcon {
             return "doc.text.fill"
         case ModuleCode.clientInvoicesPayments:
             return "person.2.fill"
+        case ModuleCode.sales:
+            return "cart.fill"
         case ModuleCode.cashRegister:
             return "banknote.fill"
         case ModuleCode.bankStatement:
@@ -21,6 +23,8 @@ enum ModuleIcon {
             return "person.3.sequence.fill"
         case ModuleCode.products:
             return "books.vertical.fill"
+        case ModuleCode.cashier:
+            return "barcode.viewfinder"
         default:
             return "square.grid.2x2.fill"
         }

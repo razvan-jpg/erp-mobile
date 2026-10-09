@@ -12,6 +12,7 @@ struct MainTabView: View {
     @State private var helpLegalDestination: HelpLegalDestination?
     @State private var homeStackIdentity = UUID()
     @State private var utilitiesStackIdentity = UUID()
+    @StateObject private var casierPos = CasierPosLaunch()
 
     var body: some View {
         Group {
@@ -21,6 +22,7 @@ struct MainTabView: View {
                 compactLayout
             }
         }
+        .environmentObject(casierPos)
         .withAppBottomStatusBar(
             onOpenUsers: session.isAdmin ? { openUsers() } : nil,
             onOpenCompanySettings: { openCompanySettings() },
@@ -32,11 +34,20 @@ struct MainTabView: View {
                 .environmentObject(companyManager)
                 .environmentObject(localeManager)
         }
+        .fullScreenCover(item: $casierPos.location) { location in
+            CasierPosView(location: location) {
+                casierPos.location = nil
+            }
+            .environmentObject(companyManager)
+            .environmentObject(session)
+            .environmentObject(localeManager)
+            .interactiveDismissDisabled(true)
+        }
         .onAppear {
             selectedTab = .home
             selectedSection = .home
         }
-        .onChange(of: selectedTab) { tab in
+        .onChange(of: selectedTab) { _, tab in
             if tab == .home {
                 resetHomeNavigation()
             }

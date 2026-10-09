@@ -324,12 +324,12 @@ private struct WorkLocationFormView: View {
                     Task { await configureDefaultForFirstLocation() }
                 }
             }
-            .onChange(of: operatesAtHeadquarters) { enabled in
+            .onChange(of: operatesAtHeadquarters) { _, enabled in
                 if enabled {
                     applyHeadquartersAddress()
                 }
             }
-            .onChange(of: isFiscalDomicile) { enabled in
+            .onChange(of: isFiscalDomicile) { _, enabled in
                 if !enabled {
                     useInDeclarations = false
                 }

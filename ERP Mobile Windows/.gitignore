@@ -1,0 +1,6 @@
+build/
+**/bin/
+**/obj/
+src/ERPMobile/appconfig.json
+Kit instalare/payload.zip
+Kit instalare/*.exe

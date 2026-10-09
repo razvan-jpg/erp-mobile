@@ -120,7 +120,7 @@ struct CompanyParametrizareView: View {
         .appScrollBottomPadding()
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .onAppear { populate(from: companyManager.currentCompany) }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             populate(from: companyManager.currentCompany)
         }
         .sheet(isPresented: $showPhotoLibrary) {

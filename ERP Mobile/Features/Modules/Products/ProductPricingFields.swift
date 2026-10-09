@@ -54,7 +54,7 @@ struct ProductPricingFields: View {
         .onAppear {
             normalizeVatSelection()
         }
-        .onChange(of: isVatPayer) { _ in
+        .onChange(of: isVatPayer) { _, _ in
             normalizeVatSelection()
         }
     }

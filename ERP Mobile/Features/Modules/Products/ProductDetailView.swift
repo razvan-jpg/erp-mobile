@@ -35,8 +35,13 @@ struct ProductDetailView: View {
     @State private var showFieldScanner = false
     @State private var recipeEditorSheet: ProductRecipeEditorSheet?
     @State private var recipeReloadToken = UUID()
+    @State private var saleAddonEditorSheet: ProductSaleAddonEditorSheet?
+    @State private var saleAddonReloadToken = UUID()
     @State private var errorMessage: String?
     @State private var lookupMessage: String?
+    @State private var availableCMGroups: [CMProductGroup] = []
+    @State private var selectedCMGroupIds: Set<UUID> = []
+    @State private var initialCMGroupIds: Set<UUID> = []
 
     private var isVatPayer: Bool {
         companyManager.currentCompany?.isVatPayer ?? true
@@ -86,6 +91,8 @@ struct ProductDetailView: View {
                 identitySection
                 pricingSection
                 catalogSection
+                cmGroupsSection
+                saleAddonsSection
                 recipeSection
 
                 if canDeleteProduct {
@@ -152,6 +159,7 @@ struct ProductDetailView: View {
             }
             .appTask {
                 await refreshDeleteStatus()
+                await loadCMGroups()
             }
             .sheet(isPresented: $showFieldScanner) {
                 BarcodeScannerSheet { code in
@@ -198,6 +206,23 @@ struct ProductDetailView: View {
                         if let updated = try? await ProductService.fetchProduct(id: product.id) {
                             hasRecipe = updated.hasRecipe
                         }
+                    }
+                }
+            }
+            .fullScreenCover(item: $saleAddonEditorSheet) { sheet in
+                switch sheet {
+                case .add(let existingAddonIds):
+                    ProductSaleAddonPickerView(
+                        productId: product.id,
+                        companyId: product.companyId,
+                        existingAddonIds: existingAddonIds,
+                        onSaved: {
+                            saleAddonReloadToken = UUID()
+                        }
+                    )
+                case .edit(let addon):
+                    ProductSaleAddonEditView(addon: addon) {
+                        saleAddonReloadToken = UUID()
                     }
                 }
             }
@@ -361,6 +386,61 @@ struct ProductDetailView: View {
             Toggle(L10n.tr("products.field_has_recipe"), isOn: recipeBinding)
                 .disabled(!canEdit || isSaving)
         }
+    }
+
+    private var cmGroupsSection: some View {
+        Section(header: Text(L10n.tr("products.field_cm_group")), footer: Text(L10n.tr("products.field_cm_group_hint"))) {
+            if availableCMGroups.isEmpty {
+                Text(L10n.tr("module.catalog.cm.no_custom_groups"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+            } else {
+                ForEach(availableCMGroups) { group in
+                    Button {
+                        toggleCMGroup(group.id)
+                    } label: {
+                        HStack {
+                            Text(group.name)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            if selectedCMGroupIds.contains(group.id) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(AppColors.accent)
+                            } else {
+                                Image(systemName: "circle")
+                                    .foregroundColor(AppColors.tertiary)
+                            }
+                        }
+                    }
+                    .disabled(!canEdit || isSaving)
+                }
+            }
+        }
+    }
+
+    private func toggleCMGroup(_ id: UUID) {
+        guard canEdit else { return }
+        if selectedCMGroupIds.contains(id) {
+            selectedCMGroupIds.remove(id)
+        } else if selectedCMGroupIds.count < 2 {
+            selectedCMGroupIds.insert(id)
+        } else {
+            errorMessage = L10n.tr("module.catalog.cm.error_too_many_groups")
+        }
+    }
+
+    private var saleAddonsSection: some View {
+        ProductSaleAddonsEditorView(
+            product: product,
+            canEdit: canEdit,
+            reloadToken: saleAddonReloadToken,
+            onAdd: { existingIds in
+                saleAddonEditorSheet = .add(existingAddonIds: existingIds)
+            },
+            onEdit: { addon in
+                saleAddonEditorSheet = .edit(addon: addon)
+            }
+        )
     }
 
     @ViewBuilder
@@ -587,10 +667,33 @@ struct ProductDetailView: View {
             selectedVatRate = ProductVATRates.normalizedRate(updatedPricing.cotaTva, isVatPayer: isVatPayer)
             pretVanzareText = updatedPricing.pretVanzareInputText
 
+            if selectedCMGroupIds != initialCMGroupIds {
+                try await CMProductGroupService.setProductGroups(
+                    companyId: companyId,
+                    productId: product.id,
+                    groupIds: Array(selectedCMGroupIds)
+                )
+                initialCMGroupIds = selectedCMGroupIds
+            }
+
             onSaved()
             presentationMode.wrappedValue.dismiss()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadCMGroups() async {
+        guard let companyId = companyManager.currentCompany?.id else { return }
+        do {
+            availableCMGroups = try await CMProductGroupService.fetchCustomGroups(companyId: companyId)
+            let members = try await CMProductGroupService.fetchMembers(productId: product.id)
+            let ids = Set(members.map(\.groupId))
+            selectedCMGroupIds = ids
+            initialCMGroupIds = ids
+        } catch {
+            // Keep product editable even if groups fail to load.
+            availableCMGroups = []
         }
     }
 

@@ -178,7 +178,9 @@ enum OfflineOptimistic {
         id: UUID,
         companyId: UUID,
         name: String,
-        pretVanzare: Decimal
+        pretVanzare: Decimal,
+        cod: String = "",
+        permiteSecundareMultiple: Bool = false
     ) -> CMMenu {
         CMMenu(
             id: id,
@@ -187,6 +189,8 @@ enum OfflineOptimistic {
             pretVanzare: pretVanzare,
             isActive: true,
             sortOrder: 0,
+            cod: cod,
+            permiteSecundareMultiple: permiteSecundareMultiple,
             createdAt: Date(),
             updatedAt: Date()
         )

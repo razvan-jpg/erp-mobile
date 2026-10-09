@@ -23,6 +23,16 @@ enum CMProductGroupService {
         let name: String
     }
 
+    private struct MembershipRow: Decodable {
+        let groupId: UUID
+        let productId: UUID
+
+        enum CodingKeys: String, CodingKey {
+            case groupId = "group_id"
+            case productId = "product_id"
+        }
+    }
+
     private struct MemberInsert: Encodable {
         let companyId: UUID
         let groupId: UUID
@@ -43,13 +53,16 @@ enum CMProductGroupService {
         let pretVanzare: Decimal
         let isActive: Bool
         let sortOrder: Int
+        let cod: String
+        let permiteSecundareMultiple: Bool
 
         enum CodingKeys: String, CodingKey {
-            case name
+            case name, cod
             case companyId = "company_id"
             case pretVanzare = "pret_vanzare"
             case isActive = "is_active"
             case sortOrder = "sort_order"
+            case permiteSecundareMultiple = "permite_secundare_multiple"
         }
     }
 
@@ -57,11 +70,13 @@ enum CMProductGroupService {
         let name: String
         let pretVanzare: Decimal
         let isActive: Bool
+        let permiteSecundareMultiple: Bool
 
         enum CodingKeys: String, CodingKey {
             case name
             case pretVanzare = "pret_vanzare"
             case isActive = "is_active"
+            case permiteSecundareMultiple = "permite_secundare_multiple"
         }
     }
 
@@ -71,13 +86,16 @@ enum CMProductGroupService {
         let productId: UUID
         let cantitate: Decimal
         let sortOrder: Int
+        let role: String
+        let isRequired: Bool
 
         enum CodingKeys: String, CodingKey {
-            case cantitate
+            case cantitate, role
             case companyId = "company_id"
             case menuId = "menu_id"
             case productId = "product_id"
             case sortOrder = "sort_order"
+            case isRequired = "is_required"
         }
     }
 
@@ -283,6 +301,20 @@ enum CMProductGroupService {
             .value
     }
 
+    static func fetchProductGroupIds(companyId: UUID) async throws -> [UUID: Set<UUID>] {
+        let rows: [MembershipRow] = try await client
+            .from("cm_product_group_members")
+            .select("product_id, group_id")
+            .eq("company_id", value: companyId.uuidString)
+            .execute()
+            .value
+        var map: [UUID: Set<UUID>] = [:]
+        for row in rows {
+            map[row.productId, default: []].insert(row.groupId)
+        }
+        return map
+    }
+
     static func fetchMembers(productId: UUID) async throws -> [CMProductGroupMember] {
         try await client
             .from("cm_product_group_members")
@@ -432,22 +464,118 @@ enum CMProductGroupService {
             .value
     }
 
+    static func fetchMainProductImages(menuIds: [UUID]) async throws -> [UUID: String] {
+        let unique = Array(Set(menuIds))
+        guard !unique.isEmpty else { return [:] }
+        struct MainLine: Decodable {
+            let menuId: UUID
+            let productId: UUID
+            enum CodingKeys: String, CodingKey {
+                case menuId = "menu_id"
+                case productId = "product_id"
+            }
+        }
+        struct ImageRow: Decodable {
+            let id: UUID
+            let imagineUrl: String?
+            enum CodingKeys: String, CodingKey {
+                case id
+                case imagineUrl = "imagine_url"
+            }
+        }
+        var productByMenu: [UUID: UUID] = [:]
+        for chunk in unique.chunked(into: 200) {
+            let lines: [MainLine] = try await client
+                .from("cm_menu_lines")
+                .select("menu_id,product_id")
+                .in("menu_id", values: chunk.map(\.uuidString))
+                .eq("role", value: "main")
+                .execute()
+                .value
+            for line in lines {
+                productByMenu[line.menuId] = line.productId
+            }
+        }
+        var imageByProduct: [UUID: String] = [:]
+        for chunk in Array(Set(productByMenu.values)).chunked(into: 200) {
+            let rows: [ImageRow] = try await client
+                .from("products")
+                .select("id,imagine_url")
+                .in("id", values: chunk.map(\.uuidString))
+                .execute()
+                .value
+            for row in rows {
+                let url = row.imagineUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !url.isEmpty {
+                    imageByProduct[row.id] = url
+                }
+            }
+        }
+        var result: [UUID: String] = [:]
+        for (menuId, productId) in productByMenu {
+            if let url = imageByProduct[productId] {
+                result[menuId] = url
+            }
+        }
+        return result
+    }
+
+    struct MenuLineDraft: Sendable {
+        let productId: UUID
+        let role: String
+        let isRequired: Bool
+    }
+
+    static func nextMenuCode(companyId: UUID) async throws -> String {
+        struct CodeRow: Decodable { let cod: String? }
+        let products: [CodeRow] = try await client
+            .from("products")
+            .select("cod")
+            .eq("company_id", value: companyId.uuidString)
+            .execute()
+            .value
+        let menus: [CodeRow] = try await client
+            .from("cm_menus")
+            .select("cod")
+            .eq("company_id", value: companyId.uuidString)
+            .execute()
+            .value
+        var used = Set<String>()
+        for row in products + menus {
+            let code = row.cod?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !code.isEmpty { used.insert(code) }
+        }
+        var number = 1
+        while number < 100000 {
+            let digits = String(number)
+            let padded = String(repeating: "0", count: max(0, 5 - digits.count)) + digits
+            let candidate = "M" + padded
+            if !used.contains(candidate) { return candidate }
+            number += 1
+        }
+        throw CMCatalogError.menuShape
+    }
+
     static func createMenu(
         companyId: UUID,
         name: String,
         pretVanzare: Decimal,
-        productIds: [UUID]
+        productIds: [UUID],
+        permiteSecundareMultiple: Bool = false
     ) async throws -> CMMenu {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw CMCatalogError.emptyMenuName }
         guard !productIds.isEmpty else { throw CMCatalogError.emptyMenuProducts }
+        let code = try await nextMenuCode(companyId: companyId)
 
         let localId = UUID()
         let optimistic = OfflineOptimistic.cmMenu(
             id: localId,
             companyId: companyId,
             name: trimmed,
-            pretVanzare: pretVanzare
+            pretVanzare: pretVanzare,
+            cod: code,
+            permiteSecundareMultiple: permiteSecundareMultiple
         )
         return try await OfflineAwareGateway.run(
             companyId: companyId,
@@ -460,7 +588,8 @@ enum CMProductGroupService {
                 companyId: companyId,
                 name: trimmed,
                 pretVanzare: pretVanzare,
-                productIds: productIds
+                productIds: productIds,
+                permiteSecundareMultiple: permiteSecundareMultiple
             ),
             optimistic: optimistic,
             remote: {
@@ -471,7 +600,9 @@ enum CMProductGroupService {
                         name: trimmed,
                         pretVanzare: pretVanzare,
                         isActive: true,
-                        sortOrder: 0
+                        sortOrder: 0,
+                        cod: code,
+                        permiteSecundareMultiple: permiteSecundareMultiple
                     ))
                     .select()
                     .single()
@@ -479,6 +610,8 @@ enum CMProductGroupService {
                     .value
 
                 for (index, productId) in productIds.enumerated() {
+                    let role = index == 0 ? "main" : "secondary"
+                    let required = index <= 1
                     let _: CMMenuLine = try await client
                         .from("cm_menu_lines")
                         .insert(MenuLineInsert(
@@ -486,7 +619,9 @@ enum CMProductGroupService {
                             menuId: menu.id,
                             productId: productId,
                             cantitate: 1,
-                            sortOrder: index
+                            sortOrder: index,
+                            role: role,
+                            isRequired: required
                         ))
                         .select()
                         .single()
@@ -504,7 +639,8 @@ enum CMProductGroupService {
         name: String,
         pretVanzare: Decimal,
         isActive: Bool,
-        productIds: [UUID]
+        productIds: [UUID],
+        permiteSecundareMultiple: Bool = false
     ) async throws -> CMMenu {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw CMCatalogError.emptyMenuName }
@@ -514,7 +650,8 @@ enum CMProductGroupService {
             id: menuId,
             companyId: companyId,
             name: trimmed,
-            pretVanzare: pretVanzare
+            pretVanzare: pretVanzare,
+            permiteSecundareMultiple: permiteSecundareMultiple
         )
         return try await OfflineAwareGateway.run(
             companyId: companyId,
@@ -528,13 +665,19 @@ enum CMProductGroupService {
                 name: trimmed,
                 pretVanzare: pretVanzare,
                 isActive: isActive,
-                productIds: productIds
+                productIds: productIds,
+                permiteSecundareMultiple: permiteSecundareMultiple
             ),
             optimistic: optimistic,
             remote: {
                 let menu: CMMenu = try await client
                     .from("cm_menus")
-                    .update(MenuPatch(name: trimmed, pretVanzare: pretVanzare, isActive: isActive))
+                    .update(MenuPatch(
+                        name: trimmed,
+                        pretVanzare: pretVanzare,
+                        isActive: isActive,
+                        permiteSecundareMultiple: permiteSecundareMultiple
+                    ))
                     .eq("id", value: menuId.uuidString)
                     .select()
                     .single()
@@ -548,6 +691,8 @@ enum CMProductGroupService {
                     .execute()
 
                 for (index, productId) in productIds.enumerated() {
+                    let role = index == 0 ? "main" : "secondary"
+                    let required = index <= 1
                     let _: CMMenuLine = try await client
                         .from("cm_menu_lines")
                         .insert(MenuLineInsert(
@@ -555,7 +700,9 @@ enum CMProductGroupService {
                             menuId: menuId,
                             productId: productId,
                             cantitate: 1,
-                            sortOrder: index
+                            sortOrder: index,
+                            role: role,
+                            isRequired: required
                         ))
                         .select()
                         .single()
@@ -591,6 +738,7 @@ enum CMCatalogError: LocalizedError {
     case emptyGroupName
     case emptyMenuName
     case emptyMenuProducts
+    case menuShape
     case tooManyGroups
     case invalidGroup
 
@@ -599,6 +747,7 @@ enum CMCatalogError: LocalizedError {
         case .emptyGroupName: return L10n.tr("module.catalog.cm.error_empty_group_name")
         case .emptyMenuName: return L10n.tr("module.catalog.cm.error_empty_menu_name")
         case .emptyMenuProducts: return L10n.tr("module.catalog.cm.error_empty_menu_products")
+        case .menuShape: return "Meniul are un produs principal și produse secundare: unul obligatoriu și cel mult 10 opționale. Același produs nu se repetă."
         case .tooManyGroups: return L10n.tr("module.catalog.cm.error_too_many_groups")
         case .invalidGroup: return L10n.tr("module.catalog.cm.error_invalid_group")
         }

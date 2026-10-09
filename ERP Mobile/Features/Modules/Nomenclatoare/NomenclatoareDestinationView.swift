@@ -55,7 +55,7 @@ struct NomenclatoareDestinationView: View {
         case .partners:
             NomenclatoarePartnersView(module: module)
         case .articleCatalog:
-            NomenclatoareArticleCatalogView(module: module)
+            NomenclatoareCatalogHostView(module: module)
         case .articles:
             NomenclatoareArticlesView(module: module)
         case .persons:
@@ -128,7 +128,7 @@ private struct NomenclatoarePartnersView: View {
         .navigationTitle(L10n.tr("module.nomenclatoare.tile.partners"))
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }
@@ -179,7 +179,7 @@ private struct NomenclatoarePartnersView: View {
     }
 }
 
-private struct NomenclatoareArticleCatalogView: View {
+private struct NomenclatoareCatalogHostView: View {
     let module: AppModule
 
     @EnvironmentObject private var session: SessionManager
@@ -206,17 +206,15 @@ private struct NomenclatoareArticleCatalogView: View {
                     description: Text(L10n.tr("module.no_access"))
                 )
             } else {
-                ProductListView(
-                    scope: .catalog,
+                NomenclatoareCatalogView(
                     canEdit: access.canEdit,
+                    canCreate: access.canCreate,
                     canDelete: access.canDelete
                 )
             }
         }
-        .navigationTitle(L10n.tr("module.nomenclatoare.tile.article_catalog"))
-        .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }
@@ -291,7 +289,7 @@ private struct NomenclatoareArticlesView: View {
         .navigationTitle(L10n.tr("module.nomenclatoare.tile.articles"))
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }
