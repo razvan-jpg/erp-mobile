@@ -125,7 +125,7 @@ struct NIRListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadNIRs() }
         .appRefreshable { await loadNIRs() }
-        .onChange(of: filteredNIRs.map(\.id)) { _ in
+        .onChange(of: filteredNIRs.map(\.id)) { _, _ in
             pruneNIRSelection()
         }
         .bulkDeleteSelectionToolbar(
@@ -145,7 +145,7 @@ struct NIRListView: View {
                     NavigationLink {
                         NIRMarkupAccountingView()
                     } label: {
-                        Label(L10n.tr("nir.markup_accounting_action"), systemImage: "list.bullet.rectangle")
+                        Label(L10n.tr("nir.markup_accounting_action"), systemImage: "list.bullet.rectangle").appHoverTip(L10n.tr("nir.markup_accounting_action"))
                     }
                 }
             }
@@ -402,21 +402,21 @@ private struct NIRListRowView: View {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.tr("common.delete"))
+                    .appControlHint(L10n.tr("common.delete"))
                 }
             }
         }
         .contextMenu {
             if !isSelectionMode && canDelete {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
         .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
             if canDelete && !isSelectionMode {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
@@ -499,6 +499,7 @@ struct NIRDetailView: View {
                         } label: {
                             Image(systemName: "trash")
                         }
+                        .appControlHint(L10n.tr("common.delete"))
                     }
                 }
             }
@@ -593,7 +594,7 @@ struct NIRDetailView: View {
                 Button {
                     Task { await exportPDF() }
                 } label: {
-                    Label(L10n.tr("nir.export_save_pdf"), systemImage: "doc.richtext")
+                    Label(L10n.tr("nir.export_save_pdf"), systemImage: "doc.richtext").appHoverTip(L10n.tr("nir.export_save_pdf"))
                 }
                 .disabled(isExporting || nir == nil || supplier == nil || invoice == nil)
             }

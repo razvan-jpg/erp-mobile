@@ -1,0 +1,11 @@
+---
+description: Do not put products in catalog unless the user explicitly asks
+alwaysApply: true
+---
+
+# Catalog membership (Nomenclatoare → Catalog)
+
+- **Do not** set `in_catalog = true` on merge, cleanup, import alias, or “unify to master” work unless the user **explicitly** says to add that product to catalog.
+- Catalog stays as it is now, plus only items the user names for catalog.
+- Materie primă / marfă unificată pe o fișă canonică poate rămâne **în afara catalogului**; alias NIR / recepții tot se aplică.
+- If unsure whether a master belongs in catalog, leave `in_catalog` unchanged (usually `false`) and ask only if the task cannot proceed.

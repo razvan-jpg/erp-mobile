@@ -112,7 +112,7 @@ struct CRMDealKanbanView: View {
                 Button {
                     quickCreateStage = stage
                 } label: {
-                    Label(L10n.tr("crm.quick_deal"), systemImage: "plus")
+                    Label(L10n.tr("crm.quick_deal"), systemImage: "plus").appHoverTip(L10n.tr("crm.quick_deal"))
                         .font(.caption.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }

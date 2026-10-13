@@ -6,6 +6,8 @@ import UIKit
 
 struct CashRegisterZExtractView: View {
     @StateObject private var model = CashRegisterZExtractViewModel()
+    /// When embedded under Vânzări (or another hub), hide the local navigation title.
+    var embedsInParentNavigation = false
 
     var body: some View {
         ZStack {
@@ -40,8 +42,10 @@ struct CashRegisterZExtractView: View {
                 }
             }
             .appScrollBottomPadding()
-            .navigationTitle(L10n.tr("utilities.cash_register.title"))
-            .navigationBarTitleDisplayMode(.inline)
+            .modifier(OptionalNavigationTitle(
+                title: L10n.tr("utilities.cash_register.title"),
+                enabled: !embedsInParentNavigation
+            ))
             .appFullOverlay { LoadingOverlay(isLoading: model.isProcessing || model.isLoadingSettings) }
             .appTask {
                 await model.loadSettings()
@@ -309,6 +313,21 @@ struct CashRegisterZExtractView: View {
             return L10n.tr("utilities.cash_register.report_line", number, date)
         }
         return date
+    }
+}
+
+private struct OptionalNavigationTitle: ViewModifier {
+    let title: String
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            content
+        }
     }
 }
 

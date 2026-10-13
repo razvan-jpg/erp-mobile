@@ -85,7 +85,7 @@ struct HRPayrollView: View {
         .appTask(id: "\(companyManager.currentCompany?.id.uuidString ?? "")-\(period.year)-\(period.month)") {
             await load()
         }
-        .onChange(of: period) { _ in
+        .onChange(of: period) { _, _ in
             Task { await load() }
         }
         .fullScreenCover(item: $selectedDraft) { draft in
@@ -221,17 +221,17 @@ private struct HRPayrollLineEditor: View {
                 }
             }
             .onAppear { populate() }
-            .onChange(of: daysCO) { _ in applyFields() }
-            .onChange(of: daysCM) { _ in applyFields() }
-            .onChange(of: hoursCO) { _ in applyFields() }
-            .onChange(of: hoursCM) { _ in applyFields() }
-            .onChange(of: bonuses) { _ in applyFields(refreshStatutory: true) }
-            .onChange(of: other) { _ in applyFields(refreshStatutory: true) }
-            .onChange(of: deductions) { _ in applyFields() }
-            .onChange(of: cas) { _ in applyFields() }
-            .onChange(of: cass) { _ in applyFields() }
-            .onChange(of: tax) { _ in applyFields() }
-            .onChange(of: cam) { _ in applyFields() }
+            .onChange(of: daysCO) { _, _ in applyFields() }
+            .onChange(of: daysCM) { _, _ in applyFields() }
+            .onChange(of: hoursCO) { _, _ in applyFields() }
+            .onChange(of: hoursCM) { _, _ in applyFields() }
+            .onChange(of: bonuses) { _, _ in applyFields(refreshStatutory: true) }
+            .onChange(of: other) { _, _ in applyFields(refreshStatutory: true) }
+            .onChange(of: deductions) { _, _ in applyFields() }
+            .onChange(of: cas) { _, _ in applyFields() }
+            .onChange(of: cass) { _, _ in applyFields() }
+            .onChange(of: tax) { _, _ in applyFields() }
+            .onChange(of: cam) { _, _ in applyFields() }
         }
         .navigationViewStyle(.stack)
     }

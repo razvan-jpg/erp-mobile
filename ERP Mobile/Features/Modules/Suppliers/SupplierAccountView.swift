@@ -242,7 +242,7 @@ struct SupplierAccountView: View {
                 }
             }
         }
-        .accessibilityLabel(L10n.tr("account.actions_menu"))
+        .appControlHint(L10n.tr("account.actions_menu"))
     }
 
     private var summaryCard: some View {

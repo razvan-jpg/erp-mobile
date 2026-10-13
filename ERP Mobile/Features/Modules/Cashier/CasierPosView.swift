@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CasierPosView: View {
     let location: CompanyWorkLocation
@@ -21,6 +22,10 @@ struct CasierPosView: View {
     @State private var slipDraft: SlipDraft?
     @State private var takings = PosShiftTotals.zero
     @State private var menuOffer: MenuOffer?
+    @State private var fiscalReady = FiscalNetStation.isReady
+    @State private var pickFiscalFolder = false
+    @State private var cardAcceptedKey: String?
+    @State private var fiscalBusy = false
 
     init(location: CompanyWorkLocation, onExit: @escaping () -> Void) {
         self.location = location
@@ -33,25 +38,36 @@ struct CasierPosView: View {
     private var sideBySide: Bool { sizeClass != .compact }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Group {
-                if sideBySide {
-                    HStack(alignment: .top, spacing: 16) {
+        Group {
+            if sideBySide {
+                HStack(alignment: .top, spacing: 0) {
+                    VStack(spacing: 0) {
+                        header
                         catalog
-                        receipt
+                            .padding(16)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        footer
                     }
-                } else {
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background { nectarieCatalogBackground }
+                    .clipped()
+                    receipt
+                }
+            } else {
+                VStack(spacing: 0) {
+                    header
                     VStack(spacing: 12) {
                         catalog
+                            .background { nectarieCatalogBackground }
+                            .clipped()
                         receipt
                             .frame(maxHeight: 460)
                     }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    footer
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
@@ -88,9 +104,45 @@ struct CasierPosView: View {
                 onCancel: { slipDraft = nil }
             )
         }
+        .fileImporter(isPresented: $pickFiscalFolder, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                if let error = FiscalNetStation.save(url) {
+                    notice = error
+                    fiscalReady = false
+                } else {
+                    fiscalReady = FiscalNetStation.isReady
+                }
+            }
+        }
         .sheet(item: $menuOffer) { offer in
             MenuSaleSheet(offer: offer) { chosen in
                 commitMenu(chosen)
+            }
+        }
+    }
+
+    private var showsNectarieLogo: Bool {
+        guard let company = companyManager.currentCompany else { return false }
+        if let cui = company.cui, let profile = FirmaRegistry.profile(forCUI: cui) {
+            return profile.isNectarie
+        }
+        return Conturi.isNectarieFirma(company.denumire)
+    }
+
+    private var nectarieCatalogBackground: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color(.systemGroupedBackground)
+                if showsNectarieLogo {
+                    Image("NectariePosLogo")
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(0.5)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
             }
         }
     }
@@ -107,7 +159,7 @@ struct CasierPosView: View {
                 .lineLimit(2)
             Spacer(minLength: 8)
             reportButton(L10n.tr("module.cashier.report_x"), filled: false) {
-                notice = L10n.tr("module.cashier.report_x_pending")
+                Task { await printReportX() }
             }
             reportButton(L10n.tr("module.cashier.report_z"), filled: true) {
                 Task { await closeShift() }
@@ -115,7 +167,7 @@ struct CasierPosView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .background(Color(.systemBackground))
+        .background(showsNectarieLogo ? Color.white.opacity(0.55) : Color(.systemBackground))
     }
 
     private var title: String {
@@ -159,6 +211,16 @@ struct CasierPosView: View {
                     .foregroundColor(PosChrome.navy)
                 Spacer(minLength: 4)
                 ticketBar
+            }
+            .padding(.bottom, 8)
+
+            HStack(spacing: 8) {
+                payButton("In Store", selected: !activeTicket.onlineSale) {
+                    setPriceChannel(false)
+                }
+                payButton("On line", selected: activeTicket.onlineSale) {
+                    setPriceChannel(true)
+                }
             }
             .padding(.bottom, 8)
 
@@ -291,26 +353,37 @@ struct CasierPosView: View {
             .padding(.top, 10)
 
             HStack(spacing: 6) {
-                payButton(L10n.tr("module.cashier.cash"), selected: activeTicket.pay == .cash) {
+                payButton(L10n.tr("module.cashier.cash"), selected: activeTicket.pay == .cash, enabled: !activeTicket.onlineSale) {
+                    guard !activeTicket.onlineSale else { return }
                     updateActive {
                         $0.pay = .cash
                         $0.modern = nil
                     }
                 }
-                payButton(L10n.tr("module.cashier.card"), selected: activeTicket.pay == .card) {
+                payButton(L10n.tr("module.cashier.card"), selected: activeTicket.pay == .card, enabled: !activeTicket.onlineSale) {
+                    guard !activeTicket.onlineSale else { return }
                     updateActive {
                         $0.pay = .card
                         $0.modern = nil
                     }
                 }
-                payButton(L10n.tr("module.cashier.modern"), selected: activeTicket.pay == .modern, enabled: activeTicket.cui.isEmpty) {
-                    guard activeTicket.cui.isEmpty else { return }
+                payButton(L10n.tr("module.cashier.modern"), selected: activeTicket.pay == .modern, enabled: activeTicket.onlineSale) {
+                    guard activeTicket.onlineSale else { return }
                     updateActive { $0.pay = .modern }
                 }
             }
             .padding(.top, 12)
 
-            if activeTicket.pay == .modern && activeTicket.cui.isEmpty {
+            payButton(L10n.tr("module.cashier.pay_split"), selected: activeTicket.pay == .split, enabled: !activeTicket.onlineSale) {
+                guard !activeTicket.onlineSale else { return }
+                updateActive {
+                    $0.pay = .split
+                    $0.modern = nil
+                }
+            }
+            .padding(.top, 8)
+
+            if activeTicket.onlineSale && activeTicket.pay == .modern {
                 HStack(spacing: 6) {
                     payButton(L10n.tr("module.cashier.glovo"), selected: activeTicket.modern == .glovo) {
                         updateActive {
@@ -332,6 +405,17 @@ struct CasierPosView: View {
                     }
                 }
                 .padding(.top, 8)
+            }
+
+            if activeTicket.pay == .split {
+                VStack(alignment: .leading, spacing: 8) {
+                    splitAmountField(L10n.tr("module.cashier.cash"), text: splitCashField)
+                    splitAmountField(L10n.tr("module.cashier.card"), text: splitCardField)
+                    Text(splitHint.text)
+                        .font(.caption2)
+                        .foregroundColor(splitHint.warning ? .red : AppColors.secondary)
+                }
+                .padding(.top, 10)
             }
 
             if activeTicket.pay == .cash {
@@ -384,19 +468,29 @@ struct CasierPosView: View {
             .buttonStyle(.plain)
             .padding(.top, 12)
 
-            Text(L10n.tr("module.cashier.printer_off"))
-                .font(.caption)
-                .foregroundColor(AppColors.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
+            Button {
+                pickFiscalFolder = true
+            } label: {
+                Text(fiscalReady ? L10n.tr("module.cashier.printer_ready") : L10n.tr("module.cashier.printer_pick"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+            }
+            .buttonStyle(.plain)
         }
         .padding(16)
         .frame(width: sideBySide ? 380 : nil, alignment: .top)
         .frame(maxWidth: sideBySide ? 380 : .infinity, maxHeight: .infinity, alignment: .top)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: sideBySide ? 0 : 16, style: .continuous))
+        .overlay(alignment: .leading) {
+            if sideBySide {
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(width: 1)
+            }
+        }
     }
 
     private var footer: some View {
@@ -439,7 +533,7 @@ struct CasierPosView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemBackground))
+        .background(showsNectarieLogo ? Color.white.opacity(0.55) : Color(.secondarySystemBackground))
     }
 
     private var groupGrid: some View {
@@ -456,7 +550,7 @@ struct CasierPosView: View {
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
+                                .fill(Color.white.opacity(0.55))
                         )
                 }
                 .buttonStyle(.plain)
@@ -470,9 +564,11 @@ struct CasierPosView: View {
                 Button {
                     add(tile)
                 } label: {
-                    CasierProductTile(tile: tile)
+                    CasierProductTile(tile: tile, priceLabel: Self.ron(shownPrice(tile)))
+                        .equatable()
                 }
                 .buttonStyle(.plain)
+                .opacity(shownPrice(tile) <= 0 ? 0.4 : 1)
             }
         }
     }
@@ -528,7 +624,7 @@ struct CasierPosView: View {
                     let sameDigits = Self.cuiDigits($0.cui) == Self.cuiDigits(next)
                     $0.cui = next
                     if next.isEmpty { $0.printFiscalInvoice = false }
-                    if !next.isEmpty, $0.pay == .modern {
+                    if !next.isEmpty, $0.pay == .modern, !$0.onlineSale {
                         $0.pay = .cash
                         $0.modern = nil
                     }
@@ -656,6 +752,7 @@ struct CasierPosView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .appControlHint(L10n.tr("common.new_ticket"))
             }
         }
     }
@@ -677,6 +774,53 @@ struct CasierPosView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+
+    private func splitAmountField(_ title: String, text: Binding<String>) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(PosChrome.navy)
+                .frame(width: 88, alignment: .leading)
+            TextField("0,00", text: text)
+                .font(.title3.weight(.bold))
+                .textFieldStyle(.roundedBorder)
+                .keyboardType(.decimalPad)
+        }
+    }
+
+    private var splitCashField: Binding<String> {
+        splitField(isCash: true)
+    }
+
+    private var splitCardField: Binding<String> {
+        splitField(isCash: false)
+    }
+
+    private func splitField(isCash: Bool) -> Binding<String> {
+        Binding(
+            get: { Self.splitShown(activeTicket, isCash: isCash) },
+            set: { value in
+                let next = Self.normalizeTender(value)
+                updateActive { ticket in
+                    if next == Self.splitShown(ticket, isCash: isCash) { return }
+                    ticket.splitAnchorCash = isCash
+                    if isCash {
+                        ticket.cashPartText = next
+                    } else {
+                        ticket.cardPartText = next
+                    }
+                }
+            }
+        )
+    }
+
+    private var splitHint: (text: String, warning: Bool) {
+        if let problem = Self.splitProblem(activeTicket) {
+            let empty = activeTicket.splitAnchorCash ? activeTicket.cashPartText.isEmpty : activeTicket.cardPartText.isEmpty
+            return (problem, !empty)
+        }
+        return ("", false)
     }
 
     private func payButton(_ title: String, selected: Bool, enabled: Bool = true, action: @escaping () -> Void) -> some View {
@@ -733,7 +877,7 @@ struct CasierPosView: View {
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(L10n.tr("module.cashier.remove_line"))
+                .appControlHint(L10n.tr("module.cashier.remove_line"))
             } else {
                 Color.clear.frame(width: 22, height: 22)
             }
@@ -745,9 +889,9 @@ struct CasierPosView: View {
         [
             (L10n.tr("module.cashier.cash"), takings.cash),
             (L10n.tr("module.cashier.card"), takings.card),
-            (L10n.tr("module.cashier.glovo"), takings.glovo),
-            (L10n.tr("module.cashier.bolt"), takings.bolt),
-            (L10n.tr("module.cashier.wolt"), takings.wolt)
+            ("G", takings.glovo),
+            ("B", takings.bolt),
+            ("W", takings.wolt)
         ]
         .map { "\($0.0) = \(Self.money($0.1))" }
         .joined(separator: "    ")
@@ -771,18 +915,30 @@ struct CasierPosView: View {
             notice = L10n.tr("module.cashier.choose_modern")
             return
         }
+        if let problem = Self.splitProblem(activeTicket) {
+            notice = problem
+            return
+        }
         let companyId = companyManager.currentCompany?.id
         let locationId = location.id
         let ticket = activeTicket
         let amount = Self.ticketTotal(ticket)
         guard ticket.printFiscalInvoice, !ticket.cui.isEmpty else {
+            if fiscalReady {
+                guard !fiscalBusy else { return }
+                fiscalBusy = true
+                Task {
+                    defer { fiscalBusy = false }
+                    await printFiscalReceipt(ticket, channel: channel, amount: amount, companyId: companyId, locationId: locationId)
+                }
+                return
+            }
             Task {
                 do {
-                    try await PosShiftTakingsService.record(locationId: locationId, channel: channel, amount: amount)
-                    let stockNote = await Self.consumeStock(Self.stockCuts(ticket))
+                    try await recordSale(ticket, channel: channel, amount: amount, locationId: locationId)
                     await loadTakings()
                     clearActiveTicket()
-                    notice = L10n.tr("module.cashier.emit_recorded") + stockNote
+                    notice = L10n.tr("module.cashier.emit_recorded")
                 } catch {
                     notice = error.localizedDescription
                 }
@@ -821,8 +977,7 @@ struct CasierPosView: View {
                     takingAmount: amount,
                     lines: Self.slipLines(ticket),
                     bands: Self.vatBands(ticket),
-                    invoiceLines: Self.invoiceLines(ticket),
-                    stock: Self.stockCuts(ticket)
+                    invoiceLines: Self.invoiceLines(ticket)
                 )
                 showSlipFolder = true
             } catch {
@@ -831,8 +986,310 @@ struct CasierPosView: View {
         }
     }
 
+    private func printFiscalReceipt(_ ticket: PosTicket, channel: String, amount: Decimal, companyId: UUID?, locationId: UUID) async {
+        let outcome = await sendFiscalReceipt(ticket, channel: channel, amount: amount, companyId: companyId)
+        guard let outcome else { return }
+        guard outcome.reply.bonOk == 1, !outcome.reply.number.isEmpty else {
+            var text = FiscalNet.failure(outcome.reply, fallback: L10n.tr("module.cashier.fiscal_refused"))
+            if Self.chargesCard(channel), cardAcceptedKey == Self.cardKey(ticket) {
+                text = L10n.tr("module.cashier.card_charged_retry") + "\n" + text
+            }
+            notice = text
+            return
+        }
+        var recap = ""
+        do {
+            try await recordSale(ticket, channel: channel, amount: outcome.payment, locationId: locationId, cash: outcome.cashTaken, card: outcome.cardTaken)
+            await loadTakings()
+        } catch {
+            recap = " " + error.localizedDescription
+        }
+        cardAcceptedKey = nil
+        clearActiveTicket()
+        var message = L10n.tr("module.cashier.fiscal_printed", outcome.reply.number) + recap
+        if !outcome.reply.authorization.isEmpty {
+            message += "\n" + L10n.tr("module.cashier.card_auth", outcome.reply.authorization)
+        }
+        notice = message
+    }
+
+    private func writeFiscalInvoice(to folder: URL, draft: SlipDraft) async {
+        let accessed = folder.startAccessingSecurityScopedResource()
+        defer { if accessed { folder.stopAccessingSecurityScopedResource() } }
+        let ticket = activeTicket
+        let outcome = await sendFiscalReceipt(ticket, channel: draft.takingChannel, amount: draft.takingAmount, companyId: companyManager.currentCompany?.id)
+        guard let outcome else {
+            slipDraft = nil
+            return
+        }
+        guard outcome.reply.bonOk == 1, !outcome.reply.number.isEmpty else {
+            var text = FiscalNet.failure(outcome.reply, fallback: L10n.tr("module.cashier.fiscal_refused"))
+            if Self.chargesCard(draft.takingChannel), cardAcceptedKey == Self.cardKey(ticket) {
+                text = L10n.tr("module.cashier.card_charged_retry") + "\n" + text
+            }
+            notice = text
+            return
+        }
+        var invoiceNote = ""
+        var invoiceName = ""
+        let stamp = Self.slipStamp()
+        let bonName = "Bon fiscal \(stamp.file).pdf"
+        let note = L10n.tr("module.cashier.fiscal_printed", outcome.reply.number)
+        do {
+            let issued = try await DocumentSeriesService.consumeFiscalNumber(id: draft.seriesId)
+            let company = companyManager.currentCompany
+            let supplier = Self.supplierLines(company)
+            var invoiceUrl = ""
+            var invoicePath: String?
+            if NetworkMonitor.shared.isOnline, let companyId = company?.id {
+                let target = try PosDocumentStore.target(companyId: companyId)
+                invoiceUrl = target.url
+                invoicePath = target.path
+                let draftPdf = PosSlipPdf.make(Self.invoiceRows(supplier: supplier, serie: issued.serie, number: issued.number, stamp: stamp, draft: draft, documentUrl: invoiceUrl, printedNote: "FP-700"))
+                do {
+                    try await PosDocumentStore.upload(path: target.path, data: draftPdf)
+                } catch {
+                    invoiceUrl = ""
+                }
+            }
+            let paper = Self.invoicePaper(supplier: supplier, serie: issued.serie, number: issued.number, stamp: stamp.shown, draft: draft)
+            let invoiceReply = await FiscalNetStation.send(
+                fileName: FiscalNet.fileName(prefix: "ff", nonFiscal: true),
+                commands: FiscalNet.nonFiscal(paper, documentUrl: invoiceUrl),
+                timeout: 60
+            )
+            if invoiceReply.bonOk != 1 {
+                invoiceNote = " " + FiscalNet.failure(invoiceReply, fallback: L10n.tr("module.cashier.invoice_print_failed"))
+            }
+            invoiceName = "Factura \(issued.serie) \(issued.number).pdf"
+            let bon = PosSlipPdf.make(Self.receiptRows(supplier: supplier, location: location.denumire, stamp: stamp, draft: draft, documentUrl: outcome.documentUrl, printedNote: note))
+            let invoiceNoteText = invoiceReply.bonOk == 1 ? "FP-700" : ""
+            let invoice = PosSlipPdf.make(Self.invoiceRows(supplier: supplier, serie: issued.serie, number: issued.number, stamp: stamp, draft: draft, documentUrl: invoiceUrl, printedNote: invoiceNoteText))
+            try bon.write(to: folder.appendingPathComponent(bonName), options: .atomic)
+            try invoice.write(to: folder.appendingPathComponent(invoiceName), options: .atomic)
+            if let invoicePath, !invoiceUrl.isEmpty, invoiceReply.bonOk == 1 {
+                try? await PosDocumentStore.upload(path: invoicePath, data: invoice)
+            }
+        } catch {
+            invoiceNote = " " + error.localizedDescription
+        }
+        var recap = ""
+        do {
+            try await recordSale(ticket, channel: draft.takingChannel, amount: outcome.payment, locationId: location.id, cash: outcome.cashTaken, card: outcome.cardTaken)
+            await loadTakings()
+        } catch {
+            recap = " " + error.localizedDescription
+        }
+        cardAcceptedKey = nil
+        clearActiveTicket()
+        slipDraft = nil
+        var message = note
+        if !invoiceName.isEmpty {
+            message += " " + L10n.tr("module.cashier.pdf_saved", bonName, invoiceName)
+        }
+        if !outcome.reply.authorization.isEmpty {
+            message += " " + L10n.tr("module.cashier.card_auth", outcome.reply.authorization)
+        }
+        notice = message + invoiceNote + recap
+    }
+
+    private func sendFiscalReceipt(_ ticket: PosTicket, channel: String, amount: Decimal, companyId: UUID?) async -> (reply: FiscalNetStation.Reply, payment: Decimal, documentUrl: String, cashTaken: Decimal, cardTaken: Decimal)? {
+        let tender = channel == "cash" ? (Self.parseMoney(ticket.tenderText) ?? 0) : 0
+        let entry = channel == "split" ? Self.splitEntry(ticket) : nil
+        let preview = FiscalNet.buildReceipt(
+            fiscalCode: ticket.cui,
+            lines: Self.fiscalLines(ticket),
+            targetTotal: amount,
+            paymentType: FiscalNet.payType(channel),
+            tender: tender,
+            documentUrl: "",
+            splitEntered: entry?.amount,
+            splitEnteredIsCash: entry?.isCash ?? true
+        )
+        let key = Self.cardKey(ticket)
+        if Self.chargesCard(channel), preview.cardTaken > 0, cardAcceptedKey != key {
+            let pos = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "pos", nonFiscal: false), commands: FiscalNet.pos(preview.cardTaken), timeout: 180)
+            if pos.bonOk == 0 {
+                notice = FiscalNet.failure(pos, fallback: L10n.tr("module.cashier.card_refused"))
+                return nil
+            }
+            if pos.bonOk != 1 {
+                let accepted = await FiscalPrompt.choose(
+                    message: L10n.tr("module.cashier.card_unknown"),
+                    accept: L10n.tr("module.cashier.card_accept"),
+                    decline: L10n.tr("module.cashier.card_decline")
+                )
+                if !accepted { return nil }
+            }
+            cardAcceptedKey = key
+        }
+        var documentUrl = ""
+        var documentPath: String?
+        if NetworkMonitor.shared.isOnline, let companyId {
+            if let target = try? PosDocumentStore.target(companyId: companyId) {
+                documentUrl = target.url
+                documentPath = target.path
+            }
+        }
+        if let documentPath, !documentUrl.isEmpty {
+            let company = companyManager.currentCompany
+            let supplier = Self.supplierLines(company)
+            let stamp = Self.slipStamp()
+            let draft = Self.slipDraft(from: ticket, channel: channel, amount: preview.payment, seriesId: UUID())
+            let pdf = PosSlipPdf.make(Self.receiptRows(supplier: supplier, location: location.denumire, stamp: stamp, draft: draft, documentUrl: documentUrl, printedNote: "FP-700"))
+            do {
+                try await PosDocumentStore.upload(path: documentPath, data: pdf)
+            } catch {
+                documentUrl = ""
+            }
+        }
+        let built = FiscalNet.buildReceipt(
+            fiscalCode: ticket.cui,
+            lines: Self.fiscalLines(ticket),
+            targetTotal: amount,
+            paymentType: FiscalNet.payType(channel),
+            tender: tender,
+            documentUrl: documentUrl,
+            splitEntered: entry?.amount,
+            splitEnteredIsCash: entry?.isCash ?? true
+        )
+        let reply = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "bf", nonFiscal: false), commands: built.commands, timeout: 60)
+        if reply.bonOk == 1, !reply.number.isEmpty, let documentPath, !documentUrl.isEmpty {
+            let company = companyManager.currentCompany
+            let supplier = Self.supplierLines(company)
+            let stamp = Self.slipStamp()
+            let draft = Self.slipDraft(from: ticket, channel: channel, amount: built.payment, seriesId: UUID())
+            let pdf = PosSlipPdf.make(Self.receiptRows(supplier: supplier, location: location.denumire, stamp: stamp, draft: draft, documentUrl: documentUrl, printedNote: L10n.tr("module.cashier.fiscal_printed", reply.number)))
+            try? await PosDocumentStore.upload(path: documentPath, data: pdf)
+        }
+        return (reply, built.payment, documentUrl, built.cashTaken, built.cardTaken)
+    }
+
+    private func recordSale(_ ticket: PosTicket, channel: String, amount: Decimal, locationId: UUID, cash: Decimal? = nil, card: Decimal? = nil) async throws {
+        if ticket.pay == .split {
+            let cashAmount: Decimal
+            let cardAmount: Decimal
+            if let cash, let card {
+                cashAmount = cash
+                cardAmount = card
+            } else if let entry = Self.splitEntry(ticket) {
+                let parts = FiscalNet.split(payment: amount, entered: entry.amount, enteredIsCash: entry.isCash)
+                cashAmount = parts.cash
+                cardAmount = parts.card
+            } else {
+                return
+            }
+            try await PosShiftTakingsService.record(locationId: locationId, channel: "cash", amount: cashAmount)
+            try await PosShiftTakingsService.record(locationId: locationId, channel: "card", amount: cardAmount)
+            return
+        }
+        try await PosShiftTakingsService.record(locationId: locationId, channel: channel, amount: amount)
+    }
+
+    private static func slipDraft(from ticket: PosTicket, channel: String, amount: Decimal, seriesId: UUID) -> SlipDraft {
+        SlipDraft(
+            seriesId: seriesId,
+            cui: ticket.cui,
+            clientName: ticket.clientName,
+            clientAddress: ticket.clientAddress,
+            payment: paymentLabel(ticket, payable: amount),
+            tender: ticket.pay == .cash ? ticket.tenderText : "",
+            total: money(amount),
+            takingChannel: channel,
+            takingAmount: amount,
+            lines: slipLines(ticket),
+            bands: vatBands(ticket),
+            invoiceLines: invoiceLines(ticket)
+        )
+    }
+
+    private static func fiscalLines(_ ticket: PosTicket) -> [FiscalNet.SaleLine] {
+        var lines: [FiscalNet.SaleLine] = []
+        var menu: String?
+        for line in ticket.lines {
+            if line.menuHeader {
+                menu = line.name
+                continue
+            }
+            let full = line.discountAmount > 0 || line.showsDiscount
+            lines.append(FiscalNet.SaleLine(
+                name: line.name,
+                unitPrice: line.unitPrice,
+                quantity: Decimal(line.quantity),
+                vatGroup: FiscalNet.vatGroup(line.vatRate),
+                fullDiscount: full,
+                discountable: !full,
+                note: menu
+            ))
+            menu = nil
+            for addon in line.addons where !isSgr(addon.name) {
+                lines.append(FiscalNet.SaleLine(
+                    name: addon.name,
+                    unitPrice: addon.unitPrice,
+                    quantity: addon.perUnit * Decimal(line.quantity),
+                    vatGroup: FiscalNet.vatGroup(addon.vatRate),
+                    fullDiscount: false,
+                    discountable: true,
+                    note: nil
+                ))
+            }
+        }
+        for sgr in sgrLines(ticket.lines) where sgr.quantity > 0 && sgr.amount > 0 {
+            lines.append(FiscalNet.SaleLine(
+                name: sgr.name,
+                unitPrice: sgr.amount / sgr.quantity,
+                quantity: sgr.quantity,
+                vatGroup: FiscalNet.vatGroup(sgr.vatRate),
+                fullDiscount: false,
+                discountable: false,
+                note: nil
+            ))
+        }
+        return lines
+    }
+
+    private static func cardKey(_ ticket: PosTicket) -> String {
+        var text = ""
+        for line in ticket.lines {
+            text += "\(line.name)|\(line.quantity)|\(line.unitPrice)|\(line.discountAmount);"
+            for addon in line.addons {
+                text += "\(addon.name)|\(addon.perUnit)|\(addon.unitPrice);"
+            }
+        }
+        text += ticket.discountText
+        if ticket.pay == .split {
+            text += "|split|\(ticket.splitAnchorCash ? "cash" : "card")|\(ticket.cashPartText)|\(ticket.cardPartText)"
+        }
+        return text
+    }
+
+    private static func invoicePaper(supplier: [String], serie: String, number: Int, stamp: String, draft: SlipDraft) -> [String] {
+        var text = ["FACTURA FISCALA", "\(serie) \(number)", stamp]
+        text.append(contentsOf: supplier)
+        if !draft.clientName.isEmpty { text.append(draft.clientName) }
+        if !draft.cui.isEmpty { text.append("CUI \(draft.cui)") }
+        if !draft.clientAddress.isEmpty { text.append(draft.clientAddress) }
+        for line in draft.invoiceLines {
+            text.append(line.name)
+            if !line.quantity.isEmpty {
+                text.append("\(line.quantity)  \(line.value)  TVA \(line.vat)  \(line.vatPercent)")
+            }
+        }
+        let net = draft.invoiceLines.reduce(Decimal.zero) { $0 + $1.netAmount }
+        let vat = draft.invoiceLines.reduce(Decimal.zero) { $0 + $1.vatAmount }
+        text.append("Baza \(ron(net))")
+        text.append("TVA \(ron(vat))")
+        text.append("TOTAL \(draft.total)")
+        text.append("Incasare \(draft.payment)")
+        return text
+    }
+
     private func writeSlipPdfs(to folder: URL) async {
         guard let draft = slipDraft else { return }
+        if fiscalReady {
+            await writeFiscalInvoice(to: folder, draft: draft)
+            return
+        }
         let accessed = folder.startAccessingSecurityScopedResource()
         defer { if accessed { folder.stopAccessingSecurityScopedResource() } }
         do {
@@ -896,16 +1353,11 @@ struct CasierPosView: View {
             try invoice.write(to: folder.appendingPathComponent(invoiceName), options: .atomic)
             var recap = ""
             do {
-                try await PosShiftTakingsService.record(
-                    locationId: location.id,
-                    channel: draft.takingChannel,
-                    amount: draft.takingAmount
-                )
+                try await recordSale(activeTicket, channel: draft.takingChannel, amount: draft.takingAmount, locationId: location.id)
                 await loadTakings()
             } catch {
                 recap = " " + error.localizedDescription
             }
-            recap += await Self.consumeStock(draft.stock)
             clearActiveTicket()
             notice = L10n.tr("module.cashier.pdf_saved", bonName, invoiceName) + recap
         } catch {
@@ -924,8 +1376,16 @@ struct CasierPosView: View {
             $0.cuiBlockName = ""
             $0.tenderText = ""
             $0.printFiscalInvoice = false
-            $0.pay = .cash
-            $0.modern = nil
+            if $0.onlineSale {
+                $0.pay = .modern
+                $0.modern = nil
+            } else {
+                $0.pay = .cash
+                $0.modern = nil
+            }
+            $0.cashPartText = ""
+            $0.cardPartText = ""
+            $0.splitAnchorCash = true
             $0.discountText = ""
         }
     }
@@ -938,28 +1398,100 @@ struct CasierPosView: View {
         }
     }
 
+    private func printReportX() async {
+        guard fiscalReady else {
+            notice = L10n.tr("module.cashier.report_x_pending")
+            return
+        }
+        guard !fiscalBusy else { return }
+        fiscalBusy = true
+        defer { fiscalBusy = false }
+        let reply = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "x", nonFiscal: false), commands: FiscalNet.report("X"), timeout: 90)
+        notice = reply.bonOk == 1
+            ? L10n.tr("module.cashier.report_x_done")
+            : FiscalNet.failure(reply, fallback: L10n.tr("module.cashier.report_x_failed"))
+    }
+
     private func closeShift() async {
         do {
+            if fiscalReady {
+                guard !fiscalBusy else { return }
+                fiscalBusy = true
+                let reply = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "z", nonFiscal: false), commands: FiscalNet.report("Z"), timeout: 90)
+                fiscalBusy = false
+                guard reply.bonOk == 1 else {
+                    notice = FiscalNet.failure(reply, fallback: L10n.tr("module.cashier.report_z_failed"))
+                    return
+                }
+                try await PosShiftTakingsService.closeZ(locationId: location.id)
+                await loadTakings()
+                notice = L10n.tr("module.cashier.report_z_done")
+                return
+            }
             try await PosShiftTakingsService.closeZ(locationId: location.id)
             await loadTakings()
             notice = L10n.tr("module.cashier.report_z_closed")
         } catch {
+            fiscalBusy = false
             notice = error.localizedDescription
         }
     }
 
+    private static func chargesCard(_ channel: String) -> Bool {
+        channel == "card" || channel == "split"
+    }
+
+    private static func splitShown(_ ticket: PosTicket, isCash: Bool) -> String {
+        if ticket.splitAnchorCash == isCash {
+            return isCash ? ticket.cashPartText : ticket.cardPartText
+        }
+        let source = ticket.splitAnchorCash ? ticket.cashPartText : ticket.cardPartText
+        return remainderText(entered: source, total: ticketTotal(ticket))
+    }
+
+    private static func remainderText(entered: String, total: Decimal) -> String {
+        guard let value = parseMoney(entered), value > 0, value < total else { return "" }
+        return money(total - value)
+    }
+
+    private static func splitEntry(_ ticket: PosTicket) -> (amount: Decimal, isCash: Bool)? {
+        guard ticket.pay == .split else { return nil }
+        let text = ticket.splitAnchorCash ? ticket.cashPartText : ticket.cardPartText
+        guard let amount = parseMoney(text), amount > 0, amount < ticketTotal(ticket) else { return nil }
+        return (amount, ticket.splitAnchorCash)
+    }
+
+    private static func splitProblem(_ ticket: PosTicket) -> String? {
+        guard ticket.pay == .split else { return nil }
+        if splitEntry(ticket) != nil { return nil }
+        let text = ticket.splitAnchorCash ? ticket.cashPartText : ticket.cardPartText
+        if let amount = parseMoney(text), ticketTotal(ticket) > 0, amount >= ticketTotal(ticket) {
+            return L10n.tr("module.cashier.split_over")
+        }
+        return L10n.tr("module.cashier.split_hint")
+    }
+
     private static func takingChannel(_ ticket: PosTicket) -> String? {
+        if ticket.onlineSale {
+            return ticket.modern?.rawValue
+        }
         switch ticket.pay {
         case .cash: return "cash"
         case .card: return "card"
-        case .modern: return ticket.modern?.rawValue
+        case .split: return "split"
+        case .modern: return nil
         }
     }
 
-    private static func paymentLabel(_ ticket: PosTicket) -> String {
+    private static func paymentLabel(_ ticket: PosTicket, payable: Decimal? = nil) -> String {
+        let due = payable ?? ticketTotal(ticket)
         switch ticket.pay {
         case .cash: return L10n.tr("module.cashier.cash")
         case .card: return L10n.tr("module.cashier.card")
+        case .split:
+            guard let entry = splitEntry(ticket) else { return L10n.tr("module.cashier.pay_split") }
+            let parts = FiscalNet.split(payment: due, entered: entry.amount, enteredIsCash: entry.isCash)
+            return "Numerar \(money(parts.cash)) + Card \(money(parts.card))"
         case .modern:
             switch ticket.modern {
             case .glovo: return L10n.tr("module.cashier.glovo")
@@ -1272,7 +1804,7 @@ struct CasierPosView: View {
         return (shown, formatter.string(from: Date()))
     }
 
-    private static func receiptRows(supplier: [String], location: String, stamp: (shown: String, file: String), draft: SlipDraft, documentUrl: String) -> [PosSlipPdf.Row] {
+    private static func receiptRows(supplier: [String], location: String, stamp: (shown: String, file: String), draft: SlipDraft, documentUrl: String, printedNote: String = "") -> [PosSlipPdf.Row] {
         var rows = [PosSlipPdf.Row.title("BON FISCAL")]
         rows.append(contentsOf: supplier.map { PosSlipPdf.Row.center($0, size: 7) })
         if !location.isEmpty { rows.append(.center(location, size: 7)) }
@@ -1294,13 +1826,13 @@ struct CasierPosView: View {
         if !draft.tender.isEmpty { rows.append(.line("Primește \(draft.tender)")) }
         rows.append(.line(" "))
         if !documentUrl.isEmpty { rows.append(.qr(documentUrl)) }
-        rows.append(.center("PDF — imprimanta fiscală nu este conectată", size: 6))
+        rows.append(.center(printedNote.isEmpty ? "PDF — imprimanta fiscală nu este conectată" : printedNote, size: 6))
         rows.append(.line(" "))
         rows.append(.center("Document generat cu ERP Mobile by DateConta", size: 6))
         return rows
     }
 
-    private static func invoiceRows(supplier: [String], serie: String, number: Int, stamp: (shown: String, file: String), draft: SlipDraft, documentUrl: String) -> [PosSlipPdf.Row] {
+    private static func invoiceRows(supplier: [String], serie: String, number: Int, stamp: (shown: String, file: String), draft: SlipDraft, documentUrl: String, printedNote: String = "") -> [PosSlipPdf.Row] {
         var rows = [PosSlipPdf.Row.title("FACTURĂ FISCALĂ")]
         rows.append(.center("\(serie) \(number)", size: 10))
         rows.append(.center(stamp.shown, size: 8))
@@ -1329,7 +1861,7 @@ struct CasierPosView: View {
         rows.append(.line("Încasare: \(draft.payment)"))
         rows.append(.line(" "))
         if !documentUrl.isEmpty { rows.append(.qr(documentUrl)) }
-        rows.append(.center("80 mm · PDF — imprimanta fiscală nu este conectată", size: 6))
+        rows.append(.center(printedNote.isEmpty ? "80 mm · PDF — imprimanta fiscală nu este conectată" : printedNote, size: 6))
         rows.append(.line(" "))
         rows.append(.center("Document generat cu ERP Mobile by DateConta", size: 6))
         return rows
@@ -1338,6 +1870,84 @@ struct CasierPosView: View {
     private func updateActive(_ change: (inout PosTicket) -> Void) {
         guard let index = tickets.firstIndex(where: { $0.id == activeTicketId }) else { return }
         change(&tickets[index])
+    }
+
+    private func setPriceChannel(_ online: Bool) {
+        var removed = false
+        updateActive { ticket in
+            ticket.onlineSale = online
+            if online {
+                ticket.pay = .modern
+            } else if ticket.pay == .modern {
+                ticket.pay = .cash
+                ticket.modern = nil
+            }
+            removed = Self.applyPriceChannel(&ticket)
+        }
+        if removed {
+            notice = L10n.tr("module.cashier.zero_sale_price")
+        }
+    }
+
+    private func shownPrice(_ tile: CasierPosTile) -> Decimal {
+        activeTicket.onlineSale ? tile.onlinePrice : tile.storePrice
+    }
+
+    private static func channelPrice(store: Decimal, online: Decimal, onlineSale: Bool) -> Decimal {
+        onlineSale ? online : store
+    }
+
+    @discardableResult
+    private static func applyPriceChannel(_ ticket: inout PosTicket) -> Bool {
+        let online = ticket.onlineSale
+        for index in ticket.lines.indices {
+            for addonIndex in ticket.lines[index].addons.indices {
+                let addon = ticket.lines[index].addons[addonIndex]
+                ticket.lines[index].addons[addonIndex].unitPrice = addon.charges
+                    ? channelPrice(store: addon.storePrice, online: addon.onlinePrice, onlineSale: online)
+                    : 0
+            }
+        }
+        for index in ticket.lines.indices {
+            var line = ticket.lines[index]
+            if line.menuHeader {
+                continue
+            }
+            if line.isMenuSecondary {
+                let price = channelPrice(store: line.storePrice, online: line.onlinePrice, onlineSale: online)
+                line.unitPrice = price
+                line.discountAmount = price
+            } else if line.isMenuMain {
+                let block = line.menuBlock
+                let sgr = ticket.lines.reduce(Decimal.zero) { partial, row in
+                    guard row.menuBlock == block else { return partial }
+                    return row.addons.reduce(partial) { sum, addon in
+                        addon.charges ? sum + addon.perUnit * addon.unitPrice : sum
+                    }
+                }
+                let menuPrice = Self.channelPrice(store: line.menuStorePrice, online: line.menuOnlinePrice, onlineSale: online)
+                line.menuPrice = menuPrice
+                line.unitPrice = max(Decimal.zero, menuPrice - sgr)
+            } else {
+                line.unitPrice = channelPrice(store: line.storePrice, online: line.onlinePrice, onlineSale: online)
+            }
+            ticket.lines[index] = line
+        }
+        let before = ticket.lines.count
+        let doomedMenus = Set(ticket.lines.compactMap { line -> UUID? in
+            guard line.isMenuMain, line.menuPrice <= 0, let block = line.menuBlock else { return nil }
+            return block
+        })
+        ticket.lines.removeAll { line in
+            if let block = line.menuBlock, doomedMenus.contains(block) {
+                return true
+            }
+            if line.menuHeader || line.isMenuMain || line.isMenuSecondary {
+                return false
+            }
+            return line.unitPrice <= 0
+        }
+        return ticket.lines.count != before
     }
 
     private func openTicket() {
@@ -1359,6 +1969,10 @@ struct CasierPosView: View {
     }
 
     private func add(_ tile: CasierPosTile) {
+        if shownPrice(tile) <= 0 {
+            notice = L10n.tr("module.cashier.zero_sale_price")
+            return
+        }
         if tile.isMenu {
             Task { await beginMenu(tile) }
             return
@@ -1372,10 +1986,12 @@ struct CasierPosView: View {
             ticket.lines.append(PosCartRow(
                 id: key,
                 name: tile.name,
-                unitPrice: tile.unitPrice,
+                unitPrice: shownPrice(tile),
                 vatRate: tile.vatRate,
                 quantity: 1,
-                addons: extras(for: tile.productId)
+                addons: extras(for: tile.productId),
+                storePrice: tile.storePrice,
+                onlinePrice: tile.onlinePrice
             ))
         }
     }
@@ -1389,7 +2005,13 @@ struct CasierPosView: View {
                 productId: addon.addonProductId,
                 name: ref.denumire,
                 perUnit: addon.cantitate,
-                unitPrice: ref.pretVanzare,
+                storePrice: ref.pretVanzare,
+                onlinePrice: ref.pretVanzareOnline,
+                unitPrice: Self.channelPrice(
+                    store: ref.pretVanzare,
+                    online: ref.pretVanzareOnline,
+                    onlineSale: activeTicket.onlineSale
+                ),
                 vatRate: ref.cotaTva
             )
         }
@@ -1421,7 +2043,8 @@ struct CasierPosView: View {
                     id: product.id,
                     name: product.denumire,
                     vatRate: product.cotaTva,
-                    salePrice: product.pretVanzare,
+                    storePrice: product.pretVanzare,
+                    onlinePrice: product.pretVanzareOnline,
                     selected: selected,
                     addons: extras(for: product.id)
                 )
@@ -1438,7 +2061,8 @@ struct CasierPosView: View {
             menuOffer = MenuOffer(
                 id: menuId,
                 name: tile.name,
-                price: tile.unitPrice,
+                storePrice: tile.storePrice,
+                onlinePrice: tile.onlinePrice,
                 main: main,
                 secondaries: secondaries,
                 allowsMultiple: tile.allowsMultipleSecondaries
@@ -1449,13 +2073,6 @@ struct CasierPosView: View {
     }
 
     private func commitMenu(_ offer: MenuOffer) {
-        let selected = [offer.main] + offer.secondaries.filter(\.selected)
-        let sgr = selected.reduce(Decimal.zero) { partial, choice in
-            partial + choice.addons.reduce(Decimal.zero) { sum, addon in
-                Self.isSgr(addon.name) ? sum + addon.perUnit * addon.unitPrice : sum
-            }
-        }
-        let mainPrice = max(Decimal.zero, offer.price - sgr)
         let block = UUID()
         var rows = [
             PosCartRow(
@@ -1471,19 +2088,35 @@ struct CasierPosView: View {
                 menuHeader: true
             )
         ]
-        rows.append(menuRow(offer.main, price: mainPrice, block: block))
+        rows.append(menuRow(
+            offer.main,
+            block: block,
+            menuMain: true,
+            menuStorePrice: offer.storePrice,
+            menuOnlinePrice: offer.onlinePrice
+        ))
         for choice in offer.secondaries where choice.selected {
-            rows.append(menuRow(choice, price: choice.salePrice, discount: choice.salePrice, showsDiscount: true, block: block))
+            rows.append(menuRow(choice, showsDiscount: true, block: block))
         }
-        updateActive { $0.lines.append(contentsOf: rows) }
+        updateActive { ticket in
+            ticket.lines.append(contentsOf: rows)
+            Self.applyPriceChannel(&ticket)
+        }
     }
 
-    private func menuRow(_ choice: MenuChoice, price: Decimal, discount: Decimal = 0, showsDiscount: Bool = false, block: UUID) -> PosCartRow {
+    private func menuRow(
+        _ choice: MenuChoice,
+        showsDiscount: Bool = false,
+        block: UUID,
+        menuMain: Bool = false,
+        menuStorePrice: Decimal = 0,
+        menuOnlinePrice: Decimal = 0
+    ) -> PosCartRow {
         PosCartRow(
             id: UUID(),
             productId: choice.id,
             name: choice.name,
-            unitPrice: price,
+            unitPrice: 0,
             vatRate: choice.vatRate,
             quantity: 1,
             addons: choice.addons.map { addon in
@@ -1492,42 +2125,23 @@ struct CasierPosView: View {
                     productId: addon.productId,
                     name: addon.name,
                     perUnit: addon.perUnit,
-                    unitPrice: Self.isSgr(addon.name) ? addon.unitPrice : 0,
-                    vatRate: addon.vatRate
+                    storePrice: addon.storePrice,
+                    onlinePrice: addon.onlinePrice,
+                    unitPrice: 0,
+                    vatRate: addon.vatRate,
+                    charges: Self.isSgr(addon.name)
                 )
             },
-            discountAmount: discount,
             showsDiscount: showsDiscount,
-            menuBlock: block
+            menuBlock: block,
+            storePrice: choice.storePrice,
+            onlinePrice: choice.onlinePrice,
+            menuPrice: menuStorePrice,
+            menuStorePrice: menuStorePrice,
+            menuOnlinePrice: menuOnlinePrice,
+            isMenuMain: menuMain,
+            isMenuSecondary: showsDiscount
         )
-    }
-
-    private static func stockCuts(_ ticket: PosTicket) -> [StockCut] {
-        var totals: [UUID: Decimal] = [:]
-        for line in ticket.lines where line.productId != nil {
-            if let productId = line.productId {
-                totals[productId, default: 0] += Decimal(line.quantity)
-            }
-            for addon in line.addons {
-                if let productId = addon.productId {
-                    totals[productId, default: 0] += addon.perUnit * Decimal(line.quantity)
-                }
-            }
-        }
-        return totals.compactMap { productId, quantity in
-            quantity > 0 ? StockCut(productId: productId, quantity: quantity) : nil
-        }
-    }
-
-    private static func consumeStock(_ items: [StockCut]) async -> String {
-        do {
-            try await PosShiftTakingsService.consumeStock(
-                items: items.map { (productId: $0.productId, quantity: $0.quantity) }
-            )
-            return ""
-        } catch {
-            return " " + error.localizedDescription
-        }
     }
 
     private func loadGroups() async {
@@ -1567,9 +2181,9 @@ struct CasierPosView: View {
                         allowsMultipleSecondaries: menu.permiteSecundareMultiple,
                         name: menu.name,
                         code: menu.cod,
-                        unitPrice: menu.pretVanzare,
+                        storePrice: menu.pretVanzare,
+                        onlinePrice: menu.pretVanzareOnline,
                         vatRate: nil,
-                        priceLabel: Self.ron(menu.pretVanzare),
                         imageUrl: images[menu.id]
                     )
                 }.sorted { Self.byName($0.name, $1.name) }
@@ -1582,9 +2196,9 @@ struct CasierPosView: View {
                         productId: product.id,
                         name: product.denumire,
                         code: product.cod ?? "",
-                        unitPrice: product.pretVanzare,
+                        storePrice: product.pretVanzare,
+                        onlinePrice: product.pretVanzareOnline,
                         vatRate: product.cotaTva,
-                        priceLabel: Self.ron(product.pretVanzare),
                         imageUrl: product.imagineUrl
                     )
                 }.sorted { Self.byName($0.name, $1.name) }
@@ -1699,6 +2313,7 @@ private enum PosPay {
     case cash
     case card
     case modern
+    case split
 }
 
 private enum PosModern: String {
@@ -1720,6 +2335,10 @@ private struct PosTicket: Identifiable {
     var cuiBlockName = ""
     var printFiscalInvoice = false
     var discountText = ""
+    var onlineSale = false
+    var cashPartText = ""
+    var cardPartText = ""
+    var splitAnchorCash = true
 }
 
 private struct CuiBlock: Identifiable {
@@ -1773,7 +2392,6 @@ private struct SlipDraft {
     let lines: [(name: String, amount: String)]
     let bands: [VatBand]
     let invoiceLines: [InvoiceLine]
-    let stock: [StockCut]
 }
 
 private struct InvoiceLine {
@@ -1792,8 +2410,11 @@ private struct PosCartAddon: Identifiable, Hashable {
     let productId: UUID?
     let name: String
     let perUnit: Decimal
-    let unitPrice: Decimal
+    var storePrice: Decimal = 0
+    var onlinePrice: Decimal = 0
+    var unitPrice: Decimal
     let vatRate: Decimal
+    var charges = true
 }
 
 private struct PosCartRow: Identifiable {
@@ -1811,35 +2432,47 @@ private struct PosCartRow: Identifiable {
     var showsDiscount = false
     var menuBlock: UUID?
     var menuHeader = false
+    var storePrice: Decimal = 0
+    var onlinePrice: Decimal = 0
+    var menuPrice: Decimal = 0
+    var menuStorePrice: Decimal = 0
+    var menuOnlinePrice: Decimal = 0
+    var isMenuMain = false
+    var isMenuSecondary = false
 
     var lineTotal: Decimal { unitPrice * Decimal(quantity) - discountAmount }
 }
 
-private struct CasierPosTile: Identifiable {
+private struct CasierPosTile: Identifiable, Equatable {
     let id: String
     let productId: UUID?
     var isMenu = false
     var allowsMultipleSecondaries = false
     let name: String
     let code: String
-    let unitPrice: Decimal
+    let storePrice: Decimal
+    let onlinePrice: Decimal
     let vatRate: Decimal?
-    let priceLabel: String
     let imageUrl: String?
 }
 
-private struct CasierProductTile: View {
+private struct CasierProductTile: View, Equatable {
     let tile: CasierPosTile
+    let priceLabel: String
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.tile == rhs.tile && lhs.priceLabel == rhs.priceLabel
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
-                ProductThumbnailView(imagineUrl: tile.imageUrl, contentMode: .fit)
+                ProductThumbnailView(imagineUrl: tile.imageUrl, contentMode: .fit, plate: Color.white.opacity(0.35))
                     .frame(maxWidth: 112, maxHeight: 112)
                 VStack {
                     HStack {
                         Spacer()
-                        Text(tile.priceLabel)
+                        Text(priceLabel)
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(PosChrome.navy)
                             .padding(.horizontal, 6)
@@ -1875,21 +2508,17 @@ private struct CasierProductTile: View {
         .frame(maxWidth: .infinity, minHeight: 228)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color.white.opacity(0.55))
         )
     }
-}
-
-private struct StockCut: Hashable {
-    let productId: UUID
-    let quantity: Decimal
 }
 
 private struct MenuChoice: Identifiable, Hashable {
     let id: UUID
     let name: String
     let vatRate: Decimal?
-    let salePrice: Decimal
+    let storePrice: Decimal
+    let onlinePrice: Decimal
     var selected: Bool
     let addons: [PosCartAddon]
 }
@@ -1897,7 +2526,8 @@ private struct MenuChoice: Identifiable, Hashable {
 private struct MenuOffer: Identifiable, Hashable {
     let id: UUID
     let name: String
-    let price: Decimal
+    let storePrice: Decimal
+    let onlinePrice: Decimal
     let main: MenuChoice
     var secondaries: [MenuChoice]
     var allowsMultiple: Bool

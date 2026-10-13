@@ -52,11 +52,7 @@ struct WorkLocationsListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -285,7 +281,7 @@ private struct WorkLocationFormView: View {
                         Button {
                             Task { await save() }
                         } label: {
-                            Label(L10n.tr("common.save"), systemImage: "checkmark.circle.fill")
+                            Label(L10n.tr("common.save"), systemImage: "checkmark.circle.fill").appHoverTip(L10n.tr("common.save"))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppButtonStyles.borderedProminent)
@@ -294,7 +290,7 @@ private struct WorkLocationFormView: View {
                         Button {
                             presentationMode.wrappedValue.dismiss()
                         } label: {
-                            Label(L10n.tr("common.exit"), systemImage: "xmark.circle.fill")
+                            Label(L10n.tr("common.exit"), systemImage: "xmark.circle.fill").appHoverTip(L10n.tr("common.exit"))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppButtonStyles.bordered)

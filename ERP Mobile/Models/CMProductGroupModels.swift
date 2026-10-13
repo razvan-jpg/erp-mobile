@@ -52,6 +52,7 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
     let companyId: UUID
     var name: String
     var pretVanzare: Decimal
+    var pretVanzareOnline: Decimal
     var isActive: Bool
     var sortOrder: Int
     var cod: String
@@ -63,6 +64,7 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
         case id, name
         case companyId = "company_id"
         case pretVanzare = "pret_vanzare"
+        case pretVanzareOnline = "pret_vanzare_online"
         case isActive = "is_active"
         case sortOrder = "sort_order"
         case cod
@@ -76,6 +78,7 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
         companyId: UUID,
         name: String,
         pretVanzare: Decimal,
+        pretVanzareOnline: Decimal? = nil,
         isActive: Bool,
         sortOrder: Int,
         cod: String = "",
@@ -87,6 +90,7 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
         self.companyId = companyId
         self.name = name
         self.pretVanzare = pretVanzare
+        self.pretVanzareOnline = pretVanzareOnline ?? pretVanzare
         self.isActive = isActive
         self.sortOrder = sortOrder
         self.cod = cod
@@ -101,6 +105,11 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
         companyId = try c.decode(UUID.self, forKey: .companyId)
         name = try c.decode(String.self, forKey: .name)
         pretVanzare = try c.decode(SupabaseDecimal.self, forKey: .pretVanzare).wrappedValue
+        if let online = try c.decodeIfPresent(SupabaseDecimal.self, forKey: .pretVanzareOnline) {
+            pretVanzareOnline = online.wrappedValue
+        } else {
+            pretVanzareOnline = pretVanzare
+        }
         isActive = try c.decode(Bool.self, forKey: .isActive)
         sortOrder = try c.decode(Int.self, forKey: .sortOrder)
         cod = try c.decodeIfPresent(String.self, forKey: .cod) ?? ""
@@ -115,6 +124,7 @@ nonisolated struct CMMenu: Codable, Identifiable, Hashable, Sendable {
         try c.encode(companyId, forKey: .companyId)
         try c.encode(name, forKey: .name)
         try c.encode(SupabaseDecimal(wrappedValue: pretVanzare), forKey: .pretVanzare)
+        try c.encode(SupabaseDecimal(wrappedValue: pretVanzareOnline), forKey: .pretVanzareOnline)
         try c.encode(isActive, forKey: .isActive)
         try c.encode(sortOrder, forKey: .sortOrder)
         try c.encode(cod, forKey: .cod)

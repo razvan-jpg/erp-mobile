@@ -47,7 +47,7 @@ extension View {
                 self.toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: onEnterSelection) {
-                            Label(L10n.tr("common.select_items"), systemImage: "checklist")
+                            Label(L10n.tr("common.select_items"), systemImage: "checklist").appHoverTip(L10n.tr("common.select_items"))
                         }
                     }
                 }

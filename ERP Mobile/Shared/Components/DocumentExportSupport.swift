@@ -3,16 +3,54 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
+struct MailAttachment: Sendable {
+    let fileURL: URL
+    let mimeType: String
+
+    init(fileURL: URL, mimeType: String = "application/pdf") {
+        self.fileURL = fileURL
+        self.mimeType = mimeType
+    }
+}
+
 struct MailComposeView: UIViewControllerRepresentable {
     let subject: String
     let body: String
     let recipients: [String]
-    let attachmentURL: URL?
-    let onFinish: () -> Void
+    let attachments: [MailAttachment]
+    let onFinish: (MFMailComposeResult) -> Void
+
+    init(
+        subject: String,
+        body: String,
+        recipients: [String],
+        attachmentURL: URL?,
+        onFinish: @escaping () -> Void
+    ) {
+        self.subject = subject
+        self.body = body
+        self.recipients = recipients
+        self.attachments = attachmentURL.map { [MailAttachment(fileURL: $0)] } ?? []
+        self.onFinish = { _ in onFinish() }
+    }
+
+    init(
+        subject: String,
+        body: String,
+        recipients: [String],
+        attachments: [MailAttachment],
+        onFinish: @escaping (MFMailComposeResult) -> Void
+    ) {
+        self.subject = subject
+        self.body = body
+        self.recipients = recipients
+        self.attachments = attachments
+        self.onFinish = onFinish
+    }
 
     final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
-        let onFinish: () -> Void
-        init(onFinish: @escaping () -> Void) { self.onFinish = onFinish }
+        let onFinish: (MFMailComposeResult) -> Void
+        init(onFinish: @escaping (MFMailComposeResult) -> Void) { self.onFinish = onFinish }
 
         func mailComposeController(
             _ controller: MFMailComposeViewController,
@@ -20,7 +58,7 @@ struct MailComposeView: UIViewControllerRepresentable {
             error: Error?
         ) {
             controller.dismiss(animated: true)
-            onFinish()
+            onFinish(result)
         }
     }
 
@@ -36,9 +74,14 @@ struct MailComposeView: UIViewControllerRepresentable {
         if !recipients.isEmpty {
             controller.setToRecipients(recipients)
         }
-        if let attachmentURL,
-           let data = try? Data(contentsOf: attachmentURL) {
-            controller.addAttachmentData(data, mimeType: "application/pdf", fileName: attachmentURL.lastPathComponent)
+        for attachment in attachments {
+            if let data = try? Data(contentsOf: attachment.fileURL) {
+                controller.addAttachmentData(
+                    data,
+                    mimeType: attachment.mimeType,
+                    fileName: attachment.fileURL.lastPathComponent
+                )
+            }
         }
         return controller
     }
@@ -93,7 +136,6 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
-#if targetEnvironment(macCatalyst)
 struct LocalSaveDocumentPicker: UIViewControllerRepresentable {
     let sourceURLs: [URL]
     let onFinish: () -> Void
@@ -139,7 +181,6 @@ struct LocalSaveDocumentPicker: UIViewControllerRepresentable {
 }
 
 typealias PDFLocalSaveDocumentPicker = LocalSaveDocumentPicker
-#endif
 
 enum DocumentExportSupport {
     static var prefersLocalPDFSaveOnFinish: Bool {
@@ -159,10 +200,16 @@ enum DocumentExportSupport {
     }
 
     static func writeTemporaryPDF(data: Data, preferredFileName: String) throws -> URL {
+        try writeTemporaryFile(data: data, preferredFileName: preferredFileName, pathExtension: "pdf")
+    }
+
+    static func writeTemporaryFile(data: Data, preferredFileName: String, pathExtension: String) throws -> URL {
         let trimmed = preferredFileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ext = pathExtension.lowercased()
+        let suffix = ".\(ext)"
         let baseName: String
-        if trimmed.lowercased().hasSuffix(".pdf") {
-            baseName = String(trimmed.dropLast(4))
+        if trimmed.lowercased().hasSuffix(suffix) {
+            baseName = String(trimmed.dropLast(suffix.count))
         } else if trimmed.isEmpty {
             baseName = "Document"
         } else {
@@ -173,7 +220,7 @@ enum DocumentExportSupport {
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(safeName)-\(UUID().uuidString.prefix(8)).pdf")
+            .appendingPathComponent("\(safeName)-\(UUID().uuidString.prefix(8)).\(ext)")
         try data.write(to: url, options: .atomic)
         return url
     }

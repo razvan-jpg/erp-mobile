@@ -143,13 +143,13 @@ struct ClientZReportsListView: View {
             onDeleteSelected: { showBulkDeleteConfirm = true }
         )
         .appTask { await reload() }
-        .onChange(of: filteredRecords.map(\.id)) { _ in
+        .onChange(of: filteredRecords.map(\.id)) { _, _ in
             pruneSelection()
         }
         .onReceive(NotificationCenter.default.publisher(for: .clientZReportsDidChange)) { _ in
             Task { await reload() }
         }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await reload() }
         }
         #if os(iOS)
@@ -282,7 +282,7 @@ struct ClientZReportsListView: View {
                                 recordToDelete = record
                                 showDeleteConfirm = true
                             } label: {
-                                Label(L10n.tr("common.delete"), systemImage: "trash")
+                                Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                             }
                         }
                     }
@@ -357,7 +357,7 @@ struct ClientZReportsListView: View {
                 .buttonStyle(.plain)
                 .frame(width: Self.previewWidth)
                 .disabled(!record.canPreviewPDF)
-                .accessibilityLabel(L10n.tr("module.clients.z_reports.preview_action"))
+                .appControlHint(L10n.tr("module.clients.z_reports.preview_action"))
             }
 
             if hasDelete {
@@ -370,7 +370,7 @@ struct ClientZReportsListView: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: Self.deleteWidth)
-                .accessibilityLabel(L10n.tr("common.delete"))
+                .appControlHint(L10n.tr("common.delete"))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -444,11 +444,11 @@ struct ClientZReportsListView: View {
                 exportFilteredNC()
             } label: {
                 #if targetEnvironment(macCatalyst)
-                Label(L10n.tr("module.clients.z_reports.export_nc_mac"), systemImage: "square.and.arrow.down")
+                Label(L10n.tr("module.clients.z_reports.export_nc_mac"), systemImage: "square.and.arrow.down").appHoverTip(L10n.tr("module.clients.z_reports.export_nc_mac"))
                 #elseif os(iOS)
-                Label(L10n.tr("module.clients.z_reports.export_nc_ios"), systemImage: "square.and.arrow.up")
+                Label(L10n.tr("module.clients.z_reports.export_nc_ios"), systemImage: "square.and.arrow.up").appHoverTip(L10n.tr("module.clients.z_reports.export_nc_ios"))
                 #else
-                Label(L10n.tr("module.clients.z_reports.export_nc_mac"), systemImage: "square.and.arrow.up")
+                Label(L10n.tr("module.clients.z_reports.export_nc_mac"), systemImage: "square.and.arrow.up").appHoverTip(L10n.tr("module.clients.z_reports.export_nc_mac"))
                 #endif
             }
             .buttonStyle(PrimaryButtonStyle())

@@ -58,11 +58,7 @@ struct HREmployeesListView: View {
         .navigationTitle(L10n.tr("module.hr.tile_employees"))
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {

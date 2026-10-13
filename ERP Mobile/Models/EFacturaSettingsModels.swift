@@ -40,6 +40,7 @@ struct CompanyEFacturaSettings: Codable, Hashable, Sendable, Identifiable {
     var authRequestedAt: Date?
     var authAuthorizedAt: Date?
     var authValidUntil: Date?
+    var authInviteSentAt: Date?
     let createdAt: Date?
     let updatedAt: Date?
 
@@ -50,6 +51,7 @@ struct CompanyEFacturaSettings: Codable, Hashable, Sendable, Identifiable {
         case authRequestedAt = "auth_requested_at"
         case authAuthorizedAt = "auth_authorized_at"
         case authValidUntil = "auth_valid_until"
+        case authInviteSentAt = "auth_invite_sent_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

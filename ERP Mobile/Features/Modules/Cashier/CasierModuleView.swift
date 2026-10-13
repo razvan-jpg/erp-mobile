@@ -71,7 +71,8 @@ private struct CasierProductionView: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
-                    CasierProductionNoteView()
+                    ProductionVoucherListView()
+                        .environmentObject(companyManager)
                 } label: {
                     CasierActionLabel(title: L10n.tr("module.cashier.production_note"))
                 }
@@ -89,54 +90,6 @@ private struct CasierProductionView: View {
                 .environmentObject(session)
                 .environmentObject(localeManager)
         }
-    }
-}
-
-private struct CasierProductionNoteView: View {
-    @EnvironmentObject private var companyManager: CompanyManager
-    @State private var products: [Product] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-
-    var body: some View {
-        Group {
-            if products.isEmpty && !isLoading {
-                AppEmptyStateView(
-                    L10n.tr("module.cashier.production_empty"),
-                    systemImage: "gearshape.2",
-                    description: Text(errorMessage ?? L10n.tr("module.cashier.production_empty_hint"))
-                )
-            } else {
-                List(products) { product in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(product.denumire)
-                            .font(.headline)
-                        if let cod = product.cod, !cod.isEmpty {
-                            Text(cod)
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondary)
-                        }
-                    }
-                }
-            }
-        }
-        .navigationTitle(L10n.tr("module.cashier.production_note"))
-        .navigationBarTitleDisplayMode(.inline)
-        .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
-        .appTask { await reload() }
-    }
-
-    private func reload() async {
-        guard let companyId = companyManager.currentCompany?.id else { return }
-        isLoading = true
-        errorMessage = nil
-        do {
-            products = try await ProductService.fetchProducts(companyId: companyId, hasRecipe: true)
-        } catch {
-            products = []
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
     }
 }
 

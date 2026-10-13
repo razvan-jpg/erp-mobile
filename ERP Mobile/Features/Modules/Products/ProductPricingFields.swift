@@ -6,6 +6,7 @@ struct ProductPricingFields: View {
     let canEdit: Bool
     @Binding var selectedVatRate: Decimal
     @Binding var pretVanzareText: String
+    @Binding var pretVanzareOnlineText: String
     var isSaving: Bool
     var showsSaveButton: Bool = true
     var onSave: () -> Void
@@ -22,6 +23,11 @@ struct ProductPricingFields: View {
                     text: $pretVanzareText,
                     keyboardType: .decimalPad
                 )
+                FormTextField(
+                    title: L10n.tr("module.products.field_sale_price_online", unit),
+                    text: $pretVanzareOnlineText,
+                    keyboardType: .decimalPad
+                )
                 Text(L10n.tr("module.products.sale_price_inclusive_hint"))
                     .font(.caption)
                     .foregroundColor(AppColors.secondary)
@@ -34,6 +40,7 @@ struct ProductPricingFields: View {
             } else {
                 AppLabeledContent(L10n.tr("module.products.field_vat_rate"), value: displayVat)
                 AppLabeledContent(L10n.tr("module.products.field_sale_price", unit), value: displayPrice)
+                AppLabeledContent(L10n.tr("module.products.field_sale_price_online", unit), value: displayOnlinePrice)
             }
 
             if isVatPayer {
@@ -81,12 +88,20 @@ struct ProductPricingFields: View {
         SupplierFormatting.amountString(parsedPrice ?? .zero)
     }
 
+    private var displayOnlinePrice: String {
+        SupplierFormatting.amountString(parsedOnlinePrice ?? .zero)
+    }
+
     private var normalizedVatRate: Decimal {
         ProductVATRates.normalizedRate(selectedVatRate, isVatPayer: isVatPayer)
     }
 
     private var parsedPrice: Decimal? {
         ProductService.parseSalePrice(pretVanzareText)
+    }
+
+    private var parsedOnlinePrice: Decimal? {
+        ProductService.parseSalePrice(pretVanzareOnlineText)
     }
 
     private func normalizeVatSelection() {
@@ -101,5 +116,9 @@ extension Product {
     /// Preț de vânzare cu TVA inclus, per unitate (`pret_vanzare`).
     var pretVanzareInputText: String {
         SupplierFormatting.amountString(pretVanzare)
+    }
+
+    var pretVanzareOnlineInputText: String {
+        SupplierFormatting.amountString(pretVanzareOnline)
     }
 }

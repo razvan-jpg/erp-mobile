@@ -27,7 +27,7 @@ struct ProductCreateView: View {
                     Button {
                         showAutoCreateScanner = true
                     } label: {
-                        Label(L10n.tr("module.products.scan_and_create"), systemImage: "barcode.viewfinder")
+                        Label(L10n.tr("module.products.scan_and_create"), systemImage: "barcode.viewfinder").appHoverTip(L10n.tr("module.products.scan_and_create"))
                     }
                     .disabled(isLoading)
 
@@ -38,7 +38,14 @@ struct ProductCreateView: View {
 
                 Section(header: Text(L10n.tr("module.products.create_manual_section"))) {
                     FormTextField(title: L10n.tr("module.products.field_name"), text: $denumire, isRequired: true)
-                    FormTextField(title: L10n.tr("module.products.field_code"), text: $cod, autocapitalization: .characters)
+                    FormTextField(
+                        title: L10n.tr("module.products.field_code"),
+                        text: $cod,
+                        autocapitalization: .characters
+                    )
+                    Text(L10n.tr("module.products.field_code_hint"))
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondary)
                     FormTextField(
                         title: L10n.tr("inventory.physical_field_barcode"),
                         text: $codBare,
@@ -48,7 +55,7 @@ struct ProductCreateView: View {
                     Button {
                         showFieldScanner = true
                     } label: {
-                        Label(L10n.tr("module.products.scan_fill_barcode"), systemImage: "barcode.viewfinder")
+                        Label(L10n.tr("module.products.scan_fill_barcode"), systemImage: "barcode.viewfinder").appHoverTip(L10n.tr("module.products.scan_fill_barcode"))
                     }
                     ProductMeasureUnitFields(
                         stockUnit: $unitateMasura,

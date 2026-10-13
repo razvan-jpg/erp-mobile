@@ -39,6 +39,20 @@ struct SupplierInvoiceDuplicateRef: Decodable, Sendable, SupplierInvoiceDuplicat
 
 extension SupplierInvoiceRow: SupplierInvoiceDuplicateRecord {}
 
+enum SupplierInvoiceDuplicateKind: Sendable, Equatable {
+    /// Același furnizor + număr + dată + valoare.
+    case exact
+    /// Același furnizor + număr (dată/valoare pot diferi).
+    case sameNumber
+    /// Același furnizor + dată + valoare (numărul poate fi greșit / diferit).
+    case sameAmountDate
+}
+
+struct SupplierInvoiceDuplicateMatch<Invoice: SupplierInvoiceDuplicateRecord>: Sendable {
+    let invoice: Invoice
+    let kind: SupplierInvoiceDuplicateKind
+}
+
 enum SupplierInvoiceDuplicateCheck {
     static func normalizeInvoiceNumber(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -136,7 +150,7 @@ enum SupplierInvoiceDuplicateCheck {
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
     ) -> Bool {
-        findDuplicate(
+        findPotentialDuplicate(
             supplier: supplier,
             number: number,
             issueDate: issueDate,
@@ -156,7 +170,27 @@ enum SupplierInvoiceDuplicateCheck {
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
     ) -> Invoice? {
-        findExistingInvoice(
+        findPotentialDuplicate(
+            supplier: supplier,
+            number: number,
+            issueDate: issueDate,
+            totalAmount: totalAmount,
+            existingInvoices: existingInvoices,
+            suppliers: suppliers,
+            excludingInvoiceId: excludingInvoiceId
+        )?.invoice
+    }
+
+    static func findPotentialDuplicate<Invoice: SupplierInvoiceDuplicateRecord>(
+        supplier: Supplier,
+        number: String,
+        issueDate: Date,
+        totalAmount: Decimal,
+        existingInvoices: [Invoice],
+        suppliers: [Supplier],
+        excludingInvoiceId: UUID? = nil
+    ) -> SupplierInvoiceDuplicateMatch<Invoice>? {
+        findPotentialDuplicate(
             supplierId: supplier.id,
             supplierCUI: EFacturaInvoiceParser.normalizeCUI(supplier.cui),
             number: number,
@@ -178,6 +212,28 @@ enum SupplierInvoiceDuplicateCheck {
         suppliers: [Supplier],
         excludingInvoiceId: UUID? = nil
     ) -> Invoice? {
+        findPotentialDuplicate(
+            supplierId: supplierId,
+            supplierCUI: supplierCUI,
+            number: number,
+            issueDate: issueDate,
+            totalAmount: totalAmount,
+            existingInvoices: existingInvoices,
+            suppliers: suppliers,
+            excludingInvoiceId: excludingInvoiceId
+        )?.invoice
+    }
+
+    static func findPotentialDuplicate<Invoice: SupplierInvoiceDuplicateRecord>(
+        supplierId: UUID,
+        supplierCUI: String?,
+        number: String,
+        issueDate: Date,
+        totalAmount: Decimal,
+        existingInvoices: [Invoice],
+        suppliers: [Supplier],
+        excludingInvoiceId: UUID? = nil
+    ) -> SupplierInvoiceDuplicateMatch<Invoice>? {
         let supplierCuiById = supplierCuiMap(from: suppliers)
         let candidateKeys = Set(
             duplicateKeys(
@@ -189,28 +245,47 @@ enum SupplierInvoiceDuplicateCheck {
             )
         )
         let normalizedNumber = normalizeInvoiceNumber(number)
+        let day = normalizedInvoiceDay(issueDate)
+        let amount = roundedAmount(totalAmount)
 
         if let match = existingInvoices.first(where: { invoice in
             if invoice.id == excludingInvoiceId { return false }
             let keys = duplicateKeys(for: invoice, supplierCuiById: supplierCuiById)
             return keys.contains { candidateKeys.contains($0) }
         }) {
-            return match
+            return SupplierInvoiceDuplicateMatch(invoice: match, kind: .exact)
         }
 
-        return existingInvoices.first { invoice in
+        if let match = existingInvoices.first(where: { invoice in
             if invoice.id == excludingInvoiceId { return false }
             guard normalizeInvoiceNumber(invoice.numarFactura) == normalizedNumber else {
                 return false
             }
-            if invoice.supplierId == supplierId {
-                return true
-            }
-            if let supplierCUI, supplierCuiById[invoice.supplierId] == supplierCUI {
-                return true
-            }
-            return false
+            return isSameSupplier(
+                invoiceSupplierId: invoice.supplierId,
+                candidateSupplierId: supplierId,
+                candidateCUI: supplierCUI,
+                supplierCuiById: supplierCuiById
+            )
+        }) {
+            return SupplierInvoiceDuplicateMatch(invoice: match, kind: .sameNumber)
         }
+
+        if let match = existingInvoices.first(where: { invoice in
+            if invoice.id == excludingInvoiceId { return false }
+            guard normalizedInvoiceDay(invoice.dataFactura) == day else { return false }
+            guard roundedAmount(invoice.sumaTotala) == amount else { return false }
+            return isSameSupplier(
+                invoiceSupplierId: invoice.supplierId,
+                candidateSupplierId: supplierId,
+                candidateCUI: supplierCUI,
+                supplierCuiById: supplierCuiById
+            )
+        }) {
+            return SupplierInvoiceDuplicateMatch(invoice: match, kind: .sameAmountDate)
+        }
+
+        return nil
     }
 
     static func duplicateMessage(
@@ -227,6 +302,60 @@ enum SupplierInvoiceDuplicateCheck {
             SupplierFormatting.compactDate(issueDate),
             SupplierFormatting.compactAmount(totalAmount, code: currency)
         )
+    }
+
+    static func softDuplicateWarningMessage(
+        kind: SupplierInvoiceDuplicateKind,
+        existingNumber: String,
+        supplierName: String,
+        number: String,
+        issueDate: Date,
+        totalAmount: Decimal,
+        currency: String
+    ) -> String {
+        let existing = normalizeInvoiceNumber(existingNumber)
+        let candidate = normalizeInvoiceNumber(number)
+        let dateText = SupplierFormatting.compactDate(issueDate)
+        let amountText = SupplierFormatting.compactAmount(totalAmount, code: currency)
+        switch kind {
+        case .exact:
+            return L10n.tr(
+                "invoices.warning_duplicate_exact",
+                supplierName,
+                candidate,
+                dateText,
+                amountText
+            )
+        case .sameNumber:
+            return L10n.tr(
+                "invoices.warning_duplicate_number",
+                existing,
+                supplierName
+            )
+        case .sameAmountDate:
+            return L10n.tr(
+                "invoices.warning_duplicate_amount_date",
+                supplierName,
+                dateText,
+                amountText,
+                existing
+            )
+        }
+    }
+
+    private static func isSameSupplier(
+        invoiceSupplierId: UUID,
+        candidateSupplierId: UUID,
+        candidateCUI: String?,
+        supplierCuiById: [UUID: String]
+    ) -> Bool {
+        if invoiceSupplierId == candidateSupplierId {
+            return true
+        }
+        if let candidateCUI, supplierCuiById[invoiceSupplierId] == candidateCUI {
+            return true
+        }
+        return false
     }
 
     private static func supplierCuiMap(from suppliers: [Supplier]) -> [UUID: String] {

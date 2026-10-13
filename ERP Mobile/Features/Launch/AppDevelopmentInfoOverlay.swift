@@ -44,7 +44,7 @@ struct AppDevelopmentInfoOverlay: View {
                         .foregroundColor(AppColors.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(L10n.tr("launch.development_info_close"))
+                .appControlHint(L10n.tr("launch.development_info_close"))
             }
 
             Text(L10n.tr("launch.development_info_message", language: .romanian))

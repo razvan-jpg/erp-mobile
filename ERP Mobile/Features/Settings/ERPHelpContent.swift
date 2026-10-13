@@ -29,7 +29,9 @@ enum ERPHelpContent {
                     L10n.tr("help.section_intro_b5"),
                     L10n.tr("help.section_intro_b6"),
                     L10n.tr("help.section_intro_b7"),
+                    L10n.tr("help.section_intro_b8"),
                 ],
+
                 screenshotAssetNames: ["HelpDashboard"],
                 tip: L10n.tr("help.section_intro_tip")
             ),
@@ -100,6 +102,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_pos_b19"),
                     L10n.tr("help.section_pos_b20"),
                     L10n.tr("help.section_pos_b21"),
+                    L10n.tr("help.section_pos_b22"),
                 ],
                 tip: L10n.tr("help.section_pos_tip")
             ),
@@ -247,6 +250,7 @@ enum ERPHelpContent {
                     L10n.tr("help.section_inventory_b2"),
                     L10n.tr("help.section_inventory_b3"),
                     L10n.tr("help.section_inventory_b4"),
+                    L10n.tr("help.section_inventory_b5"),
                 ],
                 screenshotAssetNames: ["HelpInventory"],
                 tip: L10n.tr("help.section_inventory_tip")

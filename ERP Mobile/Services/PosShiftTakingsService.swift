@@ -73,28 +73,6 @@ enum PosShiftTakingsService {
             .execute()
     }
 
-    static func consumeStock(items: [(productId: UUID, quantity: Decimal)]) async throws {
-        struct Item: Encodable {
-            let productId: UUID
-            let cantitate: String
-            enum CodingKeys: String, CodingKey {
-                case productId = "product_id"
-                case cantitate
-            }
-        }
-        struct Params: Encodable {
-            let items: [Item]
-            enum CodingKeys: String, CodingKey {
-                case items = "p_items"
-            }
-        }
-        let payload = items.map { Item(productId: $0.productId, cantitate: plain($0.quantity)) }
-        guard !payload.isEmpty else { return }
-        try await client
-            .rpc("pos_consume_stock", params: Params(items: payload))
-            .execute()
-    }
-
     private static func plain(_ value: Decimal) -> String {
         var source = value
         var rounded = Decimal()

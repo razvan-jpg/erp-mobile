@@ -10,6 +10,7 @@ struct HRPeriodPicker: View {
             } label: {
                 Image(systemName: "chevron.left")
             }
+            .appControlHint(L10n.tr("common.previous"))
             Spacer()
             Text(period.label)
                 .font(.headline)
@@ -19,6 +20,7 @@ struct HRPeriodPicker: View {
             } label: {
                 Image(systemName: "chevron.right")
             }
+            .appControlHint(L10n.tr("common.next"))
         }
         .buttonStyle(.borderless)
     }

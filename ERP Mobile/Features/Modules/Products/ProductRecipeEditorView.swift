@@ -77,7 +77,7 @@ struct ProductRecipeEditorView: View {
                     Button {
                         onAddLine?(existingIngredientIds)
                     } label: {
-                        Label(L10n.tr("products.recipe_add_line"), systemImage: "plus.circle")
+                        Label(L10n.tr("products.recipe_add_line"), systemImage: "plus.circle").appHoverTip(L10n.tr("products.recipe_add_line"))
                     }
 
                     if !lines.isEmpty {

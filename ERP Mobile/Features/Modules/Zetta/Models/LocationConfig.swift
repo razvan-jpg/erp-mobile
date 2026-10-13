@@ -1,6 +1,6 @@
 import Foundation
 
-enum PunctLucru: String, CaseIterable, Identifiable, Codable {
+nonisolated enum PunctLucru: String, CaseIterable, Identifiable, Codable {
     case agro = "Agro (București)"
     case ploiesti = "Ploiești"
 

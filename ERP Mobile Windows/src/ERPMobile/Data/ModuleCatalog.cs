@@ -43,7 +43,7 @@ public static class ModuleCatalog
         List("Puncte de lucru", "company_work_locations", "denumire.asc", "denumire", "Denumire", "city", "Oraș", "telefon", "Telefon", "is_active", "Activ"),
         List("Depozite", "company_warehouses", "denumire.asc", "cod", "Cod", "denumire", "Denumire", "warehouse_type", "Tip", "is_active", "Activ"),
         List("Grupe catalog", "cm_product_groups", "sort_order.asc", "name", "Nume", "kind", "Tip", "sort_order", "Ordine"),
-        List("Produse", "products", "denumire.asc", "cod", "Cod", "denumire", "Denumire", "cod_bare", "Cod bare", "unitate_masura", "UM", "tip", "Tip", "is_active", "Activ")
+        List("Produse", "products", "denumire.asc", "cod", "Cod", "denumire", "Denumire", "pret_vanzare", "In Store", "pret_vanzare_online", "On Line", "cantitate_minima", "Stoc minim", "cantitate_optima", "Stoc optim", "cod_bare", "Cod bare", "unitate_masura", "UM", "tip", "Categorie", "is_active", "Activ")
     ];
 
     private static IReadOnlyList<ListSpec> Suppliers { get; } =
@@ -99,7 +99,7 @@ public static class ModuleCatalog
 
     private static IReadOnlyList<ListSpec> Products { get; } =
     [
-        List("Produse", "products", "denumire.asc", "cod", "Cod", "denumire", "Denumire", "cod_bare", "Cod bare", "unitate_masura", "UM", "tip", "Tip", "is_active", "Activ")
+        List("Produse", "products", "denumire.asc", "cod", "Cod", "denumire", "Denumire", "pret_vanzare", "In Store", "pret_vanzare_online", "On Line", "cantitate_minima", "Stoc minim", "cantitate_optima", "Stoc optim", "cod_bare", "Cod bare", "unitate_masura", "UM", "tip", "Categorie", "is_active", "Activ")
     ];
 
     private static ListSpec List(string title, string table, string order, params string[] pairs)

@@ -166,16 +166,16 @@ struct UserFormView: View {
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
             .onAppear { primeEditStateFromMode() }
             .appTask { await loadData() }
-            .onChange(of: nume) { newValue in
+            .onChange(of: nume) { _, newValue in
                 applyNameFormat(newValue, to: .nume)
             }
-            .onChange(of: prenume) { newValue in
+            .onChange(of: prenume) { _, newValue in
                 applyNameFormat(newValue, to: .prenume)
             }
-            .onChange(of: cnp) { _ in clearError(.cnp) }
-            .onChange(of: email) { _ in clearError(.email) }
-            .onChange(of: telefon) { _ in clearError(.telefon) }
-            .onChange(of: parola) { _ in clearError(.parola) }
+            .onChange(of: cnp) { _, _ in clearError(.cnp) }
+            .onChange(of: email) { _, _ in clearError(.email) }
+            .onChange(of: telefon) { _, _ in clearError(.telefon) }
+            .onChange(of: parola) { _, _ in clearError(.parola) }
             .alert(L10n.tr("user_form.validate_title"), isPresented: $showValidationAlert) {
                 Button(L10n.tr("common.ok")) {}
             } message: {
@@ -425,7 +425,7 @@ struct UserFormView: View {
             Button {
                 Task { await resendConfirmationEmail() }
             } label: {
-                Label(L10n.tr("user_form.resend_confirmation"), systemImage: "envelope.arrow.triangle.branch")
+                Label(L10n.tr("user_form.resend_confirmation"), systemImage: "envelope.arrow.triangle.branch").appHoverTip(L10n.tr("user_form.resend_confirmation"))
             }
             .buttonStyle(AppButtonStyles.bordered)
             .disabled(isLoading)

@@ -214,6 +214,12 @@ enum SyncOperationExecutor {
                 inventoryId: LocalDocumentStore.resolvedId(p.id, companyId: companyId)
             )
 
+        case .physicalInventoryReopen:
+            let p = try decoder.decode(SyncPayloads.UUIDPayload.self, from: data)
+            try await PhysicalInventoryService.reopen(
+                inventoryId: LocalDocumentStore.resolvedId(p.id, companyId: companyId)
+            )
+
         case .physicalInventoryDelete:
             let p = try decoder.decode(SyncPayloads.UUIDPayload.self, from: data)
             try await PhysicalInventoryService.deleteInventory(
@@ -344,6 +350,7 @@ enum SyncOperationExecutor {
                 companyId: p.companyId,
                 name: p.name,
                 pretVanzare: p.pretVanzare,
+                pretVanzareOnline: p.pretVanzareOnline,
                 productIds: p.productIds,
                 permiteSecundareMultiple: p.permiteSecundareMultiple
             )
@@ -358,6 +365,7 @@ enum SyncOperationExecutor {
                 companyId: p.companyId,
                 name: p.name,
                 pretVanzare: p.pretVanzare,
+                pretVanzareOnline: p.pretVanzareOnline,
                 isActive: p.isActive,
                 productIds: p.productIds,
                 permiteSecundareMultiple: p.permiteSecundareMultiple

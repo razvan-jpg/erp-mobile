@@ -133,7 +133,7 @@ struct ZettaImportView: View {
                 Task { await model.reloadZettaNCConfig() }
             }
         }
-        .onChange(of: erpContext.companyId) { _ in
+        .onChange(of: erpContext.companyId) { _, _ in
             model.bindERPContext(erpContext)
         }
         #if os(iOS)
@@ -290,7 +290,7 @@ struct ZettaImportView: View {
             #if os(iOS)
             .keyboardType(.numberPad)
             #endif
-            .onChange(of: model.firstAccountingNoteNumber) { value in
+            .onChange(of: model.firstAccountingNoteNumber) { _, value in
                 model.applyFirstAccountingNoteNumber(value)
             }
             Text(L10n.tr("utilities.zetta_import.first_nc_number_hint"))

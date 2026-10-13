@@ -9,29 +9,27 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 9 octombrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · October 9, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 13 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 13, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.151",
+            targetVersionLabel: "1.0.285",
             romanianItems: [
-                "BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală).",
-                "Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA).",
-                "POS: tipărire bon fiscal, raport X și raport Z pe Datecs FP-700.",
+                "BINA Smart Business: stabilizare lista Rapoarte Z in perioada si descarcare batch PDF-uri in romana (validare finala).",
+                "Extragere Rapoarte Z: conectori Memgest, BOCP si Generic HTTP (pe langa BINA).",
                 "Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z).",
-                "e-Factura: încărcare directă ANAF SPV (OAuth) pe lângă canalul contabil.",
-                "Manual Ajutor: capturi de ecran reale din modul Registru de casă.",
-                "MT940: șabloane suplimentare de parsare extras bancă (formate bănci românești).",
-                "Registru de casă: export direct în folder (ca la Rapoarte Z), fine-tuning pixel-perfect pe model PDF.",
+                "e-Factura: incarcare directa ANAF SPV (OAuth) pe langa canalul contabil.",
+                "Manual Ajutor: capturi de ecran reale din modul Registru de casa.",
+                "MT940: sabloane suplimentare de parsare extras banca (formate banci romanesti).",
+                "Registru de casa: export direct in folder (ca la Rapoarte Z), fine-tuning pixel-perfect pe model PDF.",
             ],
             englishItems: [
                 "BINA Smart Business: stabilize Z report listing by date range and batch Romanian PDF download (final validation).",
                 "Z report extraction: Memgest, BOCP, and Generic HTTP connectors (in addition to BINA).",
-                "POS: print the fiscal receipt, X report, and Z report on a Datecs FP-700.",
                 "BINA BF import: detailed receipt line items (beyond slots generated from Z Documents).",
                 "e-Factura: direct ANAF SPV upload (OAuth) in addition to the accountant channel.",
                 "Help manual: real in-app screenshots for the Cash register module.",
@@ -43,6 +41,1220 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.284", "13.10.2026",
+                ro: [
+                    "La Necesar comandă, cantitatea de comandat este un câmp cu chenar și creion, ca să se vadă că se poate modifica.",
+                ],
+                en: [
+                    "On Reorder needed, the quantity to order is a bordered field with a pencil, so it is clear you can change it.",
+                ]
+            ),
+            release(
+                "1.0.283", "13.10.2026",
+                ro: [
+                    "La Necesar comandă, lista e pe categorii. Cantitatea de comandat se poate modifica, iar articolele se pot adăuga sau scoate. Materialele consumabile au stoc optim 15, materialele de curățenie minim 1 și optim 3. Birotica nu intră automat.",
+                ],
+                en: [
+                    "On Reorder needed, the list is grouped by category. You can edit the quantity to order and add or remove articles. Consumable materials have an optimal stock of 15, cleaning materials a minimum of 1 and an optimal stock of 3. Stationery is not included automatically.",
+                ]
+            ),
+            release(
+                "1.0.282", "13.10.2026",
+                ro: [
+                    "La Necesar comandă, cantitatea de comandat este stocul optim minus stocul real. Se poate tipări și salva PDF direct în folder.",
+                ],
+                en: [
+                    "On Reorder needed, the quantity to order is optimal stock minus real stock. You can print it and save the PDF straight to a folder.",
+                ]
+            ),
+            release(
+                "1.0.281", "13.10.2026",
+                ro: [
+                    "La Articole apare Stoc optim. La toate articolele, în afară de produsele finite, stocul minim este 10 și stocul optim este 25.",
+                ],
+                en: [
+                    "Articles have an Optimal stock field. Every article except finished goods has a minimum stock of 10 and an optimal stock of 25.",
+                ]
+            ),
+            release(
+                "1.0.280", "13.10.2026",
+                ro: [
+                    "La casă, tile-urile sunt semitransparente, ca să se vadă logo-ul din fundal, și catalogul se deschide mai repede.",
+                ],
+                en: [
+                    "At the register, tiles are translucent so the background logo shows through, and the catalog opens faster.",
+                ]
+            ),
+            release(
+                "1.0.279", "13.10.2026",
+                ro: [
+                    "La casă, pe In Store plata este Numerar, Card sau Numerar + Card.",
+                ],
+                en: [
+                    "At the register, In Store accepts Cash, Card, or Cash + card.",
+                ]
+            ),
+            release(
+                "1.0.278", "13.10.2026",
+                ro: [
+                    "La casă, pe On line singura plată este Modernă: Glovo, Bolt sau Wolt.",
+                ],
+                en: [
+                    "At the register, On line accepts only Modern payment: Glovo, Bolt, or Wolt.",
+                ]
+            ),
+            release(
+                "1.0.277", "13.10.2026",
+                ro: [
+                    "La casă, un produs sau un meniu cu prețul de vânzare 0 nu se poate marca pe bon.",
+                ],
+                en: [
+                    "At the register, a product or a menu with a sale price of 0 cannot be rung up.",
+                ]
+            ),
+            release(
+                "1.0.276", "13.10.2026",
+                ro: [
+                    "Meniurile au preț In Store și preț On Line. La casă, comutatorul alege prețul meniului.",
+                ],
+                en: [
+                    "Menus have an In Store price and an On Line price. At the register, the switch picks the menu price.",
+                ]
+            ),
+            release(
+                "1.0.275", "13.10.2026",
+                ro: [
+                    "La Articole, grupele și categoriile se pot bifa mai multe deodată: toate, sau doar cele alese.",
+                ],
+                en: [
+                    "On Articles, groups and categories can be checked several at a time: all of them, or only the ones you pick.",
+                ]
+            ),
+            release(
+                "1.0.274", "13.10.2026",
+                ro: [
+                    "La Articole, tile-urile și lista se pot sorta după nume sau după categoria articolului.",
+                ],
+                en: [
+                    "On Articles, tiles and the list can be sorted by name or by article category.",
+                ]
+            ),
+            release(
+                "1.0.273", "12.10.2026",
+                ro: [
+                    "Pe bara din stânga, fiecare firmă are sigla ei. Dacă nu e încărcată, apare un pătrat cu inițialele firmei. Nectarie păstrează sigla ei.",
+                ],
+                en: [
+                    "The left bar shows each company's logo. If none is saved, a square with the company initials appears. Nectarie keeps its own logo.",
+                ]
+            ),
+            release(
+                "1.0.272", "12.10.2026",
+                ro: [
+                    "Închidere aplicație este un buton 3D, centrat pe verticală în spațiul de sub siglă.",
+                ],
+                en: [
+                    "Quit application is a 3D button, centered vertically in the space under the logo.",
+                ]
+            ),
+            release(
+                "1.0.271", "12.10.2026",
+                ro: [
+                    "Butonul Închidere aplicație este centrat pe verticală și pe orizontală în meniul din stânga.",
+                ],
+                en: [
+                    "The Quit application button is centered vertically and horizontally in the left menu.",
+                ]
+            ),
+            release(
+                "1.0.270", "12.10.2026",
+                ro: [
+                    "Închidere aplicație din meniul din stânga este buton și închide fereastra fără delogare.",
+                ],
+                en: [
+                    "Quit application in the left menu is a button and closes the window without signing out.",
+                ]
+            ),
+            release(
+                "1.0.269", "12.10.2026",
+                ro: [
+                    "La Articole, pe tile și în listă apare și stocul minim.",
+                ],
+                en: [
+                    "On Articles, minimum stock also appears on the tile and in the list.",
+                ]
+            ),
+            release(
+                "1.0.268", "12.10.2026",
+                ro: [
+                    "La Articole, pe tile și în listă apar ambele prețuri de vânzare: In Store și On Line.",
+                ],
+                en: [
+                    "On Articles, both sale prices appear on the tile and in the list: In Store and On line.",
+                ]
+            ),
+            release(
+                "1.0.267", "12.10.2026",
+                ro: [
+                    "La Nectarie, sigla apare și pe bara din stânga, sub meniu, într-un pătrat cât lățimea barei.",
+                ],
+                en: [
+                    "At Nectarie, the logo also appears on the left bar, under the menu, in a square as wide as the bar.",
+                ]
+            ),
+            release(
+                "1.0.266", "12.10.2026",
+                ro: [
+                    "La Nectarie, ecranul de vânzare POS are sigla estompată 50% pe fundal, doar până la bon.",
+                ],
+                en: [
+                    "At Nectarie, the POS sale screen shows the company logo faded to 50% on the catalog background, stopping at the receipt.",
+                ]
+            ),
+            release(
+                "1.0.265", "12.10.2026",
+                ro: [
+                    "NECTARIE: pe shaorme / box / chifle etc. rețetele folosesc din nou produsul finit DONER PUI; pieptul de pui rămâne doar în rețeta DONER PUI.",
+                ],
+                en: [
+                    "NECTARIE: shaorma / box / bun recipes again use finished good DONER PUI; chicken breast stays only in the DONER PUI recipe.",
+                ]
+            ),
+            release(
+                "1.0.264", "12.10.2026",
+                ro: [
+                    "Inventar: pe fiecare produs apare categoria articolului; puteți sorta tabelul după categorie, nume, cod, stoc scriptic, numărat sau diferență.",
+                ],
+                en: [
+                    "Stock take: each product shows its article category; you can sort the table by category, name, code, book stock, counted or difference.",
+                ]
+            ),
+            release(
+                "1.0.263", "12.10.2026",
+                ro: [
+                    "NECTARIE: retetele folosesc acum materiile prime din baza (CARTOFI ALBI, CURRY, PIEPT DE PUI, DONER VITA TOCAT) in locul codurilor BINA; ingredientele fara corespondent au fost eliminate.",
+                ],
+                en: [
+                    "NECTARIE: recipes now use master raw materials from the database (CARTOFI ALBI, CURRY, chicken breast, DONER VITA TOCAT) instead of BINA codes; unmatched ingredients were removed.",
+                ]
+            ),
+            release(
+                "1.0.262", "12.10.2026",
+                ro: [
+                    "NECTARIE: *1201*1245SGR (QAB AQUA CARPATICA PLATA 0.5L) unificat pe AQUA PLATA 0.5 L (cod 1469).",
+                ],
+                en: [
+                    "NECTARIE: *1201*1245SGR (QAB AQUA CARPATICA PLATA 0.5L) merged into AQUA PLATA 0.5 L (code 1469).",
+                ]
+            ),
+            release(
+                "1.0.261", "12.10.2026",
+                ro: [
+                    "NECTARIE: *340053107SGR (QAB AQUA CARPATICA CARBO 0.5L) unificat pe AQUA MINERALA 0.5 L (cod 1470).",
+                ],
+                en: [
+                    "NECTARIE: *340053107SGR (QAB AQUA CARPATICA CARBO 0.5L) merged into AQUA MINERALA 0.5 L (code 1470).",
+                ]
+            ),
+            release(
+                "1.0.260", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse 14 articole tarife deseuri / TMB (coduri 6421735000120–0151 selectate).",
+                ],
+                en: [
+                    "NECTARIE: removed 14 waste / TMB tariff products (selected codes 6421735000120–0151).",
+                ]
+            ),
+            release(
+                "1.0.259", "12.10.2026",
+                ro: [
+                    "NECTARIE: 11 coduri Q (cutii, hartie, seturi etc.) mutate pe tip ambalaj: 00014099, 00014000, 00014053/1, 00014098, 00014022, 00012743, 00009595, 00005040, 00008904, 00014285, 00005053/2.",
+                ],
+                en: [
+                    "NECTARIE: 11 Q codes (boxes, paper, sets etc.) moved to packaging type: 00014099, 00014000, 00014053/1, 00014098, 00014022, 00012743, 00009595, 00005040, 00008904, 00014285, 00005053/2.",
+                ]
+            ),
+            release(
+                "1.0.258", "12.10.2026",
+                ro: [
+                    "NECTARIE: codul 00012442/1 (saci LDPE) mutat pe tip materiale curatenie.",
+                ],
+                en: [
+                    "NECTARIE: code 00012442/1 (LDPE bags) moved to cleaning materials type.",
+                ]
+            ),
+            release(
+                "1.0.257", "12.10.2026",
+                ro: [
+                    "NECTARIE: codurile 00014865, 00004908 si 00004909 (manusi nitril Q) mutate pe tip materiale consumabile.",
+                ],
+                en: [
+                    "NECTARIE: codes 00014865, 00004908 and 00004909 (Q nitrile gloves) moved to consumable materials type.",
+                ]
+            ),
+            release(
+                "1.0.256", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse articolele cu codurile 6421735000124 si 6421735000117.",
+                ],
+                en: [
+                    "NECTARIE: removed products with codes 6421735000124 and 6421735000117.",
+                ]
+            ),
+            release(
+                "1.0.255", "12.10.2026",
+                ro: [
+                    "NECTARIE: master PEPSI ZERO VANILIE 0.33 L (cod 340063926); variantele CAN / DRS Vanilie se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master PEPSI ZERO VANILIE 0.33 L (code 340063926); CAN / DRS Vanilla variants map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.254", "12.10.2026",
+                ro: [
+                    "NECTARIE: master PEPSI ZERO 0.5 L (cod 1471); QAB / PET Zero 0.5L se unifica pe aceasta fisa la NIR (Vanilie 330 ramane separata).",
+                ],
+                en: [
+                    "NECTARIE: master PEPSI ZERO 0.5 L (code 1471); QAB / PET Zero 0.5L map to this item on NIR (Vanilla 330 stays separate).",
+                ]
+            ),
+            release(
+                "1.0.253", "12.10.2026",
+                ro: [
+                    "NECTARIE: master PEPSI TWIST 0.5 L (cod 1466); QAB / PET Twist 0.5L se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master PEPSI TWIST 0.5 L (code 1466); QAB / PET Twist 0.5L map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.252", "12.10.2026",
+                ro: [
+                    "NECTARIE: master PEPSI COLA DOZA 0.33 L (cod 1472); QAB / CAN 0.33L se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master PEPSI COLA DOZA 0.33 L (code 1472); QAB / CAN 0.33L map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.251", "12.10.2026",
+                ro: [
+                    "NECTARIE: master PEPSI COLA 0.5 L (cod 1465); QAB / PET 0.5L se unifica pe aceasta fisa la NIR (Twist / Zero / doza raman separate).",
+                ],
+                en: [
+                    "NECTARIE: master PEPSI COLA 0.5 L (code 1465); QAB / PET 0.5L map to this item on NIR (Twist / Zero / can stay separate).",
+                ]
+            ),
+            release(
+                "1.0.250", "12.10.2026",
+                ro: [
+                    "NECTARIE: master MOUNTAIN DEW 0.5 L (cod 1475); variantele PET / SGR se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master MOUNTAIN DEW 0.5 L (code 1475); PET / SGR variants map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.249", "12.10.2026",
+                ro: [
+                    "NECTARIE: master MIRINDA ORANGE DOZA 0.33 L (cod 1473); QAB / CAN 0.33L se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master MIRINDA ORANGE DOZA 0.33 L (code 1473); QAB / CAN 0.33L map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.248", "12.10.2026",
+                ro: [
+                    "NECTARIE: master MIRINDA ORANGE 0.5 L (cod 1474); QAB / PET 0.5L se unifica pe aceasta fisa la NIR (doza 0.33 ramane separata).",
+                ],
+                en: [
+                    "NECTARIE: master MIRINDA ORANGE 0.5 L (code 1474); QAB / PET 0.5L map to this item on NIR (0.33 can stays separate).",
+                ]
+            ),
+            release(
+                "1.0.247", "12.10.2026",
+                ro: [
+                    "NECTARIE: master LIPTON PIERSICI 0.5 L (cod 1467); QAB / ICE TEA PEACH 0.5L se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master LIPTON PIERSICI 0.5 L (code 1467); QAB / ICE TEA PEACH 0.5L map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.246", "12.10.2026",
+                ro: [
+                    "NECTARIE: master LIPTON LAMAIE 0.5 L (cod 1468); QAB / ICE TEA LEMON 0.5L se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master LIPTON LAMAIE 0.5 L (code 1468); QAB / ICE TEA LEMON 0.5L map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.245", "12.10.2026",
+                ro: [
+                    "NECTARIE: INC 33,5 mutat pe tip materiale consumabile.",
+                ],
+                en: [
+                    "NECTARIE: INC 33,5 moved to consumable materials type.",
+                ]
+            ),
+            release(
+                "1.0.244", "12.10.2026",
+                ro: [
+                    "NECTARIE: master GRANINI 0.33 L (cod 1482); variantele SGR / arome de pe facturi se unifica pe aceasta fisa la NIR.",
+                ],
+                en: [
+                    "NECTARIE: master GRANINI 0.33 L (code 1482); SGR / flavor invoice variants map to this item on NIR.",
+                ]
+            ),
+            release(
+                "1.0.243", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse articolele cu codurile 305579, 6421735000136, 340063895, 340063894, 721806, 103483 si 100192.",
+                ],
+                en: [
+                    "NECTARIE: removed products with codes 305579, 6421735000136, 340063895, 340063894, 721806, 103483 and 100192.",
+                ]
+            ),
+            release(
+                "1.0.242", "12.10.2026",
+                ro: [
+                    "NECTARIE: sters articolul cu codul 378748 (CCA. 2,38 KG ARO MOZZARELLA).",
+                ],
+                en: [
+                    "NECTARIE: removed product code 378748 (CCA. 2,38 KG ARO MOZZARELLA).",
+                ]
+            ),
+            release(
+                "1.0.241", "12.10.2026",
+                ro: [
+                    "NECTARIE: chirii, CEC deseuri si utilitati (coduri 6421735000152, 6421735000132, 6421735000153, 6421735000133, 6421735000143, 6421735000114, 6421735000142, 6421735000141) trec pe tip Servicii.",
+                ],
+                en: [
+                    "NECTARIE: rents, waste CEC and utilities (codes 6421735000152, 6421735000132, 6421735000153, 6421735000133, 6421735000143, 6421735000114, 6421735000142, 6421735000141) moved to Services product kind.",
+                ]
+            ),
+            release(
+                "1.0.240", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Tuborg sticla 0.33 L (inclusiv SGR) se leaga pe fisa „BERE TUBORG ST. 0.33 L” (cod 1479); doza 0.5 L ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: Tuborg 0.33 L bottle (including SGR) links to “BERE TUBORG ST. 0.33 L” (code 1479); 0.5 L can stays separate.",
+                ]
+            ),
+            release(
+                "1.0.239", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Tuborg doza 0.5 L (inclusiv SGR) se leaga pe fisa „BERE TUBORG DOZA 0.5 L” (cod 1481); sticla 0.33 L ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: Tuborg 0.5 L can (including SGR) links to “BERE TUBORG DOZA 0.5 L” (code 1481); 0.33 L bottle stays separate.",
+                ]
+            ),
+            release(
+                "1.0.238", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Carlsberg doza 0.5 L (inclusiv SGR promo) se leaga pe fisa „BERE CARLSBERG DOZA 0.5 L” (cod 1480); sticla 0.33 L ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: Carlsberg 0.5 L can (including SGR promo) links to “BERE CARLSBERG DOZA 0.5 L” (code 1480); 0.33 L bottle stays separate.",
+                ]
+            ),
+            release(
+                "1.0.237", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Carlsberg 0.33 L (inclusiv SGR promo) se leaga pe fisa „BERE CARLSBERG 0.33 L” (cod 1478); doza 0.5 L ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: Carlsberg 0.33 L (including SGR promo) links to “BERE CARLSBERG 0.33 L” (code 1478); 0.5 L can stays separate.",
+                ]
+            ),
+            release(
+                "1.0.236", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Bere Bucur blonda 0.35 L (inclusiv SGR promo) se leaga pe fisa „BERE BUCUR BLONDA 0.35 L” (cod 1484).",
+                ],
+                en: [
+                    "GRN / invoices: Bere Bucur blonde 0.35 L (including SGR promo) links to “BERE BUCUR BLONDA 0.35 L” (code 1484).",
+                ]
+            ),
+            release(
+                "1.0.235", "12.10.2026",
+                ro: [
+                    "NIR / facturi: ayranul se leaga pe fisa „AYRAN” (cod 1116); iaurtul ramane separat.",
+                ],
+                en: [
+                    "GRN / invoices: ayran links to “AYRAN” (code 1116); yogurt stays separate.",
+                ]
+            ),
+            release(
+                "1.0.234", "12.10.2026",
+                ro: [
+                    "NIR / facturi: aqua plata 0.5 L (inclusiv SGR) se leaga pe fisa „AQUA PLATA 0.5 L” (cod 1469); aqua minerala si 1 L raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: still water 0.5 L (including SGR) links to “AQUA PLATA 0.5 L” (code 1469); sparkling and 1 L stay separate.",
+                ]
+            ),
+            release(
+                "1.0.233", "12.10.2026",
+                ro: [
+                    "NIR / facturi: aqua minerala 0.5 L (inclusiv carbo/SGR) se leaga pe fisa „AQUA MINERALA 0.5 L” (cod 1470); aqua plata ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: sparkling mineral water 0.5 L (including carbo/SGR) links to “AQUA MINERALA 0.5 L” (code 1470); still water stays separate.",
+                ]
+            ),
+            release(
+                "1.0.232", "12.10.2026",
+                ro: [
+                    "NIR / facturi: 7UP Lemon Lime 0.5 L (inclusiv SGR) se leaga pe fisa „7UP LEMON LIME 0.5 L” (cod 1477); lamaile proaspete raman pe „LAMAI”.",
+                ],
+                en: [
+                    "GRN / invoices: 7UP Lemon Lime 0.5 L (including SGR) links to “7UP LEMON LIME 0.5 L” (code 1477); fresh lemons stay on “LAMAI”.",
+                ]
+            ),
+            release(
+                "1.0.231", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse articolele cu codurile 381968, 214307, 128583 si 369646.",
+                ],
+                en: [
+                    "NECTARIE: removed products with codes 381968, 214307, 128583 and 369646.",
+                ]
+            ),
+            release(
+                "1.0.230", "12.10.2026",
+                ro: [
+                    "NECTARIE: articolul cu codul 720653 (Abonament Lunar Comax Pro Plus) trece pe tip Servicii.",
+                ],
+                en: [
+                    "NECTARIE: product code 720653 (Abonament Lunar Comax Pro Plus) moved to Services product kind.",
+                ]
+            ),
+            release(
+                "1.0.229", "12.10.2026",
+                ro: [
+                    "NIR / facturi: varza rosie se leaga pe fisa „VARZA ROSIE” (cod 103563); varza alba ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: red cabbage links to “VARZA ROSIE” (code 103563); white cabbage stays separate.",
+                ]
+            ),
+            release(
+                "1.0.228", "12.10.2026",
+                ro: [
+                    "NIR / facturi: varza alba (inclusiv varza noua) se leaga pe fisa „VARZA ALBA” (cod 389762); varza rosie ramane separata.",
+                ],
+                en: [
+                    "GRN / invoices: white cabbage (including “new” cabbage) links to “VARZA ALBA” (code 389762); red cabbage stays separate.",
+                ]
+            ),
+            release(
+                "1.0.227", "12.10.2026",
+                ro: [
+                    "NIR / facturi: uleiul floarea-soarelui (ULEI FL / MC etc.) se leaga pe fisa „ULEI FLOAREA SOARELUI” (cod 104861), UM Litru; uleiul de palmier ramane separat.",
+                ],
+                en: [
+                    "GRN / invoices: sunflower oil (ULEI FL / MC, etc.) links to “ULEI FLOAREA SOARELUI” (code 104861), stock unit Litre; palm oil stays separate.",
+                ]
+            ),
+            release(
+                "1.0.226", "12.10.2026",
+                ro: [
+                    "NECTARIE: articolul cu codul 6421735000164 (TOTAL BAZA DE IMPOZITARE TVA 21%) trece pe tip Servicii.",
+                ],
+                en: [
+                    "NECTARIE: product code 6421735000164 (TOTAL BAZA DE IMPOZITARE TVA 21%) moved to Services product kind.",
+                ]
+            ),
+            release(
+                "1.0.225", "12.10.2026",
+                ro: [
+                    "NIR / facturi: tortilla 27cm curcuma se leaga pe fisa „TORTILLA 27CM CURCUMA” (cod 6421735000137).",
+                ],
+                en: [
+                    "GRN / invoices: 27cm turmeric tortilla links to “TORTILLA 27CM CURCUMA” (code 6421735000137).",
+                ]
+            ),
+            release(
+                "1.0.224", "12.10.2026",
+                ro: [
+                    "NECTARIE: tarifele TMB / depozitare (coduri 6421735000200, 6421735000178, 6421735000201, 6421735000179, 6421735000199, 6421735000177, 6421735000198, 6421735000176) trec pe tip Servicii.",
+                ],
+                en: [
+                    "NECTARIE: TMB / storage tariffs (codes 6421735000200, 6421735000178, 6421735000201, 6421735000179, 6421735000199, 6421735000177, 6421735000198, 6421735000176) moved to Services product kind.",
+                ]
+            ),
+            release(
+                "1.0.223", "12.10.2026",
+                ro: [
+                    "NIR / facturi: zaharul (inclusiv 1KG ARO HT) se leaga pe fisa „ZAHAR” (cod 217912), materie prima activa, UM Kg.",
+                ],
+                en: [
+                    "GRN / invoices: sugar (including 1KG ARO HT) links to “ZAHAR” (code 217912), active raw material, stock unit Kg.",
+                ]
+            ),
+            release(
+                "1.0.222", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse articolele cu codurile 1008, 1070, 1013, 1010, 1133, 1034, 1028, 1442 si 1054.",
+                ],
+                en: [
+                    "NECTARIE: removed products with codes 1008, 1070, 1013, 1010, 1133, 1034, 1028, 1442 and 1054.",
+                ]
+            ),
+            release(
+                "1.0.221", "12.10.2026",
+                ro: [
+                    "NIR / facturi: sosul cedar (inclusiv galon 5 L) se leaga pe fisa „SOS CEDAR” (cod 6421735000154), UM Litru.",
+                ],
+                en: [
+                    "GRN / invoices: cedar sauce (including 5 L gallon) links to “SOS CEDAR” (code 6421735000154), stock unit Litre.",
+                ]
+            ),
+            release(
+                "1.0.220", "12.10.2026",
+                ro: [
+                    "NIR / facturi: salata verde (inclusiv iceberg) se leaga pe fisa „SALATA VERDE” (cod 103717); salatele finite raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: green lettuce (including iceberg) links to “SALATA VERDE” (code 103717); finished salads stay separate.",
+                ]
+            ),
+            release(
+                "1.0.219", "12.10.2026",
+                ro: [
+                    "NIR / facturi: rosiile (RO, P, MC ciorchine etc.) se leaga pe fisa „ROSII” (cod 103616); sosurile de rosii raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: tomatoes (RO, P, MC cluster, etc.) link to “ROSII” (code 103616); tomato sauces stay separate.",
+                ]
+            ),
+            release(
+                "1.0.218", "12.10.2026",
+                ro: [
+                    "NECTARIE: articolele cu codurile 6421735000196, 6421735000205, 6421735000204, 6421735000191, 6421735000190, 6421735000166, 6421735000165, 0000369 si 503308 trec pe tip Servicii.",
+                ],
+                en: [
+                    "NECTARIE: products with codes 6421735000196, 6421735000205, 6421735000204, 6421735000191, 6421735000190, 6421735000166, 6421735000165, 0000369 and 503308 moved to Services product kind.",
+                ]
+            ),
+            release(
+                "1.0.217", "12.10.2026",
+                ro: [
+                    "NIR / facturi: pulpele de pui dezosate (cu piele) se leaga pe fisa „PULPE DE PUI DEZOSATE CU PIELE” (cod 6421735000135); pieptul ramane separat.",
+                ],
+                en: [
+                    "GRN / invoices: boneless chicken thighs (with skin) link to “PULPE DE PUI DEZOSATE CU PIELE” (code 6421735000135); breast stays separate.",
+                ]
+            ),
+            release(
+                "1.0.216", "12.10.2026",
+                ro: [
+                    "NIR / facturi: portocalele pentru suc se leaga pe fisa „PORTOCALE SUC” (cod 103572); PORTOCALE 3-5 P si bauturile orange raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: juice oranges link to “PORTOCALE SUC” (code 103572); PORTOCALE 3-5 P and orange drinks stay separate.",
+                ]
+            ),
+            release(
+                "1.0.215", "12.10.2026",
+                ro: [
+                    "NIR / facturi: portocalele (3-5 P) se leaga pe fisa „PORTOCALE 3-5 P” (cod 103921); PORTOCALE SUC si bauturile orange raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: oranges (3-5 P) link to “PORTOCALE 3-5 P” (code 103921); juice oranges and orange drinks stay separate.",
+                ]
+            ),
+            release(
+                "1.0.214", "12.10.2026",
+                ro: [
+                    "NIR / facturi: pita se leaga pe fisa „PITA” (cod 6421735000138); lipie tip C si PITA EXTRA raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: pita links to “PITA” (code 6421735000138); tip C flatbread and PITA EXTRA stay separate.",
+                ]
+            ),
+            release(
+                "1.0.213", "12.10.2026",
+                ro: [
+                    "NIR / facturi: pieptul de pui dezosat (cu piele) se leaga pe fisa „PIEPT DE PUI DEZ CU PIELE” (cod 6421735000113); pulpele raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: boneless chicken breast (with skin) links to “PIEPT DE PUI DEZ CU PIELE” (code 6421735000113); thighs stay separate.",
+                ]
+            ),
+            release(
+                "1.0.212", "12.10.2026",
+                ro: [
+                    "NIR / facturi: patrunjelul se leaga pe fisa „PATRUNJEL” (cod 103712).",
+                ],
+                en: [
+                    "GRN / invoices: parsley links to “PATRUNJEL” (code 103712).",
+                ]
+            ),
+            release(
+                "1.0.211", "12.10.2026",
+                ro: [
+                    "NECTARIE: manusile nitrile (coduri 214469 si 211758) trec pe tip Materiale consumabile.",
+                ],
+                en: [
+                    "NECTARIE: nitrile gloves (codes 214469 and 211758) moved to Consumables product kind.",
+                ]
+            ),
+            release(
+                "1.0.210", "12.10.2026",
+                ro: [
+                    "NIR / facturi: mini bagheta 120GR se leaga pe fisa „MINI BAGHETA 120GR” (cod 6421735000140).",
+                ],
+                en: [
+                    "GRN / invoices: mini baguette 120GR links to “MINI BAGHETA 120GR” (code 6421735000140).",
+                ]
+            ),
+            release(
+                "1.0.209", "12.10.2026",
+                ro: [
+                    "NECTARIE: sterse articolele cu codurile 1051, 1011, 1033 si 1243 (inclusiv mozzarella inactiva din retetele Cheese Kebab).",
+                ],
+                en: [
+                    "NECTARIE: removed products with codes 1051, 1011, 1033 and 1243 (including inactive mozzarella from Cheese Kebab recipes).",
+                ]
+            ),
+            release(
+                "1.0.208", "12.10.2026",
+                ro: [
+                    "NIR / facturi: lipie tip C 750G se leaga pe fisa „LIPIE TIP C 750G” (cod 6421735000112); tip 600G si pita raman separate.",
+                ],
+                en: [
+                    "GRN / invoices: tip C 750G flatbread links to “LIPIE TIP C 750G” (code 6421735000112); 600G tip and pita stay separate.",
+                ]
+            ),
+            release(
+                "1.0.207", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Lay's sare (inclusiv 40G/BLT/BAX/DTS) se leaga pe fisa „LAY'S SARE” (cod 340059584); sarea de bucatarie ramane pe „SARE”.",
+                ],
+                en: [
+                    "GRN / invoices: Lay's salt chips (including 40G/BLT/BAX/DTS) link to “LAY'S SARE” (code 340059584); cooking salt stays on “SARE”.",
+                ]
+            ),
+            release(
+                "1.0.206", "12.10.2026",
+                ro: [
+                    "NECTARIE: texte fara diacritice in baza de date (produse, categorii/grupe, module, facturi, stocuri, CRM, HR) si etichete tip produs (Materie prima, Marfa, Materiale curatenie, Birotica etc.).",
+                ],
+                en: [
+                    "NECTARIE: database texts without diacritics (products, categories/groups, modules, invoices, stock, CRM, HR) and product-kind labels (raw material, merchandise, cleaning materials, stationery, etc.).",
+                ]
+            ),
+            release(
+                "1.0.205", "12.10.2026",
+                ro: [
+                    "Casier → Productie → Bon productie: creati bonuri numerotate si datate automat (gestiune, produs finit, cantitate). La salvare creste stocul produsului finit si scade consumul din reteta (materii prime, marfa; produsele finite din reteta se expanda 1/1).",
+                ],
+                en: [
+                    "Cashier → Production → Production note: create auto-numbered and dated notes (warehouse, finished good, quantity). On save, finished-good stock increases and recipe consumption decreases (raw materials, merchandise; nested finished goods expand 1/1).",
+                ]
+            ),
+            release(
+                "1.0.204", "12.10.2026",
+                ro: [
+                    "Produse: „DONER PUI” (produs finit cu rețetă) — folosit în shaorme/chifle/extra carne pui; în rețetă puteți adăuga și produse finite (consum 1/1 din rețeta lor) pe lângă materii prime și marfă.",
+                ],
+                en: [
+                    "Products: “DONER PUI” (finished good with recipe) — used in chicken wraps/buns/extra meat; recipes can also include finished goods (1/1 of their own recipe) besides raw materials and merchandise.",
+                ]
+            ),
+            release(
+                "1.0.203", "12.10.2026",
+                ro: [
+                    "NIR / facturi: lămâile (inclusiv plasă 500G) se leagă pe fișa „LAMAI”; băuturile și detergentul cu aromă lămâie rămân separate.",
+                ],
+                en: [
+                    "GRN / invoices: fresh lemons (including 500G nets) link to “LAMAI”; lemon drinks and dish detergent stay separate.",
+                ]
+            ),
+            release(
+                "1.0.202", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Hot Marinade (inclusiv Seasoning 1/1 KG) se leagă pe fișa „HOT MARINADE”.",
+                ],
+                en: [
+                    "GRN / invoices: Hot Marinade (including Seasoning 1/1 KG packs) links to “HOT MARINADE”.",
+                ]
+            ),
+            release(
+                "1.0.201", "12.10.2026",
+                ro: [
+                    "NIR / facturi: falafel 450G (Edenia etc.) se leagă pe fișa „FALAFEL 450G”; meniul finit din catalog rămâne separat.",
+                ],
+                en: [
+                    "GRN / invoices: 450G falafel (Edenia etc.) links to “FALAFEL 450G”; the catalog finished menu stays separate.",
+                ]
+            ),
+            release(
+                "1.0.200", "12.10.2026",
+                ro: [
+                    "NIR / facturi: crustă crispy (ACG 1/10 KG etc.) se leagă pe fișa „CRUSTA CRISPY”; meniurile crispy din catalog rămân separate.",
+                ],
+                en: [
+                    "GRN / invoices: crispy coating (ACG 1/10 KG etc.) links to “CRUSTA CRISPY”; catalog crispy menus stay separate.",
+                ]
+            ),
+            release(
+                "1.0.199", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Condimix (inclusiv Gustos 1/1 KG) se leagă pe fișa „CONDIMIX”.",
+                ],
+                en: [
+                    "GRN / invoices: Condimix (including Gustos 1/1 KG packs) links to “CONDIMIX”.",
+                ]
+            ),
+            release(
+                "1.0.198", "12.10.2026",
+                ro: [
+                    "NIR / facturi: bait / batter pentru șnițel (BATTER 300 FS etc.) se leagă pe fișa „BAIT SNITEL”.",
+                ],
+                en: [
+                    "GRN / invoices: schnitzel batter / bait (BATTER 300 FS etc.) links to “BAIT SNITEL”.",
+                ]
+            ),
+            release(
+                "1.0.197", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Doner vită tocat (inclusiv linii cu LOT) se leagă pe fișa „DONER VITA TOCAT”; stocurile pe loturi au fost unificate.",
+                ],
+                en: [
+                    "GRN / invoices: minced beef döner (including LOT lines) links to “DONER VITA TOCAT”; lot stocks were merged.",
+                ]
+            ),
+            release(
+                "1.0.196", "12.10.2026",
+                ro: [
+                    "NIR / facturi: chiflele mari se leagă pe fișa „CHIFLE MARI” (nu pe chiflele din catalog / produse finite).",
+                ],
+                en: [
+                    "GRN / invoices: large buns link to “CHIFLE MARI” (not catalog finished-product bun sandwiches).",
+                ]
+            ),
+            release(
+                "1.0.195", "12.10.2026",
+                ro: [
+                    "NIR / facturi: Ceko Pizza (inclusiv FIRST 2.3KG / bax) se leagă pe fișa „CEKO PIZZA”.",
+                ],
+                en: [
+                    "GRN / invoices: Ceko Pizza (including FIRST 2.3KG / case packs) links to “CEKO PIZZA”.",
+                ]
+            ),
+            release(
+                "1.0.194", "12.10.2026",
+                ro: [
+                    "NIR / facturi: ceapa roșie se leagă pe fișa „CEAPA ROSIE” (separat de galbenă și prăjită).",
+                ],
+                en: [
+                    "GRN / invoices: red onions link to “CEAPA ROSIE” (separate from yellow and fried).",
+                ]
+            ),
+            release(
+                "1.0.193", "12.10.2026",
+                ro: [
+                    "NIR / facturi: ceapa prăjită / fulgi se leagă pe fișa „CEAPA PRAJITA” (separat de galbenă și roșie).",
+                ],
+                en: [
+                    "GRN / invoices: fried onion / flakes link to “CEAPA PRAJITA” (separate from yellow and red).",
+                ]
+            ),
+            release(
+                "1.0.192", "12.10.2026",
+                ro: [
+                    "NIR / facturi: ceapa galbenă / albă (inclusiv 10KG) se leagă pe fișa „CEAPA GALBENA”; roșie și prăjită rămân separate.",
+                ],
+                en: [
+                    "GRN / invoices: yellow / white onions (including 10KG packs) link to “CEAPA GALBENA”; red and fried onions stay separate.",
+                ]
+            ),
+            release(
+                "1.0.191", "12.10.2026",
+                ro: [
+                    "NIR / facturi: castraveții murați se leagă pe fișa „CASTRAVETI MURATI” (separat de Fabio / proaspeți).",
+                ],
+                en: [
+                    "GRN / invoices: pickled cucumbers link to “CASTRAVETI MURATI” (separate from Fabio / fresh).",
+                ]
+            ),
+            release(
+                "1.0.190", "12.10.2026",
+                ro: [
+                    "NIR / facturi: castraveții proaspeți (inclusiv Fabio) se leagă pe fișa „CASTRAVETI FABIO”; murăturile rămân separate.",
+                ],
+                en: [
+                    "GRN / invoices: fresh cucumbers (including Fabio) link to “CASTRAVETI FABIO”; pickled cucumbers stay separate.",
+                ]
+            ),
+            release(
+                "1.0.189", "12.10.2026",
+                ro: [
+                    "Articole: categorie nouă „Birotică” (stocabilă) — pe fișă, NIR, transferuri și inventar.",
+                ],
+                en: [
+                    "Articles: new “Stationery” category (stockable) — on the product sheet, GRN, transfers and stock take.",
+                ]
+            ),
+            release(
+                "1.0.188", "12.10.2026",
+                ro: [
+                    "Articole: categorie nouă „Servicii” (nestocabilă) — pe fișă, NIR și filtre; exclusă din inventar (ex. asistență juridică).",
+                ],
+                en: [
+                    "Articles: new “Services” category (non-stockable) — on the product sheet, GRN and filters; excluded from stock take (e.g. legal assistance).",
+                ]
+            ),
+            release(
+                "1.0.187", "12.10.2026",
+                ro: [
+                    "NIR / facturi: detergent vase, soluție aragaz și spray aragaz se leagă automat pe fișele existente și pe categoria Materiale curățenie.",
+                ],
+                en: [
+                    "GRN / invoices: dish detergent, hob cleaner and hob spray auto-match existing articles and the Cleaning materials category.",
+                ]
+            ),
+            release(
+                "1.0.186", "12.10.2026",
+                ro: [
+                    "Articole: categorie nouă „Materiale curățenie” (stocabilă), selectabilă pe fișă, NIR, control stoc și inventar — separată de Materiale consumabile.",
+                ],
+                en: [
+                    "Articles: new “Cleaning materials” category (stockable), available on the product sheet, GRN, stock control and stock take — separate from Consumable materials.",
+                ]
+            ),
+            release(
+                "1.0.185", "12.10.2026",
+                ro: [
+                    "Iconițe pe Mac: la hover apare imediat un tip cu ce face butonul (fix pentru Catalyst, unde tipul de sistem nu se vedea).",
+                ],
+                en: [
+                    "Mac icons: hover shows a tip explaining the button (fix for Catalyst, where the system tooltip did not appear).",
+                ]
+            ),
+            release(
+                "1.0.184", "12.10.2026",
+                ro: [
+                    "Control / print stoc: filtrare pe una sau mai multe gestiuni (sau toate) și pe categorii; PDF cu număr de pagină.",
+                    "Articole (fără produs finit): câmp Cantitate minimă pe fișă.",
+                    "Stocuri → Necesar comandă: listă doar pentru articole cu minim completat, când stocul curent e sub minim (inclusiv stoc negativ).",
+                ],
+                en: [
+                    "Stock control / print: filter by one or more warehouses (or all) and categories; PDF page numbers.",
+                    "Articles (except finished goods): Minimum quantity on the product card.",
+                    "Stocks → Reorder needed: only articles with a minimum set, when current stock is below that minimum (including negative stock).",
+                ]
+            ),
+            release(
+                "1.0.183", "12.10.2026",
+                ro: [
+                    "Iconițe: dacă țineți cursorul pe o iconiță (toolbar, buton +, meniu …), apare o scurtă explicație a acțiunii.",
+                ],
+                en: [
+                    "Icons: hover an icon (toolbar, + button, … menu) to see a short tip explaining what it does.",
+                ]
+            ),
+            release(
+                "1.0.182", "12.10.2026",
+                ro: [
+                    "Articole: fiecare articol are cod obligatoriu și unic pe societate. Articolele fără cod au primit automat un număr; la creare, dacă lăsați gol, se alocă următorul liber.",
+                ],
+                en: [
+                    "Articles: every article must have a unique code per company. Articles without a code were backfilled; on create, if left empty, the next free number is assigned.",
+                ]
+            ),
+            release(
+                "1.0.181", "12.10.2026",
+                ro: [
+                    "Control / print stoc și inventar: pe Mac, Export PDF deschide dialogul de salvare în folder (nu meniul de partajare).",
+                ],
+                en: [
+                    "Stock control and stock take: on Mac, Export PDF opens the save-to-folder dialog (not the share menu).",
+                ]
+            ),
+            release(
+                "1.0.180", "12.10.2026",
+                ro: [
+                    "Articole: categorie nouă „Garanție” (ex. Garantie SGR) — nestocabilă; nu mai intră la inventar ca materie primă / consumabile.",
+                ],
+                en: [
+                    "Articles: new “Deposit / guarantee” category (e.g. SGR deposit) — non-stockable; no longer treated as raw material / consumables in stock take.",
+                ]
+            ),
+            release(
+                "1.0.179", "12.10.2026",
+                ro: [
+                    "Stocuri: Control / print stoc — alegeți gestiunea, vedeți stocul (opțional pe categorii), export PDF sau tipărire, fără inventar.",
+                ],
+                en: [
+                    "Inventory: Stock control / print — pick a warehouse, review stock (optionally by category), export PDF or print, without a stock take.",
+                ]
+            ),
+            release(
+                "1.0.178", "12.10.2026",
+                ro: [
+                    "Inventar: listare, export PDF și print grupat pe categorii (marfă, materii prime, produse finite etc.).",
+                ],
+                en: [
+                    "Stock take: list, PDF export, and print grouped by category (merchandise, raw materials, finished goods, etc.).",
+                ]
+            ),
+            release(
+                "1.0.177", "12.10.2026",
+                ro: [
+                    "Inventar (doar superadmin): buton „Adu întregul stoc pe 0” — golește complet stocul gestiunii selectate, cu confirmare.",
+                ],
+                en: [
+                    "Stock take (superadmin only): “Set entire stock to 0” clears all stock for the selected warehouse, with confirmation.",
+                ]
+            ),
+            release(
+                "1.0.176", "12.10.2026",
+                ro: [
+                    "Articole: pe listă apare numărul total de articole din baza de date (și „X din Y” la filtrare / căutare).",
+                ],
+                en: [
+                    "Articles: the list shows the total number of articles in the database (and “X of Y” when filtering / searching).",
+                ]
+            ),
+            release(
+                "1.0.175", "12.10.2026",
+                ro: [
+                    "Inventar fizic: la creare se încarcă toate produsele (fără produse finite), inclusiv stoc 0, într-un tabel editabil cu sortare, căutare și ștergere linii.",
+                    "Stocul se actualizează doar la finalizare (cu proces-verbal). Celulă goală = stoc neschimbat; 0 = stoc zero. Inventarul finalizat se poate redeschide pentru corecturi.",
+                ],
+                en: [
+                    "Physical inventory: on create, all products load (excluding finished goods), including zero stock, in an editable table with sort, search, and row delete.",
+                    "Stock updates only on finalize (with difference report). Empty cell = stock unchanged; 0 = zero stock. Finalized inventories can be reopened for corrections.",
+                ]
+            ),
+            release(
+                "1.0.174", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: materiile prime cu CARTOFI se unifică automat pe CARTOFI ALBI la NIR / recepții viitoare (fără catalog).",
+                ],
+                en: [
+                    "Nectarie inventory: raw-material potato lines map automatically to CARTOFI ALBI on future NIR / receipts (not in catalog).",
+                ]
+            ),
+            release(
+                "1.0.173", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: produsele A.URSUS Cooler… se unifică automat pe URSUS Cooler 0.5 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: A.URSUS Cooler… lines map automatically to catalog item URSUS Cooler 0.5 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.172", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: variantele ULEI FL / MC ulei floarea-soarelui se unifică automat pe materia primă ULEI FLOAREA SOARELUI la NIR / recepții viitoare (fără catalog).",
+                ],
+                en: [
+                    "Nectarie inventory: ULEI FL / MC sunflower oil variants map automatically to raw material ULEI FLOAREA SOARELUI on future NIR / receipts (not in catalog).",
+                ]
+            ),
+            release(
+                "1.0.171", "12.10.2026",
+                ro: [
+                    "Articole / Catalog: comutator tile-uri / listă. Click pe articol deschide fișa de editare în ambele moduri.",
+                ],
+                en: [
+                    "Articles / Catalog: switch between tiles and list. Tapping an item opens the edit sheet in both modes.",
+                ]
+            ),
+            release(
+                "1.0.170", "12.10.2026",
+                ro: [
+                    "Articole / Catalog: pe tile, stocul apare pe punctele de lucru (ex. Agronomie, Ploiești). In Store / On Line rămân etichete de preț, nu de stoc.",
+                ],
+                en: [
+                    "Articles / Catalog: tiles show stock per work location (e.g. Agronomie, Ploiești). In Store / Online stay as price labels, not stock.",
+                ]
+            ),
+            release(
+                "1.0.169", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Granini 0.33 (SGR / arome) se unifică automat pe GRANINI 0.33 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Granini 0.33 SGR / flavor promo lines map automatically to catalog item GRANINI 0.33 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.168", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Tuborg sticlă 0.33 (SGR) se unifică automat pe BERE TUBORG ST. 0.33 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Tuborg 0.33 bottle SGR promo lines map automatically to catalog item BERE TUBORG ST. 0.33 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.167", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Tuborg doză 0.5 (SGR) se unifică automat pe BERE TUBORG DOZA 0.5 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Tuborg 0.5 can SGR promo lines map automatically to catalog item BERE TUBORG DOZA 0.5 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.166", "12.10.2026",
+                ro: [
+                    "Nomenclatoare → Articole (și Catalog): pe fiecare tile apare stocul pe punct de lucru (suma gestiunilor legate de locație).",
+                ],
+                en: [
+                    "Master data → Articles (and Catalog): each tile shows stock per work location (sum of warehouses linked to that location).",
+                ]
+            ),
+            release(
+                "1.0.165", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Bere Bucur blondă 0.35 (SGR) se unifică automat pe BERE BUCUR BLONDA 0.35 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Bere Bucur blonde 0.35 SGR promo lines map automatically to catalog item BERE BUCUR BLONDA 0.35 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.164", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Carlsberg doză 0.5 (SGR) se unifică automat pe BERE CARLSBERG DOZA 0.5 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Carlsberg 0.5 can SGR promo lines map automatically to catalog item BERE CARLSBERG DOZA 0.5 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.163", "12.10.2026",
+                ro: [
+                    "Gestiune Nectarie: promo Carlsberg 0.33 (SGR) se unifică automat pe articolul din catalog BERE CARLSBERG 0.33 L la NIR / recepții viitoare.",
+                ],
+                en: [
+                    "Nectarie inventory: Carlsberg 0.33 SGR promo lines map automatically to catalog item BERE CARLSBERG 0.33 L on future NIR / receipts.",
+                ]
+            ),
+            release(
+                "1.0.162", "12.10.2026",
+                ro: [
+                    "În Setări → e-Factura (SPV), contabilul primește pe email un link valabil 7 zile. Data până la care este autorizat se citește din SPV. Butoane: Prelungește conectarea, Revocă conectarea, Reautorizează SPV.",
+                ],
+                en: [
+                    "In Settings → e-Factura (SPV), the accountant receives an email link valid for 7 days. The authorization end date is read from SPV. Buttons: Extend connection, Revoke connection, Reauthorize SPV.",
+                ]
+            ),
+            release(
+                "1.0.161", "11.10.2026",
+                ro: [
+                    "Cererea de autorizare e-Factura pleacă pe emailul contabilului din aplicație. Nu mai depinde de programul de mail de pe calculator.",
+                ],
+                en: [
+                    "The e-Factura authorization request is emailed to the accountant from the app. It no longer depends on the mail program on the computer.",
+                ]
+            ),
+            release(
+                "1.0.160", "11.10.2026",
+                ro: [
+                    "În Setări → e-Factura (SPV), emailul contabilului se salvează și cererea de autorizare pornește.",
+                ],
+                en: [
+                    "In Settings → e-Factura (SPV), the accountant email saves and the authorization request starts.",
+                ]
+            ),
+            release(
+                "1.0.159", "11.10.2026",
+                ro: [
+                    "Pe bon se poate plăti și numerar și card: scrieți o sumă, restul se pune pe cealaltă metodă.",
+                ],
+                en: [
+                    "A receipt can be paid with both cash and card: type one amount and the rest goes to the other method.",
+                ]
+            ),
+            release(
+                "1.0.158", "10.10.2026",
+                ro: [
+                    "Pe bonul fiscal, comutatorul In Store / On line alege prețul din tile-uri. Același preț intră pe bon.",
+                ],
+                en: [
+                    "On the fiscal receipt, the In Store / On line switch chooses the tile price. That same price goes on the receipt.",
+                ]
+            ),
+            release(
+                "1.0.157", "10.10.2026",
+                ro: [
+                    "Fiecare articol are Preț vânzare In Store și Preț vânzare On Line. On Line pornește cu prețul de vânzare care exista. La casă se folosește prețul In Store.",
+                ],
+                en: [
+                    "Each item has an in-store sale price and an online sale price. Online starts from the sale price that already existed. The cash register uses the in-store price.",
+                ]
+            ),
+            release(
+                "1.0.156", "10.10.2026",
+                ro: [
+                    "Pe bara de jos, încasările Glovo, Bolt și Wolt apar ca G, B și W.",
+                ],
+                en: [
+                    "On the bottom bar, Glovo, Bolt, and Wolt takings appear as G, B, and W.",
+                ]
+            ),
+            release(
+                "1.0.155", "10.10.2026",
+                ro: [
+                    "Pe ecranul de vânzare, bonul fiscal din dreapta ocupă toată înălțimea. Barele de sus și de jos se opresc la bon.",
+                ],
+                en: [
+                    "On the sale screen, the fiscal receipt on the right fills the height. The top and bottom bars stop at the receipt.",
+                ]
+            ),
+            release(
+                "1.0.154", "10.10.2026",
+                ro: [
+                    "La vânzare, stocul nu se mai scade. Descărcarea de gestiune se va stabili separat.",
+                ],
+                en: [
+                    "A sale no longer reduces stock. The inventory discharge will be set up separately.",
+                ]
+            ),
+            release(
+                "1.0.153", "09.10.2026",
+                ro: [
+                    "Pe bonul fiscal, discountul de 100% stă imediat sub băutură. Totalul casei de marcat este totalul din aplicație.",
+                ],
+                en: [
+                    "On the fiscal receipt, the 100% discount sits directly under the drink. The cash register total is the total shown in the app.",
+                ]
+            ),
+            release(
+                "1.0.152", "09.10.2026",
+                ro: [
+                    "Pe bonul fiscal, discountul de 100% al produsului din meniu se scade ca sumă. Totalul casei de marcat rămâne totalul din aplicație.",
+                ],
+                en: [
+                    "On the fiscal receipt, a menu product’s 100% discount is subtracted as an amount. The cash register total stays the total shown in the app.",
+                ]
+            ),
+            release(
+                "1.0.151", "09.10.2026",
+                ro: [
+                    "POS trimite bonul fiscal, factura, raportul X și raportul Z către Datecs FP-700 prin FiscalNet.",
+                    "La plata cu card, suma pleacă întâi la POS-ul bancar. Bonul se emite după ce banca acceptă, cu numărul întors de imprimantă.",
+                ],
+                en: [
+                    "POS sends the fiscal receipt, the invoice, and the X and Z reports to the Datecs FP-700 through FiscalNet.",
+                    "For a card payment, the amount goes to the bank POS first. The receipt is issued after the bank accepts, with the number returned by the printer.",
+                ]
+            ),
             release(
                 "1.0.150", "09.10.2026",
                 ro: [

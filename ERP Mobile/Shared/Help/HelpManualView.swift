@@ -42,7 +42,7 @@ struct HelpManualView<ExtraContent: View, HeaderTrailing: View>: View {
                 if let onBack {
                     HStack {
                         Button(action: onBack) {
-                            Label(L10n.tr("common.back"), systemImage: "chevron.left")
+                            Label(L10n.tr("common.back"), systemImage: "chevron.left").appHoverTip(L10n.tr("common.back"))
                         }
                         .buttonStyle(SecondaryButtonStyle())
                         Spacer()
@@ -189,7 +189,7 @@ struct HelpManualView<ExtraContent: View, HeaderTrailing: View>: View {
             Button {
                 scrollToSection(HelpManualAnchor.toc, using: scrollProxy)
             } label: {
-                Label(L10n.tr("help.back_to_toc"), systemImage: "list.bullet.rectangle")
+                Label(L10n.tr("help.back_to_toc"), systemImage: "list.bullet.rectangle").appHoverTip(L10n.tr("help.back_to_toc"))
             }
             .buttonStyle(SecondaryButtonStyle())
             .padding(.top, 4)

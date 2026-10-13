@@ -12,6 +12,8 @@ struct EFacturaImportPreviewItem: Identifiable, Sendable {
     let lineCount: Int
     let isDuplicate: Bool
     let duplicateLabel: String?
+    /// Posibil dublu (aceeași dată + furnizor + valoare, număr diferit) — avertisment, import permis.
+    let softDuplicateWarning: String?
     let isCreditNote: Bool
     let errorMessage: String?
     var createNIR: Bool
@@ -142,6 +144,7 @@ enum SupplierInvoiceEFacturaImport {
                     lineCount: 0,
                     isDuplicate: false,
                     duplicateLabel: nil,
+                    softDuplicateWarning: nil,
                     isCreditNote: false,
                     errorMessage: error.localizedDescription,
                     createNIR: false
@@ -425,6 +428,7 @@ enum SupplierInvoiceEFacturaImport {
                 lineCount: 0,
                 isDuplicate: false,
                 duplicateLabel: nil,
+                softDuplicateWarning: nil,
                 isCreditNote: false,
                 errorMessage: parseErrorMessage,
                 createNIR: false
@@ -462,7 +466,7 @@ enum SupplierInvoiceEFacturaImport {
                 issueDate: issueDate,
                 totalAmount: totalAmount
             )
-            let existingInvoice = SupplierInvoiceDuplicateCheck.findExistingInvoice(
+            let potentialMatch = SupplierInvoiceDuplicateCheck.findPotentialDuplicate(
                 supplierId: resolvedSupplier.id,
                 supplierCUI: resolvedSupplier.cui,
                 number: parsed.invoiceNumber,
@@ -471,19 +475,47 @@ enum SupplierInvoiceEFacturaImport {
                 existingInvoices: existingInvoices,
                 suppliers: suppliers
             )
-            let hasExistingNIR = existingInvoice.map { invoiceIdsWithNIR.contains($0.id) } ?? false
-            let hasIncompleteReception = existingInvoice.map { incompleteInvoiceIds.contains($0.id) } ?? false
-            let receptionClosed = existingInvoice?.receptionClosed ?? false
-            let isDuplicate = existingInvoice != nil
+            // Re-import pe același număr: legăm de factura existentă. Potrivirea doar pe dată+valoare
+            // (număr greșit la creare manuală) e doar avertisment — importul rămâne permis.
+            let reuseExistingId: UUID?
+            let reuseReceptionClosed: Bool
+            let softDuplicateWarning: String?
+            if let potentialMatch {
+                switch potentialMatch.kind {
+                case .exact, .sameNumber:
+                    reuseExistingId = potentialMatch.invoice.id
+                    reuseReceptionClosed = potentialMatch.invoice.receptionClosed
+                    softDuplicateWarning = nil
+                case .sameAmountDate:
+                    reuseExistingId = nil
+                    reuseReceptionClosed = false
+                    softDuplicateWarning = SupplierInvoiceDuplicateCheck.softDuplicateWarningMessage(
+                        kind: .sameAmountDate,
+                        existingNumber: potentialMatch.invoice.numarFactura,
+                        supplierName: resolvedSupplier.denumire,
+                        number: normalizedNumber,
+                        issueDate: issueDate,
+                        totalAmount: totalAmount,
+                        currency: currency
+                    )
+                }
+            } else {
+                reuseExistingId = nil
+                reuseReceptionClosed = false
+                softDuplicateWarning = nil
+            }
+            let hasExistingNIR = reuseExistingId.map { invoiceIdsWithNIR.contains($0) } ?? false
+            let hasIncompleteReception = reuseExistingId.map { incompleteInvoiceIds.contains($0) } ?? false
+            let isDuplicate = reuseExistingId != nil
                 || duplicateKeys.contains(where: { importedKeys.contains($0) })
-            let canAttachNIR = existingInvoice != nil
+            let canAttachNIR = reuseExistingId != nil
                 && !hasExistingNIR
-                && !receptionClosed
+                && !reuseReceptionClosed
                 && !parsed.isCreditNote
-            let canContinueRemainderNIR = existingInvoice != nil
+            let canContinueRemainderNIR = reuseExistingId != nil
                 && hasExistingNIR
                 && hasIncompleteReception
-                && !receptionClosed
+                && !reuseReceptionClosed
                 && !parsed.isCreditNote
 
             let item = EFacturaImportPreviewItem(
@@ -498,10 +530,11 @@ enum SupplierInvoiceEFacturaImport {
                 lineCount: parsed.lines.count,
                 isDuplicate: isDuplicate,
                 duplicateLabel: isDuplicate && !canAttachNIR && !canContinueRemainderNIR ? duplicateLabel : nil,
+                softDuplicateWarning: softDuplicateWarning,
                 isCreditNote: parsed.isCreditNote,
                 errorMessage: nil,
                 createNIR: !parsed.isCreditNote && (!isDuplicate || canAttachNIR || canContinueRemainderNIR),
-                existingInvoiceId: existingInvoice?.id,
+                existingInvoiceId: reuseExistingId,
                 hasExistingNIR: hasExistingNIR,
                 hasIncompleteReception: hasIncompleteReception
             )
@@ -526,6 +559,7 @@ enum SupplierInvoiceEFacturaImport {
                 lineCount: 0,
                 isDuplicate: false,
                 duplicateLabel: nil,
+                softDuplicateWarning: nil,
                 isCreditNote: false,
                 errorMessage: error.localizedDescription,
                 createNIR: false

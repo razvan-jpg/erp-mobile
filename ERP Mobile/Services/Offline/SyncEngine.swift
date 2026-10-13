@@ -14,7 +14,9 @@ final class SyncEngine: ObservableObject {
     @Published private(set) var activeCompanyId: UUID?
 
     private var syncTask: Task<Void, Never>?
+    private var syncQueued = false
     private var didStartMonitor = false
+    private var pollTimer: Timer?
 
     private init() {}
 
@@ -27,10 +29,24 @@ final class SyncEngine: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.scheduleSync(reason: "foreground")
             }
         }
+        pollTimer?.invalidate()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.syncIfPending(reason: "connectivity_poll")
+            }
+        }
+    }
+
+    /// Când există operații în coadă, retrimite de îndată ce rețeaua răspunde.
+    private func syncIfPending(reason: String) {
+        guard let companyId = activeCompanyId else { return }
+        let waiting = SyncOutbox.load(companyId: companyId).contains { $0.status == .pending || $0.status == .failed }
+        guard waiting else { return }
+        scheduleSync(reason: reason)
     }
 
     func setActiveCompany(_ companyId: UUID?) {
@@ -60,10 +76,17 @@ final class SyncEngine: ObservableObject {
             refreshPublishedState(companyId: companyId)
             return
         }
-        if syncTask != nil { return }
+        if syncTask != nil {
+            syncQueued = true
+            return
+        }
         syncTask = Task { [weak self] in
             await self?.drain(companyId: companyId)
             self?.syncTask = nil
+            if self?.syncQueued == true {
+                self?.syncQueued = false
+                self?.scheduleSync(reason: "queued")
+            }
         }
     }
 

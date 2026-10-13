@@ -178,11 +178,19 @@ enum NIRLinePricing {
     }
 
     /// Marfă dacă prețul de vânzare diferă de achiziție și există adaos; altfel materie primă.
+    /// Garanție SGR → categorie Garantie (nestocabilă).
     static func suggestedProductKind(
         line: SupplierInvoiceLine,
         pricingState: NIRLinePricingState,
         reception: StockUnitConversion.Reception? = nil
     ) -> ProductKind {
+        if ProductService.isGarantieProductName(line.denumire) {
+            return .garantie
+        }
+        if ProductService.isMaterialeCuratenieImportName(line.denumire) {
+            return .materialeCuratenie
+        }
+
         let trimmed = pricingState.salePriceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               let salePrice = ProductService.parseSalePrice(trimmed) else {

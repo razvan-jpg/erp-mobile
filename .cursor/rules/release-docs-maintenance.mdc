@@ -16,6 +16,13 @@ Increment the patch (`1.0.024` → `1.0.025`) in **all** of:
 - `ERP Mobile.xcodeproj/project.pbxproj` (`MARKETING_VERSION`, every occurrence)
 - `Supporting/VersionBuildState.json` (`marketingVersion` **and** increment `buildNumber`)
 - `Supporting/GeneratedVersion.xcconfig` (`CURRENT_PROJECT_VERSION` = new build number)
+- Windows, the **same** marketing version string (`1.0.094`, not a separate counter):
+  - `ERP Mobile Windows/src/ERPMobile/Ui/Brand.cs` (`Version`)
+  - `ERP Mobile Windows/src/ERPMobile/ERPMobile.csproj` (`InformationalVersion`; `Version` is the numeric form `1.0.94`)
+  - `ERP Mobile Windows/src/ERPMobile/app.manifest`
+  - `ERP Mobile Windows/Kit instalare/Sursa/Installer.cs`, `ERPMobile.Setup.csproj`, `app.manifest`
+
+**Windows installer (`.exe` / kit):** on every user-visible version bump, rebuild it in the same turn with `ERP Mobile Windows/scripts/build-kit.sh` (needs unrestricted permissions). Output is `ERP Mobile Windows/Kit instalare/ERP Mobile Setup {version}.exe`. The script prints `config ok` and must never print the anon key. Do not commit the `.exe`.
 
 If you added a Supabase migration, also bump `AppInfo.databaseSchemaVersion`.
 
@@ -27,6 +34,7 @@ One bump per logical release batch, not per tiny file save — but **never** shi
 - Move done `upcoming` items into that release; refresh `upcoming` to the next version.
 - Update footer dates.
 - Write what the **user** sees, not implementation details.
+- Put the **same** version, date, and Romanian bullets in the Windows „Ce este nou...” page (`ShellWindow` / `WhatsNewPage`) in the same turn. Do not leave Windows on its own version number.
 
 ## 3. Help (`ERPHelpContent.swift`, `ro.json`, `en.json`, Zetta `HelpContent.swift` if relevant)
 

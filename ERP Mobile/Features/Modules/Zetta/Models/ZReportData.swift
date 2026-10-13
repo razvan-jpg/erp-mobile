@@ -1,6 +1,6 @@
 import Foundation
 
-struct ZReportData: Identifiable, Equatable, Sendable {
+nonisolated struct ZReportData: Identifiable, Equatable, Sendable {
     nonisolated init() {}
 
     var id = UUID()

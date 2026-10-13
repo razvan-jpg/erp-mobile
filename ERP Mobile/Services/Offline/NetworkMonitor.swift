@@ -19,7 +19,7 @@ final class NetworkMonitor: ObservableObject {
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied
             NetworkMonitor.isOnlineSnapshot = online
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 let changed = self.isOnline != online
                 self.isOnline = online

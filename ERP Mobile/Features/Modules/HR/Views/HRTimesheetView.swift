@@ -85,7 +85,7 @@ struct HRTimesheetView: View {
         .appTask(id: "\(companyManager.currentCompany?.id.uuidString ?? "")-\(period.year)-\(period.month)") {
             await load()
         }
-        .onChange(of: period) { _ in
+        .onChange(of: period) { _, _ in
             Task { await load() }
         }
     }

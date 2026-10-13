@@ -38,7 +38,8 @@ public static class FieldChoices
         ["unitate_achizitie"] = "UM achiziție",
         ["factor_conversie"] = "Factor conversie",
         ["cota_tva"] = "Cotă TVA",
-        ["pret_vanzare"] = "Preț de vânzare",
+        ["pret_vanzare"] = "Preț vânzare In Store",
+        ["pret_vanzare_online"] = "Preț vânzare On Line",
         ["pret_achizitie"] = "Preț achiziție",
         ["is_active"] = "Activ",
         ["is_incasare"] = "Încasare",
@@ -183,24 +184,28 @@ public static class FieldChoices
     {
         if (table == "products" && field == "tip")
             return Pairs(
-                "marfa", "Marfă",
-                "materie_prima", "Materie primă",
+                "marfa", "Marfa",
+                "materie_prima", "Materie prima",
                 "produs_finit", "Produs finit",
                 "ambalaj", "Ambalaj",
                 "materiale_consumabile", "Materiale consumabile",
+                "materiale_curatenie", "Materiale curatenie",
+                "birotica", "Birotica",
+                "servicii", "Servicii",
+                "garantie", "Garantie",
                 "obiect_inventar", "Obiect de inventar");
         if (field is "unitate_masura")
             return Pairs("Buc.", "Buc.", "Kg", "Kg", "Litru", "Litru");
         if (field is "unitate_achizitie")
-            return Pairs("bax", "bax", "cutie", "cutie", "ladă", "ladă", "palet", "palet", "pachet", "pachet", "sac", "sac", "bidon", "bidon", "set", "set");
+            return Pairs("bax", "bax", "cutie", "cutie", "lada", "lada", "palet", "palet", "pachet", "pachet", "sac", "sac", "bidon", "bidon", "set", "set");
         if (field is "cota_tva")
             return Pairs("0", "0%", "11", "11%", "21", "21%");
         if (field is "status" && table is "supplier_invoices" or "client_invoices")
-            return Pairs("neplatita", "Neplătită", "partial", "Parțial", "platita", "Plătită", "anulata", "Anulată");
+            return Pairs("neplatita", "Neplatita", "partial", "Partial", "platita", "Platita", "anulata", "Anulata");
         if (table == "company_warehouses" && field == "warehouse_type")
-            return Pairs("en_detail", "En-detail", "en_gros", "En-gros", "productie", "Producție", "materii_prime", "Materii prime", "custodie", "Custodie", "vanzare", "Vânzare");
+            return Pairs("en_detail", "En-detail", "en_gros", "En-gros", "productie", "Productie", "materii_prime", "Materii prime", "custodie", "Custodie", "vanzare", "Vanzare");
         if (table == "cm_product_groups" && field == "kind")
-            return Pairs("custom", "Personalizată", "menus", "Meniuri", "ungrouped", "Negrupate");
+            return Pairs("custom", "Personalizata", "menus", "Meniuri", "ungrouped", "Negrupate");
         if (table == "stock_movements" && field == "tip")
             return Pairs("intrare", "Intrare", "iesire", "Ieșire");
         if (table == "company_cash_register_entries" && field == "kind")

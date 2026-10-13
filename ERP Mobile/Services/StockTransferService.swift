@@ -59,7 +59,7 @@ enum StockTransferService {
     }
 
     static let transferableKinds: Set<ProductKind> = [
-        .materiePrima, .marfa, .ambalaj, .materialeConsumabile
+        .materiePrima, .marfa, .ambalaj, .materialeConsumabile, .materialeCuratenie, .birotica
     ]
 
     static func fetchTransfers(companyId: UUID) async throws -> [StockTransfer] {

@@ -161,15 +161,15 @@ struct SalesClientInvoicesGridView: View {
         case .none:
             return L10n.tr("efactura.banner_not_configured")
         case .requested:
-            return L10n.tr("efactura.banner_requested", settings.trimmedAccountantEmail ?? "")
+            return L10n.tr("efactura.banner_requested")
         case .authorized:
             if settings.isExpired {
                 return L10n.tr("efactura.banner_expired", settings.validUntilText ?? "")
             }
             if let until = settings.validUntilText {
-                return L10n.tr("efactura.banner_authorized_until", until, settings.trimmedAccountantEmail ?? "")
+                return L10n.tr("efactura.banner_authorized_until", until)
             }
-            return L10n.tr("efactura.banner_authorized", settings.trimmedAccountantEmail ?? "")
+            return L10n.tr("efactura.banner_authorized")
         }
     }
 
@@ -189,17 +189,17 @@ struct SalesClientInvoicesGridView: View {
                     Button {
                         emailPDF(invoice)
                     } label: {
-                        Label(L10n.tr("module.sales.cash_sale.action_email"), systemImage: "envelope")
+                        Label(L10n.tr("module.sales.cash_sale.action_email"), systemImage: "envelope").appHoverTip(L10n.tr("module.sales.cash_sale.action_email"))
                     }
                     Button {
                         sendToEFactura(invoice)
                     } label: {
-                        Label(L10n.tr("efactura.send_invoice"), systemImage: "paperplane")
+                        Label(L10n.tr("efactura.send_invoice"), systemImage: "paperplane").appHoverTip(L10n.tr("efactura.send_invoice"))
                     }
                     Button {
                         selectedInvoice = invoice
                     } label: {
-                        Label(L10n.tr("module.sales.cash_sale.action_details"), systemImage: "info.circle")
+                        Label(L10n.tr("module.sales.cash_sale.action_details"), systemImage: "info.circle").appHoverTip(L10n.tr("module.sales.cash_sale.action_details"))
                     }
                 } label: {
                     Text(L10n.tr("module.sales.cash_sale.actions_menu"))

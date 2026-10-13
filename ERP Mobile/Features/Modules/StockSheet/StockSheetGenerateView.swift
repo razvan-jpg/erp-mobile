@@ -117,7 +117,7 @@ struct StockSheetGenerateView: View {
             await loadRows()
         }
         .appRefreshable { await loadRows() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task {
                 await loadAccess()
                 await loadRows()

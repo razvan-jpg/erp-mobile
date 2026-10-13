@@ -95,6 +95,7 @@ struct SalesZReportDetailSheet: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .appControlHint(L10n.tr("common.more_actions"))
                 }
             }
         }

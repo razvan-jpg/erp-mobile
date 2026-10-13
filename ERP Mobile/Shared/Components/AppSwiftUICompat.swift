@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 import UIKit
 
@@ -78,15 +79,64 @@ struct AppRemoteImage<Placeholder: View, Content: View>: View {
     }
 
     private func load() {
+        RemoteImageStore.load(url) { image in
+            if let image {
+                loadedImage = image
+            } else {
+                didFail = true
+            }
+        }
+    }
+}
+
+private nonisolated enum RemoteImageStore {
+    private static let cache = NSCache<NSURL, UIImage>()
+    private static let lock = NSLock()
+    private static var waiters: [URL: [(UIImage?) -> Void]] = [:]
+
+    static func load(_ url: URL, completion: @escaping (UIImage?) -> Void) {
+        if let cached = cache.object(forKey: url as NSURL) {
+            DispatchQueue.main.async { completion(cached) }
+            return
+        }
+        var start = false
+        lock.lock()
+        if var pending = waiters[url] {
+            pending.append(completion)
+            waiters[url] = pending
+        } else {
+            waiters[url] = [completion]
+            start = true
+        }
+        lock.unlock()
+        guard start else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
+            let image = data.flatMap(thumbnail)
+            if let image {
+                cache.setObject(image, forKey: url as NSURL)
+            }
+            lock.lock()
+            let callbacks = waiters.removeValue(forKey: url) ?? []
+            lock.unlock()
             DispatchQueue.main.async {
-                if let data, let image = UIImage(data: data) {
-                    loadedImage = image
-                } else {
-                    didFail = true
-                }
+                callbacks.forEach { $0(image) }
             }
         }.resume()
+    }
+
+    private static func thumbnail(data: Data) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            return UIImage(data: data)
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: 448,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return UIImage(data: data)
+        }
+        return UIImage(cgImage: cgImage)
     }
 }
 
@@ -204,7 +254,7 @@ extension View {
         } else {
             self
                 .onAppear { Task(priority: priority) { await action() } }
-                .onChange(of: id) { _ in Task(priority: priority) { await action() } }
+                .onChange(of: id) { _, _ in Task(priority: priority) { await action() } }
         }
     }
 

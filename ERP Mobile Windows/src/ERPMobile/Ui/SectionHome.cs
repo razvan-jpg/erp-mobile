@@ -48,6 +48,7 @@ public sealed class SectionHome : UserControl
             HorizontalAlignment = HorizontalAlignment.Left,
             Background = Brushes.White
         };
+        ToolTip.SetTip(back, "Înapoi la " + _module.Name);
         back.Click += (_, _) => Dispatcher.UIThread.Post(ShowTiles);
         DockPanel.SetDock(back, Dock.Top);
         root.Children.Add(back);
@@ -83,6 +84,7 @@ public sealed class SectionHome : UserControl
             Content = text
         };
         button.Click += (_, _) => open();
+        ToolTip.SetTip(button, string.IsNullOrWhiteSpace(hint) ? title : title + " — " + hint);
         return button;
     }
 }

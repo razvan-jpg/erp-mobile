@@ -55,37 +55,37 @@ struct StockTransferListView: View {
                                         Image(systemName: "trash")
                                     }
                                     .buttonStyle(.borderless)
-                                    .accessibilityLabel(L10n.tr("common.delete"))
+                                    .appControlHint(L10n.tr("common.delete"))
                                 }
                             }
                             .contextMenu {
                                 Button {
                                     transferToEdit = transfer
                                 } label: {
-                                    Label(L10n.tr("common.edit"), systemImage: "pencil")
+                                    Label(L10n.tr("common.edit"), systemImage: "pencil").appHoverTip(L10n.tr("common.edit"))
                                 }
                                 Button {
                                     Task { await exportAviz(transfer) }
                                 } label: {
-                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext").appHoverTip(L10n.tr("inventory.transfer_export_aviz"))
                                 }
                                 Button(role: .destructive) {
                                     transferToDelete = transfer
                                 } label: {
-                                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                                 }
                             }
                             .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button {
                                     Task { await exportAviz(transfer) }
                                 } label: {
-                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                                    Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext").appHoverTip(L10n.tr("inventory.transfer_export_aviz"))
                                 }
                                 .tint(.blue)
                                 Button(role: .destructive) {
                                     transferToDelete = transfer
                                 } label: {
-                                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                                 }
                             }
                         }
@@ -104,6 +104,7 @@ struct StockTransferListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .appControlHint(L10n.tr("common.add"))
                 }
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading && !didLoadOnce) }
@@ -274,7 +275,7 @@ struct StockTransferEditorView: View {
                             Text(warehouse.denumire).tag(Optional(warehouse.id))
                         }
                     }
-                    .onChange(of: sourceWarehouseId) { _ in
+                    .onChange(of: sourceWarehouseId) { _, _ in
                         Task { await reloadAvailableStock() }
                     }
                     Picker(L10n.tr("inventory.transfer_field_destination"), selection: $destinationWarehouseId) {
@@ -320,7 +321,7 @@ struct StockTransferEditorView: View {
                                     Image(systemName: "trash")
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel(L10n.tr("common.delete"))
+                                .appControlHint(L10n.tr("common.delete"))
                             }
                         }
                         .padding(.vertical, 2)
@@ -333,7 +334,7 @@ struct StockTransferEditorView: View {
                         }
                         showProductPicker = true
                     } label: {
-                        Label(L10n.tr("inventory.transfer_add_line"), systemImage: "plus")
+                        Label(L10n.tr("inventory.transfer_add_line"), systemImage: "plus").appHoverTip(L10n.tr("inventory.transfer_add_line"))
                     }
                 }
                 Section(header: Text(L10n.tr("inventory.physical_field_notes"))) {
@@ -344,7 +345,7 @@ struct StockTransferEditorView: View {
                         Button {
                             Task { await exportAviz() }
                         } label: {
-                            Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext")
+                            Label(L10n.tr("inventory.transfer_export_aviz"), systemImage: "doc.richtext").appHoverTip(L10n.tr("inventory.transfer_export_aviz"))
                         }
                     }
                 }

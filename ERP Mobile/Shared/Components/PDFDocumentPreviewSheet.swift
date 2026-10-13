@@ -26,17 +26,17 @@ struct PDFDocumentPreviewSheet: View {
                         Button {
                             printPDF()
                         } label: {
-                            Label(L10n.tr("account.print"), systemImage: "printer")
+                            Label(L10n.tr("account.print"), systemImage: "printer").appHoverTip(L10n.tr("account.print"))
                         }
                         Button {
                             savePDF()
                         } label: {
-                            Label(L10n.tr("nir.export_save_pdf"), systemImage: "square.and.arrow.down")
+                            Label(L10n.tr("nir.export_save_pdf"), systemImage: "square.and.arrow.down").appHoverTip(L10n.tr("nir.export_save_pdf"))
                         }
                         Button {
                             sharePDF()
                         } label: {
-                            Label(L10n.tr("account.send"), systemImage: "square.and.arrow.up")
+                            Label(L10n.tr("account.send"), systemImage: "square.and.arrow.up").appHoverTip(L10n.tr("account.send"))
                         }
                     }
                 }

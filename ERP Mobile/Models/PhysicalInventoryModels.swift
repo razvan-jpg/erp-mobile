@@ -46,11 +46,102 @@ struct PhysicalInventoryProductRef: Codable, Hashable, Sendable {
     let cod: String?
     let codBare: String?
     let unitateMasura: String
+    let tip: ProductKind?
 
     enum CodingKeys: String, CodingKey {
-        case id, denumire, cod
+        case id, denumire, cod, tip
         case codBare = "cod_bare"
         case unitateMasura = "unitate_masura"
+    }
+
+    nonisolated init(
+        id: UUID,
+        denumire: String,
+        cod: String?,
+        codBare: String?,
+        unitateMasura: String,
+        tip: ProductKind? = nil
+    ) {
+        self.id = id
+        self.denumire = denumire
+        self.cod = cod
+        self.codBare = codBare
+        self.unitateMasura = unitateMasura
+        self.tip = tip
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        denumire = try container.decode(String.self, forKey: .denumire)
+        cod = try container.decodeIfPresent(String.self, forKey: .cod)
+        codBare = try container.decodeIfPresent(String.self, forKey: .codBare)
+        unitateMasura = try container.decodeIfPresent(String.self, forKey: .unitateMasura) ?? "buc"
+        tip = try container.decodeIfPresent(ProductKind.self, forKey: .tip)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(denumire, forKey: .denumire)
+        try container.encodeIfPresent(cod, forKey: .cod)
+        try container.encodeIfPresent(codBare, forKey: .codBare)
+        try container.encode(unitateMasura, forKey: .unitateMasura)
+        try container.encodeIfPresent(tip, forKey: .tip)
+    }
+}
+
+enum PhysicalInventoryCategoryGroup: Identifiable, Sendable {
+    case kind(ProductKind)
+    case unknown
+
+    var id: String {
+        switch self {
+        case .kind(let kind): return kind.rawValue
+        case .unknown: return "unknown"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .kind(let kind): return kind.label
+        case .unknown: return L10n.tr("inventory.physical_category_unknown")
+        }
+    }
+
+    static func group(for tip: ProductKind?) -> PhysicalInventoryCategoryGroup {
+        guard let tip else { return .unknown }
+        return .kind(tip)
+    }
+
+    /// Ordine stabilă pe categorii articol.
+    static let displayOrder: [PhysicalInventoryCategoryGroup] = [
+        .kind(.materiePrima),
+        .kind(.marfa),
+        .kind(.produsFinit),
+        .kind(.ambalaj),
+        .kind(.materialeConsumabile),
+        .kind(.materialeCuratenie),
+        .kind(.birotica),
+        .kind(.servicii),
+        .kind(.garantie),
+        .kind(.obiectInventar),
+        .unknown
+    ]
+
+    static func groupedLines(from lines: [PhysicalInventoryLine]) -> [(group: PhysicalInventoryCategoryGroup, lines: [PhysicalInventoryLine])] {
+        var buckets: [String: [PhysicalInventoryLine]] = [:]
+        for line in lines {
+            let group = group(for: line.product?.tip)
+            buckets[group.id, default: []].append(line)
+        }
+        return displayOrder.compactMap { group in
+            guard var items = buckets[group.id], !items.isEmpty else { return nil }
+            items.sort {
+                $0.productName.localizedStandardCompare($1.productName) == .orderedAscending
+            }
+            return (group, items)
+        }
     }
 }
 
@@ -150,6 +241,52 @@ struct PhysicalInventoryLine: Codable, Identifiable, Hashable, Sendable {
     var productName: String {
         product?.denumire ?? L10n.tr("inventory.unknown_product")
     }
+
+    var categoryLabel: String {
+        PhysicalInventoryCategoryGroup.group(for: product?.tip).label
+    }
+
+    var categorySortIndex: Int {
+        let group = PhysicalInventoryCategoryGroup.group(for: product?.tip)
+        return PhysicalInventoryCategoryGroup.displayOrder.firstIndex(where: { $0.id == group.id })
+            ?? PhysicalInventoryCategoryGroup.displayOrder.count
+    }
+
+    func withCounted(_ quantity: Decimal?, stocScriptic: Decimal? = nil) -> PhysicalInventoryLine {
+        PhysicalInventoryLine(
+            id: id,
+            inventoryId: inventoryId,
+            companyId: companyId,
+            productId: productId,
+            stocScriptic: stocScriptic ?? self.stocScriptic,
+            cantitateNumarata: quantity,
+            unitateMasura: unitateMasura,
+            observatii: observatii,
+            product: product
+        )
+    }
+}
+
+enum PhysicalInventorySortColumn: String, CaseIterable, Identifiable {
+    case category
+    case name
+    case code
+    case bookStock
+    case counted
+    case difference
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .category: return L10n.tr("inventory.physical_sort_category")
+        case .name: return L10n.tr("inventory.physical_sort_name")
+        case .code: return L10n.tr("inventory.physical_sort_code")
+        case .bookStock: return L10n.tr("inventory.physical_book_stock")
+        case .counted: return L10n.tr("inventory.physical_counted_stock")
+        case .difference: return L10n.tr("inventory.physical_pdf_col_difference")
+        }
+    }
 }
 
 struct PhysicalInventorySummary: Sendable {
@@ -221,6 +358,7 @@ enum PhysicalInventoryLineFilter: String, CaseIterable, Identifiable {
 enum PhysicalInventoryError: LocalizedError {
     case notFound
     case notOpen
+    case notFinalized
     case noCountedLines
     case forbidden
     case invalidQuantity
@@ -229,6 +367,7 @@ enum PhysicalInventoryError: LocalizedError {
         switch self {
         case .notFound: return L10n.tr("inventory.physical_error_not_found")
         case .notOpen: return L10n.tr("inventory.physical_error_not_open")
+        case .notFinalized: return L10n.tr("inventory.physical_error_not_finalized")
         case .noCountedLines: return L10n.tr("inventory.physical_error_no_counted_lines")
         case .forbidden: return L10n.tr("inventory.physical_error_forbidden")
         case .invalidQuantity: return L10n.tr("inventory.physical_error_invalid_quantity")
@@ -239,6 +378,7 @@ enum PhysicalInventoryError: LocalizedError {
         let message = error.localizedDescription.uppercased()
         if message.contains("INVENTORY_NOT_FOUND") { return PhysicalInventoryError.notFound }
         if message.contains("INVENTORY_NOT_OPEN") { return PhysicalInventoryError.notOpen }
+        if message.contains("INVENTORY_NOT_FINALIZED") { return PhysicalInventoryError.notFinalized }
         if message.contains("INVENTORY_NO_COUNTED_LINES") { return PhysicalInventoryError.noCountedLines }
         if message.contains("FORBIDDEN") { return PhysicalInventoryError.forbidden }
         if message.contains("INVALID_COUNTED_QUANTITY") { return PhysicalInventoryError.invalidQuantity }

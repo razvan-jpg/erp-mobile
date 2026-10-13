@@ -50,7 +50,7 @@ struct UserSettingsView: View {
             selectedLanguage = localeManager.language
             openPendingDestinationIfNeeded()
         }
-        .onChange(of: pendingDestination) { _ in
+        .onChange(of: pendingDestination) { _, _ in
             openPendingDestinationIfNeeded()
         }
         .fullScreenCover(item: $presentedDestination) { destination in
@@ -89,6 +89,7 @@ struct UserSettingsView: View {
                     usersLink
                     pendingSyncLink
                     zettaSettingsLink
+                    efacturaSettingsLink
                     macDesktopShortcutButton
                     adminCompaniesLink
                     logoutButton
@@ -225,6 +226,22 @@ struct UserSettingsView: View {
                     title: L10n.tr("settings.offline_sync.title"),
                     subtitle: L10n.tr("settings.offline_sync.hint"),
                     systemImage: "arrow.triangle.2.circlepath.circle",
+                    showsChevron: true
+                )
+                .settingsMenuButtonChrome()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var efacturaSettingsLink: some View {
+        if companyManager.currentCompany != nil {
+            NavigationLink(destination: SalesEFacturaAuthSheet(showsCloseButton: false)) {
+                SettingsMenuButtonLabel(
+                    title: L10n.tr("settings.efactura.title"),
+                    subtitle: L10n.tr("settings.efactura.hint"),
+                    systemImage: "checkmark.seal",
                     showsChevron: true
                 )
                 .settingsMenuButtonChrome()

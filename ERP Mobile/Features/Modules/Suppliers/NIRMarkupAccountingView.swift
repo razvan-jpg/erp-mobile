@@ -24,7 +24,7 @@ struct NIRMarkupAccountingView: View {
                         .font(.subheadline)
                     AppDatePicker(selection: $selectedMonth)
                 }
-                .onChange(of: selectedMonth) { newValue in
+                .onChange(of: selectedMonth) { _, newValue in
                     selectedMonth = SupplierFormatting.startOfMonth(for: newValue)
                     Task { await loadReport() }
                 }
@@ -49,20 +49,24 @@ struct NIRMarkupAccountingView: View {
                         Button(L10n.tr("account.print"), systemImage: "printer.fill") {
                             Task { await performExport(.print) }
                         }
+                        .appHoverTip(L10n.tr("account.print"))
 
                         Button(L10n.tr("nir.markup_accounting_export_pdf"), systemImage: "doc.fill") {
                             Task { await performExport(.exportPDF) }
                         }
+                        .appHoverTip(L10n.tr("nir.markup_accounting_export_pdf"))
 
                         Button(L10n.tr("nir.markup_accounting_export_listing"), systemImage: "doc.text") {
                             Task { await performExport(.exportListing) }
                         }
+                        .appHoverTip(L10n.tr("nir.markup_accounting_export_listing"))
 
                         Button(L10n.tr("account.send"), systemImage: "paperplane.fill") {
                             Task { await performExport(.send) }
                         }
+                        .appHoverTip(L10n.tr("account.send"))
                     } label: {
-                        Label(L10n.tr("nir.markup_accounting_share"), systemImage: "square.and.arrow.up")
+                        Label(L10n.tr("nir.markup_accounting_share"), systemImage: "square.and.arrow.up").appHoverTip(L10n.tr("nir.markup_accounting_share"))
                     }
                 }
 

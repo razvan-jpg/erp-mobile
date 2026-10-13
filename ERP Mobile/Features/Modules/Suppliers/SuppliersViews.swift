@@ -54,11 +54,7 @@ struct SuppliersListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -310,7 +306,7 @@ struct SupplierFormView: View {
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
             .onAppear { populateFields() }
-            .onChange(of: cui) { _ in
+            .onChange(of: cui) { _, _ in
                 anafSuccessMessage = nil
             }
         }
@@ -336,7 +332,7 @@ struct SupplierFormView: View {
                             .appControlSize(.small)
                             .frame(width: 44)
                     } else {
-                        Label(L10n.tr("common.anaf"), systemImage: "building.columns")
+                        Label(L10n.tr("common.anaf"), systemImage: "building.columns").appHoverTip(L10n.tr("common.anaf"))
                             .appLabelStyleTitleAndIcon()
                     }
                 }

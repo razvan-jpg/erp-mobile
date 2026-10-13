@@ -23,7 +23,7 @@ enum ProductSaleAddonService {
     private static let lineSelect = """
         id, company_id, product_id, addon_product_id, cantitate, sort_order, created_at, updated_at, \
         addon:products!product_sale_addons_addon_product_id_fkey(\
-        id, denumire, cod, tip, pret_vanzare, cota_tva, unitate_masura)
+        id, denumire, cod, tip, pret_vanzare, pret_vanzare_online, cota_tva, unitate_masura)
         """
 
     static func fetchAddons(productId: UUID) async throws -> [ProductSaleAddon] {

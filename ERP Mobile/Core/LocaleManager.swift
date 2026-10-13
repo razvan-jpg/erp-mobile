@@ -50,7 +50,7 @@ final class LocaleManager: ObservableObject {
 
     private static func systemDefaultLanguage() -> AppLanguage {
         let preferred = Locale.preferredLanguages.first ?? "ro"
-        let code = Locale(identifier: preferred).languageCode ?? "ro"
+        let code = Locale(identifier: preferred).language.languageCode?.identifier ?? "ro"
         if let match = AppLanguage.allCases.first(where: { $0.rawValue == code || preferred.hasPrefix($0.rawValue) }) {
             return match
         }

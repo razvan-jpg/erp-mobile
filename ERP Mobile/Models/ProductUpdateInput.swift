@@ -8,6 +8,8 @@ struct ProductUpdateInput: Sendable {
     var unitateAchizitie: String?
     var factorConversie: Decimal
     var tip: ProductKind
+    var cantitateMinima: Decimal = 0
+    var cantitateOptima: Decimal = 0
 }
 
 enum ProductDeleteBlocker: Sendable {

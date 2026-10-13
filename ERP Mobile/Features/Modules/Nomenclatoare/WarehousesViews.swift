@@ -52,11 +52,7 @@ struct WarehousesListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -291,7 +287,7 @@ private struct WarehouseFormView: View {
                     Button {
                         // Placeholder pentru sabloane articole
                     } label: {
-                        Label(L10n.tr("module.nomenclatoare.warehouses.article_templates"), systemImage: "square.grid.2x2")
+                        Label(L10n.tr("module.nomenclatoare.warehouses.article_templates"), systemImage: "square.grid.2x2").appHoverTip(L10n.tr("module.nomenclatoare.warehouses.article_templates"))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(AppButtonStyles.bordered)
@@ -301,7 +297,7 @@ private struct WarehouseFormView: View {
                         Button {
                             Task { await save() }
                         } label: {
-                            Label(L10n.tr("common.save"), systemImage: "checkmark.circle.fill")
+                            Label(L10n.tr("common.save"), systemImage: "checkmark.circle.fill").appHoverTip(L10n.tr("common.save"))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppButtonStyles.borderedProminent)
@@ -310,7 +306,7 @@ private struct WarehouseFormView: View {
                         Button {
                             presentationMode.wrappedValue.dismiss()
                         } label: {
-                            Label(L10n.tr("common.exit"), systemImage: "xmark.circle.fill")
+                            Label(L10n.tr("common.exit"), systemImage: "xmark.circle.fill").appHoverTip(L10n.tr("common.exit"))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppButtonStyles.bordered)

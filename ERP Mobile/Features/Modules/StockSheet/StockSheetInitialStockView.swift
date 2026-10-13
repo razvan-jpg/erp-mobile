@@ -136,7 +136,7 @@ struct StockSheetInitialStockView: View {
             await loadLines()
         }
         .appRefreshable { await loadLines() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task {
                 await loadAccess()
                 await loadLines()

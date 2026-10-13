@@ -59,14 +59,18 @@ public sealed class RegisterView : UserControl
     private readonly DataGrid _grid;
     private readonly TextBlock _status;
     private readonly TextBox _search;
-    private readonly ComboBox _groupFilter;
+    private readonly Button _groupButton;
+    private readonly Button _categoryButton;
+    private readonly HashSet<string> _selectedGroupIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _selectedCategories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<GroupOption> _groupOptions = new();
+    private readonly List<CheckBox> _groupChecks = new();
     private readonly Dictionary<string, HashSet<string>> _groupsByProduct = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<GridRow> _menuRows = new();
     private readonly HashSet<string> _menuIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly ScrollViewer _menuScroll;
     private readonly StackPanel _menuList = new() { Spacing = 8 };
     private string? _selectedMenuId;
-    private bool _suppressGroup;
     private int _index;
 
     public RegisterView(AppSession session, IReadOnlyList<ListSpec> lists, ModuleAccess access, string? note = null)
@@ -115,14 +119,12 @@ public sealed class RegisterView : UserControl
         var filters = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         _search = new TextBox { Watermark = "Caută...", MinWidth = 220 };
         _search.TextChanged += (_, _) => ApplyFilter();
-        _groupFilter = new ComboBox { MinWidth = 200, IsVisible = false };
-        _groupFilter.SelectionChanged += (_, _) =>
-        {
-            if (!_suppressGroup)
-                ApplyFilter();
-        };
+        _groupButton = new Button { Content = "Toate grupele", MinWidth = 180, IsVisible = false };
+        _categoryButton = new Button { Content = "Toate categoriile", MinWidth = 180, IsVisible = false };
+        BuildCategoryFlyout();
         filters.Children.Add(_search);
-        filters.Children.Add(_groupFilter);
+        filters.Children.Add(_groupButton);
+        filters.Children.Add(_categoryButton);
         tools.Children.Add(filters);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
@@ -229,12 +231,16 @@ public sealed class RegisterView : UserControl
                     if (row.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String)
                         item.Id = id.GetString();
                     for (var i = 0; i < spec.Columns.Length && i < 10; i++)
-                        item.Set(i, FieldChoices.Display(spec.Table, spec.Columns[i].Field, Show(row, spec.Columns[i].Field)));
+                    {
+                        var field = spec.Columns[i].Field;
+                        item.Set(i, Money(field, FieldChoices.Display(spec.Table, field, Show(row, field))));
+                    }
                     _all.Add(item);
                 }
             }
             await LoadGroups();
             _search.Watermark = spec.Table == "products" ? "Caută denumire sau cod" : "Caută...";
+            _categoryButton.IsVisible = spec.Table == "products";
             ApplyFilter();
             _status.Text = _all.Count == 0 ? "Nu există înregistrări." : "";
         }
@@ -249,9 +255,8 @@ public sealed class RegisterView : UserControl
     private void ApplyFilter()
     {
         var query = _search.Text?.Trim() ?? "";
-        var option = _groupFilter.SelectedItem as GroupOption;
         _rows.Clear();
-        if (option?.Kind == "menus")
+        if (MenusOnlySelected)
         {
             ShowMenuList(query);
             return;
@@ -259,17 +264,56 @@ public sealed class RegisterView : UserControl
         _menuScroll.IsVisible = false;
         _grid.IsVisible = true;
         EnsureTrashColumn(false);
-        var groupId = option?.Id;
+        var productGroupIds = ProductGroupIds();
+        var filterCategories = Current.Table == "products" && _selectedCategories.Count > 0;
+        var matched = new List<GridRow>();
         foreach (var row in _all)
         {
-            if (groupId != null)
+            if (productGroupIds.Count > 0)
             {
-                if (row.Id == null || !_groupsByProduct.TryGetValue(row.Id, out var groups) || !groups.Contains(groupId))
+                if (row.Id == null || !_groupsByProduct.TryGetValue(row.Id, out var groups) || !productGroupIds.Overlaps(groups))
                     continue;
             }
+            if (filterCategories && !_selectedCategories.Contains(Cell(row, "tip")))
+                continue;
             if (query.Length == 0 || Matches(row, query))
-                _rows.Add(row);
+                matched.Add(row);
         }
+        if (Current.Table == "products")
+            matched.Sort(CompareProducts);
+        foreach (var row in matched)
+            _rows.Add(row);
+    }
+
+    private bool MenusOnlySelected =>
+        _selectedGroupIds.Count > 0
+        && _selectedGroupIds.All(id => _groupOptions.Any(option => option.Id == id && option.Kind == "menus"));
+
+    private HashSet<string> ProductGroupIds()
+    {
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var id in _selectedGroupIds)
+        {
+            if (_groupOptions.Any(option => option.Id == id && option.Kind != "menus"))
+                ids.Add(id);
+        }
+        return ids;
+    }
+
+    private int CompareProducts(GridRow left, GridRow right)
+    {
+        var culture = CultureInfo.GetCultureInfo("ro-RO");
+        return string.Compare(Cell(left, "denumire"), Cell(right, "denumire"), culture, CompareOptions.IgnoreCase);
+    }
+
+    private string Cell(GridRow row, string field)
+    {
+        for (var i = 0; i < Current.Columns.Length && i < 10; i++)
+        {
+            if (Current.Columns[i].Field == field)
+                return row.Cell(i);
+        }
+        return "";
     }
 
     private async Task LoadGroups()
@@ -277,27 +321,23 @@ public sealed class RegisterView : UserControl
         _groupsByProduct.Clear();
         _menuRows.Clear();
         _menuIds.Clear();
-        var keep = (_groupFilter.SelectedItem as GroupOption)?.Id;
-        var keepKind = (_groupFilter.SelectedItem as GroupOption)?.Kind;
-        _suppressGroup = true;
-        _groupFilter.Items.Clear();
-        _groupFilter.Items.Add(new GroupOption(null, "Toate grupele"));
+        _groupOptions.Clear();
         if (Current.Table != "products" || _session.CurrentCompany == null)
         {
-            _groupFilter.IsVisible = false;
-            _groupFilter.SelectedIndex = 0;
-            _suppressGroup = false;
+            _groupButton.IsVisible = false;
+            _selectedGroupIds.Clear();
+            RebuildGroupFlyout();
+            UpdateGroupTitle();
             return;
         }
 
-        _groupFilter.IsVisible = true;
+        _groupButton.IsVisible = true;
         try
         {
             var company = _session.CurrentCompany.Id;
             var groups = await _session.SelectRows(
                 "cm_product_groups",
                 $"company_id=eq.{company}&kind=in.(custom,menus)&select=id,name,kind&order=name.asc");
-            var options = new List<GroupOption>();
             var hasMenus = false;
             if (groups.ValueKind == JsonValueKind.Array)
             {
@@ -310,14 +350,14 @@ public sealed class RegisterView : UserControl
                         continue;
                     if (kind == "menus")
                         hasMenus = true;
-                    options.Add(new GroupOption(id, name, kind));
+                    _groupOptions.Add(new GroupOption(id, name, kind));
                 }
             }
             if (!hasMenus)
-                options.Add(new GroupOption("menus", "Meniuri", "menus"));
+                _groupOptions.Add(new GroupOption("menus", "Meniuri", "menus"));
             var menuRows = await _session.SelectRows(
                 "cm_menus",
-                $"company_id=eq.{company}&select=id,name,is_active,cod&order=name.asc");
+                $"company_id=eq.{company}&select=id,name,is_active,cod,pret_vanzare,pret_vanzare_online&order=name.asc");
             if (menuRows.ValueKind == JsonValueKind.Array)
             {
                 foreach (var row in menuRows.EnumerateArray())
@@ -328,10 +368,7 @@ public sealed class RegisterView : UserControl
                     _menuRows.Add(item);
                 }
             }
-            options.Sort((left, right) => string.Compare(left.Name, right.Name, CultureInfo.GetCultureInfo("ro-RO"), CompareOptions.IgnoreCase));
-            foreach (var option in options)
-                _groupFilter.Items.Add(option);
-
+            _groupOptions.Sort((left, right) => string.Compare(left.Name, right.Name, CultureInfo.GetCultureInfo("ro-RO"), CompareOptions.IgnoreCase));
             var members = await _session.SelectRows(
                 "cm_product_group_members",
                 $"company_id=eq.{company}&select=product_id,group_id");
@@ -354,11 +391,103 @@ public sealed class RegisterView : UserControl
         }
         finally
         {
-            var selected = _groupFilter.Items.OfType<GroupOption>().FirstOrDefault(option => option.Kind == keepKind && option.Id == keep)
-                ?? _groupFilter.Items.OfType<GroupOption>().First();
-            _groupFilter.SelectedItem = selected;
-            _suppressGroup = false;
+            _selectedGroupIds.RemoveWhere(id => _groupOptions.All(option => option.Id != id));
+            RebuildGroupFlyout();
+            UpdateGroupTitle();
         }
+    }
+
+    private void BuildCategoryFlyout()
+    {
+        var panel = new StackPanel { Spacing = 6, Margin = new Avalonia.Thickness(12) };
+        var all = new Button { Content = "Toate categoriile", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var boxes = new List<CheckBox>();
+        all.Click += (_, _) =>
+        {
+            _selectedCategories.Clear();
+            foreach (var box in boxes)
+                box.IsChecked = false;
+            UpdateCategoryTitle();
+            ApplyFilter();
+        };
+        panel.Children.Add(all);
+        foreach (var choice in FieldChoices.Options("products", "tip") ?? Array.Empty<FieldChoice>())
+        {
+            var box = new CheckBox { Content = choice.Label };
+            var label = choice.Label;
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (box.IsChecked == true)
+                    _selectedCategories.Add(label);
+                else
+                    _selectedCategories.Remove(label);
+                UpdateCategoryTitle();
+                ApplyFilter();
+            };
+            boxes.Add(box);
+            panel.Children.Add(box);
+        }
+        _categoryButton.Flyout = new Flyout { Content = panel };
+    }
+
+    private void RebuildGroupFlyout()
+    {
+        var panel = new StackPanel { Spacing = 6, Margin = new Avalonia.Thickness(12) };
+        var all = new Button { Content = "Toate grupele", HorizontalAlignment = HorizontalAlignment.Stretch };
+        _groupChecks.Clear();
+        all.Click += (_, _) =>
+        {
+            _selectedGroupIds.Clear();
+            foreach (var box in _groupChecks)
+                box.IsChecked = false;
+            UpdateGroupTitle();
+            ApplyFilter();
+        };
+        panel.Children.Add(all);
+        foreach (var option in _groupOptions)
+        {
+            var id = option.Id;
+            var box = new CheckBox
+            {
+                Content = option.Name,
+                IsChecked = id != null && _selectedGroupIds.Contains(id)
+            };
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (id == null)
+                    return;
+                if (box.IsChecked == true)
+                    _selectedGroupIds.Add(id);
+                else
+                    _selectedGroupIds.Remove(id);
+                UpdateGroupTitle();
+                ApplyFilter();
+            };
+            _groupChecks.Add(box);
+            panel.Children.Add(box);
+        }
+        _groupButton.Flyout = new Flyout { Content = panel };
+    }
+
+    private void UpdateGroupTitle()
+    {
+        var names = _groupOptions.Where(option => option.Id != null && _selectedGroupIds.Contains(option.Id)).Select(option => option.Name).ToList();
+        _groupButton.Content = names.Count switch
+        {
+            0 => "Toate grupele",
+            1 => names[0],
+            _ => names.Count + " grupe"
+        };
+    }
+
+    private void UpdateCategoryTitle()
+    {
+        _categoryButton.Content = _selectedCategories.Count switch
+        {
+            0 => "Toate categoriile",
+            1 => _selectedCategories.First(),
+            _ => _selectedCategories.Count + " categorii"
+        };
     }
 
     private GridRow MenuRow(JsonElement row)
@@ -371,6 +500,8 @@ public sealed class RegisterView : UserControl
             var text = Current.Columns[i].Field switch
             {
                 "denumire" => MenuTitle(row),
+                "pret_vanzare" => Money("pret_vanzare", RawNumber(row, "pret_vanzare")),
+                "pret_vanzare_online" => Money("pret_vanzare_online", RawNumber(row, "pret_vanzare_online")),
                 "tip" => "Meniu",
                 "is_active" => active ? "Da" : "Nu",
                 _ => ""
@@ -378,6 +509,13 @@ public sealed class RegisterView : UserControl
             item.Set(i, text);
         }
         return item;
+    }
+
+    private static string RawNumber(JsonElement row, string field)
+    {
+        if (!row.TryGetProperty(field, out var value))
+            return "";
+        return value.ValueKind == JsonValueKind.Number ? value.GetRawText() : value.ToString();
     }
 
     private static string MenuTitle(JsonElement row)
@@ -573,7 +711,7 @@ public sealed class RegisterView : UserControl
         var spec = Current;
         if (!spec.AllowWrite || !_access.CanCreate || _session.CurrentCompany == null)
             return;
-        if ((_groupFilter.SelectedItem as GroupOption)?.Kind == "menus")
+        if (MenusOnlySelected)
         {
             if (await MenuEditor.Show(this, _session, null))
                 await Reload();
@@ -598,7 +736,7 @@ public sealed class RegisterView : UserControl
     private async Task Edit()
     {
         var spec = Current;
-        if (( _groupFilter.SelectedItem as GroupOption)?.Kind == "menus")
+        if (MenusOnlySelected)
         {
             await OpenMenu(_selectedMenuId);
             if (_selectedMenuId == null)
@@ -655,7 +793,7 @@ public sealed class RegisterView : UserControl
     private async Task Delete()
     {
         var spec = Current;
-        if ((_groupFilter.SelectedItem as GroupOption)?.Kind == "menus")
+        if (MenusOnlySelected)
         {
             if (_selectedMenuId == null)
             {
@@ -721,6 +859,16 @@ public sealed class RegisterView : UserControl
             payload[key] = text;
         }
         return payload;
+    }
+
+    private static string Money(string field, string raw)
+    {
+        if (field is not ("pret_vanzare" or "pret_vanzare_online" or "cantitate_minima"))
+            return raw;
+        if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.GetCultureInfo("ro-RO"), out amount))
+            return amount.ToString("0.00", CultureInfo.GetCultureInfo("ro-RO"));
+        return raw;
     }
 
     private static string Show(JsonElement row, string field)

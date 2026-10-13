@@ -63,7 +63,7 @@ struct AppBottomStatusBar: View {
                 SyncEngine.shared.setActiveCompany(companyId)
             }
         }
-        .onChange(of: companyManager.currentCompany?.id) { companyId in
+        .onChange(of: companyManager.currentCompany?.id) { _, companyId in
             SyncEngine.shared.setActiveCompany(companyId)
         }
     }
@@ -88,7 +88,7 @@ struct AppBottomStatusBar: View {
                 .multilineTextAlignment(.center)
             }
             .frame(maxWidth: 72)
-            .accessibilityLabel(
+            .appControlHint(
                 networkMonitor.isOnline
                     ? L10n.tr("offline.badge.pending", pending)
                     : L10n.tr("offline.badge.offline")
@@ -118,7 +118,7 @@ struct AppBottomStatusBar: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(L10n.tr("tab.users"))
+                .appControlHint(L10n.tr("tab.users"))
             } else {
                 content
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,7 +154,7 @@ struct AppBottomStatusBar: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(L10n.tr("company_settings.title"))
+            .appControlHint(L10n.tr("company_settings.title"))
         } else {
             content
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -183,7 +183,7 @@ struct AppBottomStatusBar: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(L10n.tr("tab.about"))
+            .appControlHint(L10n.tr("tab.about"))
         } else {
             content
                 .frame(maxWidth: .infinity, alignment: .trailing)

@@ -89,6 +89,7 @@ struct UserListView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .appControlHint(L10n.tr("common.add"))
             }
         }
         .appSafeAreaInsetBottom {

@@ -1,15 +1,15 @@
 import Foundation
 
-struct CompanyZReportRecord: Codable, Identifiable, Sendable {
+nonisolated struct CompanyZReportRecord: Codable, Identifiable, Sendable {
     let id: UUID
     let companyId: UUID
     let dedupKey: String
     let zNumber: Int
     let reportDate: Date
-    @SupabaseDecimal var totalVanzari: Decimal
-    @SupabaseDecimal var numerar: Decimal
-    @SupabaseDecimal var card: Decimal
-    @SupabaseDecimal var plataModerna: Decimal
+    var totalVanzari: Decimal
+    var numerar: Decimal
+    var card: Decimal
+    var plataModerna: Decimal
     let payload: ZReportSnapshot
     let createdAt: Date?
     let updatedAt: Date?
@@ -28,6 +28,38 @@ struct CompanyZReportRecord: Codable, Identifiable, Sendable {
         case updatedAt = "updated_at"
     }
 
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        companyId = try c.decode(UUID.self, forKey: .companyId)
+        dedupKey = try c.decode(String.self, forKey: .dedupKey)
+        zNumber = try c.decode(Int.self, forKey: .zNumber)
+        reportDate = try c.decode(Date.self, forKey: .reportDate)
+        totalVanzari = try c.decode(SupabaseDecimal.self, forKey: .totalVanzari).wrappedValue
+        numerar = try c.decode(SupabaseDecimal.self, forKey: .numerar).wrappedValue
+        card = try c.decode(SupabaseDecimal.self, forKey: .card).wrappedValue
+        plataModerna = try c.decode(SupabaseDecimal.self, forKey: .plataModerna).wrappedValue
+        payload = try c.decode(ZReportSnapshot.self, forKey: .payload)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(companyId, forKey: .companyId)
+        try c.encode(dedupKey, forKey: .dedupKey)
+        try c.encode(zNumber, forKey: .zNumber)
+        try c.encode(reportDate, forKey: .reportDate)
+        try c.encode(SupabaseDecimal(wrappedValue: totalVanzari), forKey: .totalVanzari)
+        try c.encode(SupabaseDecimal(wrappedValue: numerar), forKey: .numerar)
+        try c.encode(SupabaseDecimal(wrappedValue: card), forKey: .card)
+        try c.encode(SupabaseDecimal(wrappedValue: plataModerna), forKey: .plataModerna)
+        try c.encode(payload, forKey: .payload)
+        try c.encodeIfPresent(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(updatedAt, forKey: .updatedAt)
+    }
+
     var reportData: ZReportData { payload.toReport() }
 
     /// Data NC (ca în Zetta): ziua vânzărilor; tura noapte = ziua precedentă tipăririi.
@@ -38,7 +70,7 @@ struct CompanyZReportRecord: Codable, Identifiable, Sendable {
     }
 }
 
-struct CompanyZReportUpsert: Encodable, Sendable {
+nonisolated struct CompanyZReportUpsert: Encodable, Sendable {
     let companyId: UUID
     let dedupKey: String
     let zNumber: Int

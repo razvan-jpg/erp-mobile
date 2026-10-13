@@ -35,8 +35,25 @@ public sealed class CompanyRow
     public string Denumire { get; init; } = "";
     public string? Cui { get; init; }
     public Guid? AdminUserId { get; init; }
+    public string? LogoUrl { get; init; }
     public bool IsActive { get; init; } = true;
     public override string ToString() => Denumire;
+
+    public bool IsNectarie
+    {
+        get
+        {
+            var cui = (Cui ?? "").ToUpperInvariant()
+                .Replace(" ", "", StringComparison.Ordinal)
+                .Replace(".", "", StringComparison.Ordinal)
+                .Replace("-", "", StringComparison.Ordinal);
+            if (cui.StartsWith("RO", StringComparison.Ordinal))
+                cui = cui[2..];
+            if (cui == "51159591")
+                return true;
+            return Denumire.ToUpperInvariant().Contains("NECTARIE", StringComparison.Ordinal);
+        }
+    }
 }
 
 public sealed class CompanyPermission
@@ -278,11 +295,18 @@ public sealed class AppSession
         };
     }
 
-    public async Task<JsonElement> SelectRows(string table, string query) 
+    public async Task<JsonElement> SelectRows(string table, string query)
     {
         if (_api == null)
             throw new InvalidOperationException("Aplicația nu este configurată.");
         return await _api.Select(table, query);
+    }
+
+    public async Task<JsonElement> SelectRows(string table, string query, int from, int to)
+    {
+        if (_api == null)
+            throw new InvalidOperationException("Aplicația nu este configurată.");
+        return await _api.Select(table, query, $"{from}-{to}");
     }
 
     public async Task InsertRow(string table, Dictionary<string, object?> payload, bool queueOnFailure = true)
@@ -558,6 +582,7 @@ public sealed class AppSession
                     Denumire = Text(row, "denumire"),
                     Cui = Optional(row, "cui"),
                     AdminUserId = GuidOrNull(row, "admin_user_id"),
+                    LogoUrl = Optional(row, "logo_url"),
                     IsActive = !row.TryGetProperty("is_active", out var active) || active.ValueKind != JsonValueKind.False
                 });
             }

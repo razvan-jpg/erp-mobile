@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Controls;
@@ -11,58 +10,85 @@ namespace ERPMobile.Ui;
 public sealed class EFacturaSettingsScreen : UserControl
 {
     private readonly AppSession _session;
-    private readonly TextBox _email = new() { Watermark = "contabil@firma.ro" };
     private readonly TextBlock _status = new() { FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy) };
     private readonly TextBlock _until = new() { Foreground = Brand.Brush(Brand.Navy) };
-    private readonly TextBlock _hint = new() { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, IsVisible = false };
+    private readonly TextBlock _info = new() { Foreground = Brushes.DarkGreen, TextWrapping = TextWrapping.Wrap, IsVisible = false };
     private readonly TextBlock _error = new() { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap };
-    private readonly DatePicker _validUntil = new() { HorizontalAlignment = HorizontalAlignment.Left };
-    private readonly StackPanel _dateRow = new() { Spacing = 4 };
+    private readonly TextBox _email = new() { Watermark = "contabil@firma.ro" };
+    private readonly Button _extend;
+    private readonly Button _revoke;
+    private readonly Button _reauth;
+    private readonly StackPanel _enroll = new() { Spacing = 8, IsVisible = false };
+    private readonly TextBox _callback = new() { IsReadOnly = true };
+    private readonly TextBox _clientId = new();
+    private readonly TextBox _clientSecret = new() { PasswordChar = '*' };
     private string _authStatus = "none";
-    private string? _requestedAt;
-    private string? _authorizedAt;
-    private string? _storedUntil;
+    private bool _expired;
+    private int _waitGeneration;
 
     public EFacturaSettingsScreen(AppSession session)
     {
         _session = session;
-        _validUntil.SelectedDate = new DateTimeOffset(DateTime.Today.AddYears(1));
-        _validUntil.MinYear = DateTimeOffset.Now;
-        var root = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 12, MaxWidth = 560 };
+        _extend = Button("Prelungește conectarea", true, () => _ = Extend());
+        _revoke = Button("Revocă conectarea", false, () => _ = Revoke());
+        _reauth = Button("Reautorizează SPV", false, () => _ = SendInvite());
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        actions.Children.Add(_extend);
+        actions.Children.Add(_revoke);
+        actions.Children.Add(_reauth);
+
+        var root = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 12, MaxWidth = 640 };
+        root.Children.Add(Title("e-Factura (SPV)"));
         root.Children.Add(new TextBlock
         {
-            Text = "e-Factura (SPV)",
-            FontSize = 22,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brand.Brush(Brand.Navy)
-        });
-        root.Children.Add(new TextBlock
-        {
-            Text = "Autorizarea se face prin contabil. Îi trimiteți un email ca să autorizeze societatea în SPV cu semnătura lui electronică. Aici vedeți starea și până când este valabilă.",
+            Text = "Semnătura rămâne la contabil. Îi trimiteți un link, valabil 7 zile, pe care îl deschide pe calculatorul lui. Data până la care este autorizată societatea se citește din SPV.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brand.Brush(Brand.Muted)
         });
-        root.Children.Add(Label("Email contabil"));
-        root.Children.Add(_email);
-        root.Children.Add(Label("Stare autentificare"));
+        root.Children.Add(Label("Stare"));
         root.Children.Add(_status);
-        root.Children.Add(Label("Valabilă până la"));
+        root.Children.Add(Label("Valabilă până la (din SPV)"));
         root.Children.Add(_until);
-        root.Children.Add(_hint);
-        _dateRow.Children.Add(Label("Data comunicată de contabil"));
-        _dateRow.Children.Add(_validUntil);
-        _dateRow.IsVisible = false;
-        root.Children.Add(_dateRow);
-        root.Children.Add(Button("Salvează email", false, () => _ = SaveEmail()));
-        root.Children.Add(Button("Trimite cerere de autorizare", true, () => _ = SendRequest()));
-        root.Children.Add(Button("Marchează ca autorizat", true, () => _ = MarkAuthorized()));
+        root.Children.Add(actions);
         root.Children.Add(new TextBlock
         {
-            Text = "„Autorizat” înseamnă că contabilul a confirmat autorizarea în SPV, cu semnătura electronică, și a comunicat data până la care este valabilă.",
+            Text = "Dacă ANAF arată „session finished” / hangup, contabilul reîncearcă după restart browser sau trimiteți invitația din nou.",
             TextWrapping = TextWrapping.Wrap,
             FontSize = 12,
             Foreground = Brand.Brush(Brand.Muted)
         });
+        root.Children.Add(Title("Invită contabilul pe email"));
+        root.Children.Add(new TextBlock
+        {
+            Text = "Contabilul primește un link de autorizare SPV (valabil 7 zile). După trimitere vedeți confirmarea cu data și ora.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brand.Brush(Brand.Muted)
+        });
+        var inviteRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        _email.MinWidth = 280;
+        inviteRow.Children.Add(_email);
+        inviteRow.Children.Add(Button("Trimite invitația", true, () => _ = SendInvite()));
+        root.Children.Add(inviteRow);
+        root.Children.Add(_info);
+        if (_session.Profile?.IsSuperAdmin == true)
+        {
+            _enroll.Children.Add(Label("Înrolare aplicație la ANAF, o singură dată"));
+            _enroll.Children.Add(new TextBlock
+            {
+                Text = "Pe anaf.ro, Servicii online → Înregistrare utilizatori → Dezvoltatori aplicații, înregistrați ERP Mobile pentru serviciul E-Factura. Callback URL este exact adresa de mai jos. Nu se instalează semnătura pe calculatoare.",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brand.Brush(Brand.Muted)
+            });
+            _enroll.Children.Add(Label("Callback URL"));
+            _enroll.Children.Add(_callback);
+            _enroll.Children.Add(Label("Client ID"));
+            _enroll.Children.Add(_clientId);
+            _enroll.Children.Add(Label("Client Secret"));
+            _enroll.Children.Add(_clientSecret);
+            _enroll.Children.Add(Button("Salvează înrolarea", false, () => _ = SaveEnrollment()));
+            _enroll.IsVisible = true;
+            root.Children.Add(_enroll);
+        }
         root.Children.Add(_error);
         Content = new ScrollViewer { Content = root };
         _ = Reload();
@@ -78,21 +104,27 @@ public sealed class EFacturaSettingsScreen : UserControl
         }
         try
         {
+            var oauth = await _session.InvokeFunction("anaf-oauth", new { action = "status" });
+            if (_session.Profile?.IsSuperAdmin == true)
+            {
+                _callback.Text = Text(oauth, "redirect_uri");
+                var clientId = Text(oauth, "client_id");
+                if (clientId.Length > 0)
+                    _clientId.Text = clientId;
+            }
             var rows = await _session.SelectRows(
                 "company_efactura_settings",
                 "company_id=eq." + _session.CurrentCompany.Id + "&select=*&limit=1");
             if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
             {
-                Apply("none", "", null, null, null);
+                Apply("none", null, null);
                 return;
             }
             var row = rows[0];
-            Apply(
-                Text(row, "auth_status"),
-                Text(row, "accountant_email"),
-                Text(row, "auth_valid_until"),
-                Text(row, "auth_requested_at"),
-                Text(row, "auth_authorized_at"));
+            var email = Text(row, "accountant_email");
+            if (email.Length > 0)
+                _email.Text = email;
+            Apply(Text(row, "auth_status"), Text(row, "auth_valid_until"), Text(row, "auth_invite_sent_at"));
         }
         catch (Exception ex)
         {
@@ -100,116 +132,134 @@ public sealed class EFacturaSettingsScreen : UserControl
         }
     }
 
-    private void Apply(string status, string email, string? validUntil, string? requestedAt, string? authorizedAt)
+    private void Apply(string status, string? validUntil, string? inviteSentAt)
     {
         _authStatus = string.IsNullOrEmpty(status) ? "none" : status;
-        _requestedAt = string.IsNullOrEmpty(requestedAt) ? null : requestedAt;
-        _authorizedAt = string.IsNullOrEmpty(authorizedAt) ? null : authorizedAt;
-        _storedUntil = string.IsNullOrEmpty(validUntil) ? null : validUntil.Length >= 10 ? validUntil[..10] : validUntil;
-        if (!string.IsNullOrEmpty(email))
-            _email.Text = email;
+        var day = string.IsNullOrEmpty(validUntil) ? null : validUntil.Length >= 10 ? validUntil[..10] : validUntil;
         DateTime? until = null;
-        if (!string.IsNullOrEmpty(_storedUntil) && DateTime.TryParseExact(_storedUntil, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        if (!string.IsNullOrEmpty(day) && DateTime.TryParseExact(day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             until = parsed.Date;
-        var expired = _authStatus == "authorized" && until != null && until.Value.Date < DateTime.Today;
-        _status.Text = expired ? "Expirat" : _authStatus switch
+        _expired = _authStatus == "authorized" && until != null && until.Value.Date < DateTime.Today;
+        var invited = !string.IsNullOrEmpty(inviteSentAt);
+        _status.Text = _expired ? "Expirat" : _authStatus switch
         {
-            "requested" => "Cerere trimisă",
-            "authorized" => "Autorizat",
-            _ => "Neconfigurat"
+            "authorized" => "Autorizat în SPV",
+            "requested" when invited => "Invitație trimisă",
+            _ => "Neautorizat"
         };
-        _status.Foreground = expired ? Brushes.Firebrick : _authStatus switch
-        {
-            "requested" => Brushes.DarkOrange,
-            "authorized" => Brushes.DarkGreen,
-            _ => Brand.Brush(Brand.Muted)
-        };
+        _status.Foreground = _expired ? Brushes.Firebrick : _authStatus == "authorized" ? Brushes.DarkGreen : Brand.Brush(Brand.Muted);
         _until.Text = until == null ? "—" : until.Value.ToString("d MMMM yyyy", CultureInfo.GetCultureInfo("ro-RO"));
-        _hint.IsVisible = expired;
-        _hint.Text = expired ? "Autorizarea a expirat. Trimiteți din nou cererea și marcați noua dată." : "";
-        var canDate = _authStatus is "requested" or "authorized";
-        _dateRow.IsVisible = canDate;
-        if (until != null && until.Value.Date >= DateTime.Today)
-            _validUntil.SelectedDate = new DateTimeOffset(until.Value);
+        var connected = _authStatus == "authorized" && !_expired;
+        _extend.IsEnabled = connected;
+        _revoke.IsEnabled = _authStatus == "authorized";
     }
 
-    private async Task SaveEmail()
+    private async Task SendInvite()
     {
-        await Save(_authStatus, _requestedAt, _authorizedAt, CurrentUntilOrNull());
-    }
-
-    private async Task SendRequest()
-    {
-        var email = (_email.Text ?? "").Trim();
-        if (email.Length == 0 || _session.CurrentCompany == null)
-        {
-            _error.Text = "Completați emailul contabilului.";
-            return;
-        }
-        var company = _session.CurrentCompany;
-        var subject = "Cerere autorizare SPV e-Factura — " + company.Denumire;
-        var body = "Bună ziua,\n\nVă rugăm să autorizați societatea de mai jos în SPV (RO e-Factura), cu semnătura dumneavoastră electronică:\n\nDenumire: "
-            + company.Denumire + "\nCUI: " + (company.Cui ?? "—")
-            + "\n\nDupă autorizare, vă rugăm să ne comunicați data până la care autorizarea este valabilă.\n\nVom trimite facturile emise din ERP Mobile ca XML UBL și PDF pe acest email, pentru încărcare în e-Factura.\n\nVă mulțumim.";
-        try
-        {
-            Process.Start(new ProcessStartInfo("mailto:" + Uri.EscapeDataString(email) + "?subject=" + Uri.EscapeDataString(subject) + "&body=" + Uri.EscapeDataString(body))
-            {
-                UseShellExecute = true
-            });
-        }
-        catch (Exception ex)
-        {
-            _error.Text = ex.Message;
-            return;
-        }
-        if (!await ConfirmDialog.Ask(this, "Ați trimis cererea către contabil? Starea devine „Cerere trimisă”."))
-            return;
-        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        await Save("requested", now, _authorizedAt, CurrentUntilOrNull());
-    }
-
-    private async Task MarkAuthorized()
-    {
-        if (_validUntil.SelectedDate == null)
-        {
-            _error.Text = "Alegeți data până la care este valabilă autorizarea.";
-            return;
-        }
-        var day = _validUntil.SelectedDate.Value.Date;
-        if (day < DateTime.Today)
-        {
-            _error.Text = "Data de valabilitate nu poate fi în trecut.";
-            return;
-        }
-        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        await Save("authorized", _requestedAt ?? now, now, day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-    }
-
-    private string? CurrentUntilOrNull() => _storedUntil;
-
-    private async Task Save(string status, string? requestedAt, string? authorizedAt, string? validUntil)
-    {
-        _error.Text = "";
         if (_session.CurrentCompany == null)
+        {
+            _error.Text = "Selectați o societate.";
             return;
+        }
         var email = (_email.Text ?? "").Trim();
         if (email.Length == 0)
         {
             _error.Text = "Completați emailul contabilului.";
             return;
         }
+        var wait = ++_waitGeneration;
+        _error.Text = "";
         try
         {
-            await _session.UpsertRow("company_efactura_settings", new Dictionary<string, object?>
+            var result = await _session.InvokeFunction("anaf-oauth", new
             {
-                ["company_id"] = _session.CurrentCompany.Id.ToString(),
-                ["accountant_email"] = email,
-                ["auth_status"] = status,
-                ["auth_requested_at"] = requestedAt,
-                ["auth_authorized_at"] = authorizedAt,
-                ["auth_valid_until"] = validUntil
-            }, "company_id");
+                action = "invite",
+                company_id = _session.CurrentCompany.Id.ToString(),
+                accountant_email = email
+            });
+            _info.IsVisible = true;
+            _info.Text = "Invitație trimisă la " + When(Text(result, "sent_at")) + ". Linkul este valabil 7 zile. Data de autorizare apare aici după ce contabilul o termină în SPV.";
+        }
+        catch (Exception ex)
+        {
+            _error.Text = ex.Message;
+            return;
+        }
+
+        var before = _until.Text;
+        for (var i = 0; i < 90 && wait == _waitGeneration; i++)
+        {
+            await Task.Delay(2000);
+            if (wait != _waitGeneration)
+                return;
+            await Reload();
+            if (_authStatus == "authorized" && _until.Text != before && _until.Text != "—")
+            {
+                _info.Text = "Autorizat în SPV până la " + _until.Text + ". Data este citită din SPV.";
+                return;
+            }
+        }
+    }
+
+    private async Task Extend()
+    {
+        if (_session.CurrentCompany == null)
+            return;
+        _error.Text = "";
+        try
+        {
+            await _session.InvokeFunction("anaf-oauth", new
+            {
+                action = "refresh",
+                company_id = _session.CurrentCompany.Id.ToString()
+            });
+            await Reload();
+            _info.IsVisible = true;
+            _info.Text = "Conectarea a fost prelungită. Valabilă până la " + _until.Text + ", citit din SPV.";
+        }
+        catch (Exception ex)
+        {
+            _error.Text = ex.Message;
+        }
+    }
+
+    private async Task Revoke()
+    {
+        if (_session.CurrentCompany == null)
+            return;
+        _error.Text = "";
+        ++_waitGeneration;
+        try
+        {
+            await _session.InvokeFunction("anaf-oauth", new
+            {
+                action = "revoke",
+                company_id = _session.CurrentCompany.Id.ToString()
+            });
+            await Reload();
+            _info.IsVisible = true;
+            _info.Text = "Conectarea SPV a fost revocată.";
+        }
+        catch (Exception ex)
+        {
+            _error.Text = ex.Message;
+        }
+    }
+
+    private async Task SaveEnrollment()
+    {
+        _error.Text = "";
+        try
+        {
+            await _session.InvokeFunction("anaf-oauth", new
+            {
+                action = "save",
+                client_id = (_clientId.Text ?? "").Trim(),
+                client_secret = _clientSecret.Text ?? ""
+            });
+            _clientSecret.Text = "";
+            _info.IsVisible = true;
+            _info.Text = "Înrolarea a fost salvată. Puteți trimite invitația contabilului.";
             await Reload();
         }
         catch (Exception ex)
@@ -217,6 +267,21 @@ public sealed class EFacturaSettingsScreen : UserControl
             _error.Text = ex.Message;
         }
     }
+
+    private static string When(string iso)
+    {
+        if (DateTimeOffset.TryParse(iso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            return parsed.ToLocalTime().ToString("d MMMM yyyy, HH:mm", CultureInfo.GetCultureInfo("ro-RO"));
+        return DateTime.Now.ToString("d MMMM yyyy, HH:mm", CultureInfo.GetCultureInfo("ro-RO"));
+    }
+
+    private static TextBlock Title(string text) => new()
+    {
+        Text = text,
+        FontSize = 22,
+        FontWeight = FontWeight.SemiBold,
+        Foreground = Brand.Brush(Brand.Navy)
+    };
 
     private static TextBlock Label(string text) => new()
     {

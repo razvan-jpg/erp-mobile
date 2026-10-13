@@ -157,7 +157,7 @@ struct InvoicesListView: View {
 
                 Toggle(L10n.tr("invoices.filter_date_interval"), isOn: $filterDateIntervalEnabled)
                     .font(.subheadline)
-                    .onChange(of: filterDateIntervalEnabled) { enabled in
+                    .onChange(of: filterDateIntervalEnabled) { _, enabled in
                         if enabled {
                             entryPeriodFilter = .all
                         }
@@ -252,13 +252,9 @@ struct InvoicesListView: View {
                             .font(.system(size: 36))
                             .appSymbolRenderingMode(.hierarchical)
                     }
-                    .accessibilityLabel(L10n.tr("invoices.import_efactura"))
+                    .appControlHint(L10n.tr("invoices.import_efactura"))
 
-                    Button { showCreate = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 44))
-                            .appSymbolRenderingMode(.hierarchical)
-                    }
+                    FloatingAddIconButton { showCreate = true }
                 }
             }
         }
@@ -291,10 +287,10 @@ struct InvoicesListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadInvoices() }
         .appRefreshable { await loadInvoices() }
-        .onChange(of: listDateQueryKey) { _ in
+        .onChange(of: listDateQueryKey) { _, _ in
             Task { await loadInvoices() }
         }
-        .onChange(of: displayedInvoices.map(\.id)) { _ in
+        .onChange(of: displayedInvoices.map(\.id)) { _, _ in
             pruneInvoiceSelection()
         }
         .fullScreenCover(isPresented: $showCreate) {
@@ -968,26 +964,26 @@ private struct InvoiceRowView: View {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.tr("common.delete"))
+                    .appControlHint(L10n.tr("common.delete"))
                 }
             }
         }
         .contextMenu {
             if !isSelectionMode {
                 Button(action: onEdit) {
-                    Label(L10n.tr("common.edit"), systemImage: "pencil")
+                    Label(L10n.tr("common.edit"), systemImage: "pencil").appHoverTip(L10n.tr("common.edit"))
                 }
                 if canEditReception, receptionStatus == .needsReception {
                     Button(action: onAddReception) {
-                        Label(L10n.tr("invoices.add_reception"), systemImage: "shippingbox")
+                        Label(L10n.tr("invoices.add_reception"), systemImage: "shippingbox").appHoverTip(L10n.tr("invoices.add_reception"))
                     }
                     Button(action: onCloseReception) {
-                        Label(L10n.tr("invoices.close_reception_action"), systemImage: "checkmark.seal")
+                        Label(L10n.tr("invoices.close_reception_action"), systemImage: "checkmark.seal").appHoverTip(L10n.tr("invoices.close_reception_action"))
                     }
                 }
                 if canDelete {
                     Button(action: onDelete) {
-                        Label(L10n.tr("common.delete"), systemImage: "trash")
+                        Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                     }
                 }
             }
@@ -995,7 +991,7 @@ private struct InvoiceRowView: View {
         .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
             if canDelete && !isSelectionMode {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
@@ -1169,6 +1165,9 @@ struct InvoiceFormView: View {
     @State private var supplierAccountInvoices: [SupplierInvoice] = []
     @State private var selectedOffsetInvoiceIds: [UUID] = []
     @State private var existingCreditOffsets: [SupplierInvoiceCreditOffset] = []
+    @State private var showDuplicateConfirm = false
+    @State private var duplicateWarningMessage: String?
+    @State private var allowDuplicateSave = false
 
     private var parsedTotalAmount: Decimal? {
         SupplierFormatting.parseAmount(
@@ -1369,15 +1368,15 @@ struct InvoiceFormView: View {
                 recalculateScadenta(force: true)
                 Task { await loadCreditOffsetData() }
             }
-            .onChange(of: dataFactura) { _ in
+            .onChange(of: dataFactura) { _, _ in
                 recalculateScadenta(force: false)
             }
-            .onChange(of: sumaTotala) { _ in
+            .onChange(of: sumaTotala) { _, _ in
                 if !isCreditNoteForm {
                     selectedOffsetInvoiceIds = []
                 }
             }
-            .onChange(of: dataScadenta) { newValue in
+            .onChange(of: dataScadenta) { _, newValue in
                 if let lastAutoScadenta, Calendar.current.isDate(newValue, inSameDayAs: lastAutoScadenta) {
                     return
                 }
@@ -1404,6 +1403,20 @@ struct InvoiceFormView: View {
                     )
                 }
             }
+            .alert(
+                L10n.tr("invoices.duplicate_warning_title"),
+                isPresented: $showDuplicateConfirm
+            ) {
+                Button(L10n.tr("invoices.duplicate_create_anyway"), role: .destructive) {
+                    allowDuplicateSave = true
+                    Task { await save() }
+                }
+                Button(L10n.tr("common.cancel"), role: .cancel) {
+                    allowDuplicateSave = false
+                }
+            } message: {
+                Text(duplicateWarningMessage ?? L10n.tr("invoices.error_duplicate_generic"))
+            }
         }
     }
 
@@ -1411,7 +1424,7 @@ struct InvoiceFormView: View {
     private var nirEditSection: some View {
         Section(header: Text(L10n.tr("nir.editor_section_title"))) {
             if invoiceReceptionIncomplete {
-                Label(L10n.tr("invoices.partial_nir_hint"), systemImage: "exclamationmark.triangle.fill")
+                Label(L10n.tr("invoices.partial_nir_hint"), systemImage: "exclamationmark.triangle.fill").appHoverTip(L10n.tr("invoices.partial_nir_hint"))
                     .font(.caption)
                     .foregroundColor(.orange)
             }
@@ -1774,7 +1787,8 @@ struct InvoiceFormView: View {
         errorMessage = nil
         do {
             let existingInvoices = try await SupplierService.fetchInvoiceDuplicateIndex()
-            if SupplierInvoiceDuplicateCheck.isDuplicate(
+            if !allowDuplicateSave,
+               let match = SupplierInvoiceDuplicateCheck.findPotentialDuplicate(
                 supplier: supplier,
                 number: numarFactura,
                 issueDate: dataFactura,
@@ -1782,17 +1796,21 @@ struct InvoiceFormView: View {
                 existingInvoices: existingInvoices,
                 suppliers: suppliers,
                 excludingInvoiceId: excludingInvoiceId
-            ) {
-                errorMessage = SupplierInvoiceDuplicateCheck.duplicateMessage(
+               ) {
+                duplicateWarningMessage = SupplierInvoiceDuplicateCheck.softDuplicateWarningMessage(
+                    kind: match.kind,
+                    existingNumber: match.invoice.numarFactura,
                     supplierName: supplier.denumire,
                     number: normalizedNumber,
                     issueDate: dataFactura,
                     totalAmount: total,
                     currency: currency
                 )
+                showDuplicateConfirm = true
                 isLoading = false
                 return
             }
+            allowDuplicateSave = false
 
             switch mode {
             case .create:

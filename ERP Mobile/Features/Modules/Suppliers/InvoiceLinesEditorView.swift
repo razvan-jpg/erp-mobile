@@ -21,7 +21,7 @@ struct InvoiceLinesEditorView: View {
                 Button {
                     addLine()
                 } label: {
-                    Label(L10n.tr("invoices.lines_add"), systemImage: "plus.circle")
+                    Label(L10n.tr("invoices.lines_add"), systemImage: "plus.circle").appHoverTip(L10n.tr("invoices.lines_add"))
                 }
             }
         } header: {
@@ -197,7 +197,7 @@ private struct InvoiceLineEditorRow: View {
             .font(.caption.monospacedDigit())
             .foregroundColor(AppColors.secondary)
             .frame(minWidth: 20, alignment: .leading)
-            .accessibilityLabel(L10n.tr("invoices.line_number", line.numarLinie))
+            .appControlHint(L10n.tr("invoices.line_number", line.numarLinie))
     }
 
     private var nameField: some View {

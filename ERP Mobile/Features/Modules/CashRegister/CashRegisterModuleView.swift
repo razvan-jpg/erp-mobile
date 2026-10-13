@@ -45,7 +45,7 @@ struct CashRegisterModuleView: View {
             await loadAccess()
             await viewModel.load(company: companyManager.currentCompany)
         }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task {
                 await loadAccess()
                 await viewModel.load(company: companyManager.currentCompany)
@@ -66,10 +66,10 @@ struct CashRegisterModuleView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
-        .onChange(of: viewModel.errorMessage) { message in
+        .onChange(of: viewModel.errorMessage) { _, message in
             showErrorAlert = message != nil
         }
-        .onChange(of: showErrorAlert) { isPresented in
+        .onChange(of: showErrorAlert) { _, isPresented in
             guard !isPresented else { return }
             Task { @MainActor in
                 viewModel.errorMessage = nil
@@ -203,6 +203,7 @@ struct CashRegisterModuleView: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.borderless)
+                        .appControlHint(L10n.tr("common.delete"))
                     }
                     .padding(.vertical, 4)
                 }

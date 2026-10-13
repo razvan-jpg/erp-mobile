@@ -60,7 +60,7 @@ struct ProductSaleAddonsEditorView: View {
                     Button {
                         onAdd?(existingAddonIds)
                     } label: {
-                        Label(L10n.tr("products.sale_addon_add"), systemImage: "plus.circle")
+                        Label(L10n.tr("products.sale_addon_add"), systemImage: "plus.circle").appHoverTip(L10n.tr("products.sale_addon_add"))
                     }
                 }
             }

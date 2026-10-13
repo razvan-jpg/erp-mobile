@@ -115,14 +115,14 @@ private struct CMGroupsListView: View {
                                     groupToRename = item.group
                                     renameText = item.group.name
                                 } label: {
-                                    Label(L10n.tr("common.edit"), systemImage: "pencil")
+                                    Label(L10n.tr("common.edit"), systemImage: "pencil").appHoverTip(L10n.tr("common.edit"))
                                 }
                             }
                             if item.group.canDelete && canDelete {
                                 Button(role: .destructive) {
                                     groupToDelete = item.group
                                 } label: {
-                                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                                 }
                             }
                         }
@@ -141,6 +141,7 @@ private struct CMGroupsListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .appControlHint(L10n.tr("common.add"))
                 }
             }
         }
@@ -320,9 +321,12 @@ private struct CMGroupProductsView: View {
                                         .foregroundColor(AppColors.secondary)
                                 }
                                 Spacer()
-                                Text(SupplierFormatting.amountString(product.pretVanzare))
-                                    .font(.subheadline)
-                                    .foregroundColor(AppColors.secondary)
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(product.pretVanzare)))
+                                    Text(L10n.tr("module.products.tile_sale_price_online", SupplierFormatting.amountString(product.pretVanzareOnline)))
+                                }
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
                             }
                         }
                     }
@@ -345,6 +349,7 @@ private struct CMGroupProductsView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .appControlHint(L10n.tr("common.add"))
                 }
             }
         }
@@ -567,8 +572,12 @@ private struct CMMenusListView: View {
                                         }
                                     }
                                     Spacer()
-                                    Text(SupplierFormatting.amountString(menu.pretVanzare))
-                                        .foregroundColor(AppColors.secondary)
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(menu.pretVanzare)))
+                                        Text(L10n.tr("module.products.tile_sale_price_online", SupplierFormatting.amountString(menu.pretVanzareOnline)))
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondary)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -581,7 +590,7 @@ private struct CMMenusListView: View {
                                         .frame(width: 36, height: 36)
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel(L10n.tr("common.delete"))
+                                .appControlHint(L10n.tr("common.delete"))
                             }
                         }
                     }
@@ -602,6 +611,7 @@ private struct CMMenusListView: View {
                     Button { showCreate = true } label: {
                         Image(systemName: "plus")
                     }
+                    .appControlHint(L10n.tr("common.add"))
                 }
             }
         }
@@ -683,6 +693,7 @@ struct CMMenuEditorView: View {
     @EnvironmentObject private var companyManager: CompanyManager
     @State private var name: String
     @State private var priceText: String
+    @State private var onlinePriceText: String
     @State private var isActive: Bool
     @State private var allowsMultiple: Bool
     @State private var catalog: [Product] = []
@@ -700,6 +711,7 @@ struct CMMenuEditorView: View {
         self.onSaved = onSaved
         _name = State(initialValue: menu?.name ?? "")
         _priceText = State(initialValue: menu.map { SupplierFormatting.amountString($0.pretVanzare) } ?? "")
+        _onlinePriceText = State(initialValue: menu.map { SupplierFormatting.amountString($0.pretVanzareOnline) } ?? "")
         _isActive = State(initialValue: menu?.isActive ?? true)
         _allowsMultiple = State(initialValue: menu?.permiteSecundareMultiple ?? false)
     }
@@ -718,6 +730,9 @@ struct CMMenuEditorView: View {
                     TextField(L10n.tr("module.catalog.cm.menu_name"), text: $name)
                         .disabled(!canEdit)
                     TextField(L10n.tr("module.catalog.cm.menu_sale_price"), text: $priceText)
+                        .keyboardType(.decimalPad)
+                        .disabled(!canEdit)
+                    TextField(L10n.tr("module.catalog.cm.menu_sale_price_online"), text: $onlinePriceText)
                         .keyboardType(.decimalPad)
                         .disabled(!canEdit)
                     Toggle(L10n.tr("common.active"), isOn: $isActive)
@@ -744,6 +759,7 @@ struct CMMenuEditorView: View {
                                         .foregroundColor(.red)
                                 }
                                 .buttonStyle(.plain)
+                                .appControlHint(L10n.tr("common.delete"))
                             }
                         }
                     }
@@ -831,6 +847,16 @@ struct CMMenuEditorView: View {
             errorMessage = ProductCreateError.invalidSalePrice.localizedDescription
             return
         }
+        let onlineText = onlinePriceText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let onlinePrice: Decimal
+        if onlineText.isEmpty {
+            onlinePrice = price
+        } else if let parsed = ProductService.parseSalePrice(onlineText) {
+            onlinePrice = parsed
+        } else {
+            errorMessage = ProductCreateError.invalidSalePrice.localizedDescription
+            return
+        }
         guard let mainId, let requiredSecondaryId else {
             errorMessage = CMCatalogError.menuShape.localizedDescription
             return
@@ -852,6 +878,7 @@ struct CMMenuEditorView: View {
                     companyId: companyId,
                     name: name,
                     pretVanzare: price,
+                    pretVanzareOnline: onlinePrice,
                 isActive: isActive,
                 productIds: ids,
                 permiteSecundareMultiple: allowsMultiple
@@ -861,6 +888,7 @@ struct CMMenuEditorView: View {
                     companyId: companyId,
                     name: name,
                 pretVanzare: price,
+                pretVanzareOnline: onlinePrice,
                 productIds: ids,
                 permiteSecundareMultiple: allowsMultiple
             )

@@ -86,7 +86,7 @@ private struct MacBarcodeWedgeCaptureModifier: ViewModifier {
                     onSubmit: submitBuffer
                 )
             )
-            .onChange(of: isEnabled) { enabled in
+            .onChange(of: isEnabled) { _, enabled in
                 if !enabled {
                     buffer = ""
                 }

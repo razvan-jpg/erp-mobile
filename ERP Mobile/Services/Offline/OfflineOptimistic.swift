@@ -179,6 +179,7 @@ enum OfflineOptimistic {
         companyId: UUID,
         name: String,
         pretVanzare: Decimal,
+        pretVanzareOnline: Decimal? = nil,
         cod: String = "",
         permiteSecundareMultiple: Bool = false
     ) -> CMMenu {
@@ -187,6 +188,7 @@ enum OfflineOptimistic {
             companyId: companyId,
             name: name,
             pretVanzare: pretVanzare,
+            pretVanzareOnline: pretVanzareOnline,
             isActive: true,
             sortOrder: 0,
             cod: cod,

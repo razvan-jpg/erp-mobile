@@ -133,7 +133,7 @@ struct ClientInvoicesListView: View {
 
                 Toggle(L10n.tr("invoices.filter_date_interval"), isOn: $filterDateIntervalEnabled)
                     .font(.subheadline)
-                    .onChange(of: filterDateIntervalEnabled) { enabled in
+                    .onChange(of: filterDateIntervalEnabled) { _, enabled in
                         if enabled {
                             entryPeriodFilter = .all
                         }
@@ -202,11 +202,7 @@ struct ClientInvoicesListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate && !isSelectionMode {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -238,10 +234,10 @@ struct ClientInvoicesListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadInvoices() }
         .appRefreshable { await loadInvoices() }
-        .onChange(of: listDateQueryKey) { _ in
+        .onChange(of: listDateQueryKey) { _, _ in
             Task { await loadInvoices() }
         }
-        .onChange(of: displayedInvoices.map(\.id)) { _ in
+        .onChange(of: displayedInvoices.map(\.id)) { _, _ in
             pruneInvoiceSelection()
         }
         .fullScreenCover(isPresented: $showCreate) {
@@ -443,18 +439,18 @@ private struct ClientInvoiceRowView: View {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.tr("common.delete"))
+                    .appControlHint(L10n.tr("common.delete"))
                 }
             }
         }
         .contextMenu {
             if !isSelectionMode {
                 Button(action: onEdit) {
-                    Label(L10n.tr("common.edit"), systemImage: "pencil")
+                    Label(L10n.tr("common.edit"), systemImage: "pencil").appHoverTip(L10n.tr("common.edit"))
                 }
                 if canDelete {
                     Button(action: onDelete) {
-                        Label(L10n.tr("common.delete"), systemImage: "trash")
+                        Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                     }
                 }
             }
@@ -462,7 +458,7 @@ private struct ClientInvoiceRowView: View {
         .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
             if canDelete && !isSelectionMode {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
@@ -540,6 +536,7 @@ struct ClientInvoiceFormView: View {
     let mode: ClientInvoiceFormMode
     let access: ModuleAccessRights
     var dismissAfterSave: Bool = true
+    var createDraft: ClientInvoiceCreateDraft? = nil
     let onSaved: () async -> Void
 
     private static let addNewClientSentinel = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
@@ -558,6 +555,7 @@ struct ClientInvoiceFormView: View {
     @State private var moneda = "RON"
     @State private var status: InvoiceStatus = .neplatita
     @State private var observatii = ""
+    @State private var sourceFiscalReceiptId: UUID?
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var lastAutoScadenta: Date?
@@ -671,10 +669,10 @@ struct ClientInvoiceFormView: View {
                 lastAutoScadenta = nil
                 recalculateScadenta(force: true)
             }
-            .onChange(of: dataFactura) { _ in
+            .onChange(of: dataFactura) { _, _ in
                 recalculateScadenta(force: false)
             }
-            .onChange(of: dataScadenta) { newValue in
+            .onChange(of: dataScadenta) { _, newValue in
                 if let lastAutoScadenta, Calendar.current.isDate(newValue, inSameDayAs: lastAutoScadenta) {
                     return
                 }
@@ -802,19 +800,27 @@ struct ClientInvoiceFormView: View {
     }
 
     private func populateFields() {
-        guard case .edit(let invoice) = mode else { return }
-        selectedClientId = invoice.clientId
-        numarFactura = invoice.numarFactura.uppercased()
-        dataFactura = invoice.dataFactura
-        if let scadenta = invoice.dataScadenta {
-            hasScadenta = true
-            dataScadenta = scadenta
-            lastAutoScadenta = nil
+        if case .edit(let invoice) = mode {
+            selectedClientId = invoice.clientId
+            numarFactura = invoice.numarFactura.uppercased()
+            dataFactura = invoice.dataFactura
+            if let scadenta = invoice.dataScadenta {
+                hasScadenta = true
+                dataScadenta = scadenta
+                lastAutoScadenta = nil
+            }
+            sumaTotala = SupplierFormatting.amountString(invoice.sumaTotala)
+            moneda = invoice.moneda
+            status = invoice.status
+            observatii = invoice.observatii ?? ""
+            return
         }
-        sumaTotala = SupplierFormatting.amountString(invoice.sumaTotala)
-        moneda = invoice.moneda
-        status = invoice.status
-        observatii = invoice.observatii ?? ""
+        if let draft = createDraft {
+            dataFactura = draft.dataFactura
+            sumaTotala = SupplierFormatting.amountString(draft.sumaTotala)
+            observatii = draft.observatii ?? ""
+            sourceFiscalReceiptId = draft.sourceFiscalReceiptId
+        }
     }
 
     private func save() async {
@@ -875,7 +881,8 @@ struct ClientInvoiceFormView: View {
                     moneda: currency,
                     status: .neplatita,
                     observatii: observatii,
-                    createdBy: session.currentProfile?.id
+                    createdBy: session.currentProfile?.id,
+                    sourceFiscalReceiptId: sourceFiscalReceiptId
                 )
             case .edit(let invoice):
                 _ = try await ClientService.updateInvoice(

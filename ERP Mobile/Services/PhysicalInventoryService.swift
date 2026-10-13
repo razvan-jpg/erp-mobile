@@ -42,6 +42,14 @@ enum PhysicalInventoryService {
         }
     }
 
+    private struct LineIdParams: Encodable {
+        let pLineId: UUID
+
+        enum CodingKeys: String, CodingKey {
+            case pLineId = "p_line_id"
+        }
+    }
+
     static func fetchInventories(companyId: UUID) async throws -> [PhysicalInventory] {
         try await client
             .from("physical_inventories")
@@ -71,7 +79,7 @@ enum PhysicalInventoryService {
             .select("""
                 id, inventory_id, company_id, product_id, stoc_scriptic, cantitate_numarata,
                 unitate_masura, observatii,
-                product:products(id, denumire, cod, cod_bare, unitate_masura)
+                product:products(id, denumire, cod, cod_bare, unitate_masura, tip)
                 """)
             .eq("inventory_id", value: inventoryId.uuidString)
             .execute()
@@ -226,6 +234,27 @@ enum PhysicalInventoryService {
         )
     }
 
+    static func reopen(inventoryId: UUID) async throws {
+        let companyId = await OfflineCompany.requireId()
+        try await OfflineAwareGateway.runVoid(
+            companyId: companyId,
+            operation: .physicalInventoryReopen,
+            entityKind: LocalDocumentEntityKind.physicalInventory.rawValue,
+            entityId: inventoryId,
+            title: L10n.tr("offline.entity.physical_inventory"),
+            payload: SyncPayloads.UUIDPayload(id: inventoryId),
+            remote: {
+                do {
+                    try await client
+                        .rpc("reopen_physical_inventory", params: InventoryIdParams(pInventoryId: inventoryId))
+                        .execute()
+                } catch {
+                    throw PhysicalInventoryError.map(error)
+                }
+            }
+        )
+    }
+
     static func deleteInventory(id: UUID) async throws {
         let companyId = await OfflineCompany.requireId()
         try await OfflineAwareGateway.runVoid(
@@ -283,6 +312,17 @@ enum PhysicalInventoryService {
                     .execute()
             }
         )
+    }
+
+    /// Golire numărare: la finalizare stocul produsului rămâne neschimbat.
+    static func clearCountedQuantity(lineId: UUID) async throws {
+        do {
+            try await client
+                .rpc("clear_physical_inventory_line_count", params: LineIdParams(pLineId: lineId))
+                .execute()
+        } catch {
+            throw PhysicalInventoryError.map(error)
+        }
     }
 
     private static func dateString(_ date: Date) -> String {

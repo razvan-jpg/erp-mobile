@@ -9,6 +9,8 @@ struct NIRLineEligibilityTests {
         #expect(ProductService.isGarantieProductName("  Garantie  "))
         #expect(ProductService.isGarantieProductName("Garantie SGR"))
         #expect(ProductService.isGarantieProductName("SGR Garantie ambalaj"))
+        #expect(ProductService.isGarantieProductName("Amb. SGR 7UP LEMON LIME NS 500ML PET 6X DRS"))
+        #expect(ProductService.isGarantieProductName("Amb. SGR PEPSI COLA 500ML PET 12X DRS"))
         #expect(!ProductService.isGarantieProductName("Taxa SGR"))
         #expect(!ProductService.isGarantieProductName("0.33L MIRINDA PORTOC DOZA SGR"))
         #expect(!ProductService.isGarantieProductName("0.33L PEPSI DOZA SGR"))

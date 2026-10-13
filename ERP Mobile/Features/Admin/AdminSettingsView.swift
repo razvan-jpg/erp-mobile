@@ -76,7 +76,7 @@ struct AdminSettingsView: View {
                 Button {
                     showCreateCompany = true
                 } label: {
-                    Label(L10n.tr("admin.add_company"), systemImage: "plus.circle.fill")
+                    Label(L10n.tr("admin.add_company"), systemImage: "plus.circle.fill").appHoverTip(L10n.tr("admin.add_company"))
                 }
             }
         }

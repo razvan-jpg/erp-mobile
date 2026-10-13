@@ -7,13 +7,47 @@ struct ProductStockProductRef: Codable, Hashable, Sendable {
     let codBare: String?
     let unitateMasura: String
     let tip: ProductKind
+    @SupabaseDecimal var cantitateMinima: Decimal
 
     enum CodingKeys: String, CodingKey {
         case id, denumire, cod, tip
         case codBare = "cod_bare"
         case unitateMasura = "unitate_masura"
+        case cantitateMinima = "cantitate_minima"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        denumire = try container.decode(String.self, forKey: .denumire)
+        cod = try container.decodeIfPresent(String.self, forKey: .cod)
+        codBare = try container.decodeIfPresent(String.self, forKey: .codBare)
+        unitateMasura = try container.decode(String.self, forKey: .unitateMasura)
+        tip = try container.decode(ProductKind.self, forKey: .tip)
+        if let minQty = try container.decodeIfPresent(SupabaseDecimal.self, forKey: .cantitateMinima) {
+            _cantitateMinima = minQty
+        } else {
+            _cantitateMinima = SupabaseDecimal(wrappedValue: 0)
+        }
     }
 }
+
+struct StockReorderRow: Identifiable, Hashable, Sendable {
+    var id: UUID { productId }
+    let productId: UUID
+    let denumire: String
+    let cod: String?
+    let unitateMasura: String
+    let tip: ProductKind
+    let warehouseId: UUID?
+    let warehouseName: String
+    let cantitateCurenta: Decimal
+    let cantitateMinima: Decimal
+    let cantitateOptima: Decimal
+    /// Cantitatea de comandat. Pleacă din stoc optim − stoc real și poate fi modificată în listă.
+    var cantitateNecesara: Decimal
+}
+
 
 struct ProductStockRow: Codable, Identifiable, Hashable, Sendable {
     let companyId: UUID
@@ -31,6 +65,26 @@ struct ProductStockRow: Codable, Identifiable, Hashable, Sendable {
         case productId = "product_id"
         case warehouseId = "warehouse_id"
         case updatedAt = "updated_at"
+    }
+}
+
+/// Stoc agregat pe punct de lucru (pentru tile-uri articole).
+struct ProductLocationStock: Hashable, Sendable, Identifiable {
+    var id: String { locationKey }
+    let locationKey: String
+    let locationName: String
+    let quantity: Decimal
+}
+
+struct WarehouseStockQuantityRow: Codable, Sendable {
+    let productId: UUID
+    let warehouseId: UUID
+    @SupabaseDecimal var cantitate: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case cantitate
+        case productId = "product_id"
+        case warehouseId = "warehouse_id"
     }
 }
 

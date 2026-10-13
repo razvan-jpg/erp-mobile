@@ -271,8 +271,18 @@ enum CashRegisterJournalBuilder {
         }
 
         if casa.isHeadquarters {
+            // Exclude plățile deja înregistrate ca operațiune manuală pe orice casă
+            // (ex. chitanță de pe punctul de lucru la NIR cu „factură plătită cash”).
             let paymentsToday = context.supplierCashPayments.filter {
                 isSameCalendarDay($0.dataPlata, date)
+            }.filter { payment in
+                !context.manualEntries.contains { entry in
+                    entry.kind == .plataFurnizor
+                        && isSameCalendarDay(entry.date, date)
+                        && entry.amount == payment.suma
+                        && supplierPaymentDocumentNumber(payment)
+                            .caseInsensitiveCompare(entry.documentNumber) == .orderedSame
+                }
             }
             for payment in paymentsToday.sorted(by: { lhs, rhs in
                 supplierPaymentDocumentNumber(lhs).localizedCaseInsensitiveCompare(

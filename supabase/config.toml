@@ -62,3 +62,15 @@ verify_jwt = true
 
 [functions.send-welcome-email]
 verify_jwt = false
+
+[functions.send-efactura-auth-request]
+verify_jwt = true
+
+[functions.anaf-oauth]
+verify_jwt = true
+
+[functions.anaf-oauth-callback]
+verify_jwt = false
+
+[functions.anaf-oauth-invite]
+verify_jwt = false

@@ -7,6 +7,7 @@ struct PhysicalInventorySnapshot: Sendable {
     let lines: [PhysicalInventoryLine]
     let summary: PhysicalInventorySummary
     let generatedAt: Date
+    var groupByCategory: Bool = false
 }
 
 enum PhysicalInventoryPDFBuilder {
@@ -54,7 +55,10 @@ enum PhysicalInventoryPDFBuilder {
 
             y = max(y, listingY) + 12
             let inventory = snapshot.inventory
-            y = drawText(L10n.tr("inventory.physical_pdf_title"), at: y, pageWidth: pageRect.width, font: titleFont)
+            let title = snapshot.groupByCategory
+                ? L10n.tr("inventory.physical_pdf_title_by_category")
+                : L10n.tr("inventory.physical_pdf_title")
+            y = drawText(title, at: y, pageWidth: pageRect.width, font: titleFont)
             y = drawText(
                 L10n.tr("inventory.physical_number", inventory.numarInventar),
                 at: y + 4,
@@ -82,14 +86,26 @@ enum PhysicalInventoryPDFBuilder {
             }
 
             y += 8
-            y = drawSection(L10n.tr("inventory.physical_lines_section"), at: y, pageWidth: pageRect.width, font: sectionFont)
-            _ = drawLinesTable(
-                lines: snapshot.lines,
-                at: y,
-                pageWidth: pageRect.width,
-                pageHeight: pageRect.height,
-                context: context
-            )
+            if snapshot.groupByCategory {
+                y = drawGroupedLinesTables(
+                    lines: snapshot.lines,
+                    at: y,
+                    pageWidth: pageRect.width,
+                    pageHeight: pageRect.height,
+                    context: context,
+                    sectionFont: sectionFont
+                )
+            } else {
+                y = drawSection(L10n.tr("inventory.physical_lines_section"), at: y, pageWidth: pageRect.width, font: sectionFont)
+                _ = drawLinesTable(
+                    lines: snapshot.lines,
+                    at: y,
+                    pageWidth: pageRect.width,
+                    pageHeight: pageRect.height,
+                    context: context,
+                    restartNumbering: true
+                )
+            }
         }
     }
 
@@ -98,10 +114,54 @@ enum PhysicalInventoryPDFBuilder {
         let safeName = snapshot.inventory.numarInventar
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
+        let suffix = snapshot.groupByCategory ? "-categorii" : ""
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Inventar-\(safeName)-\(UUID().uuidString.prefix(8)).pdf")
+            .appendingPathComponent("Inventar-\(safeName)\(suffix)-\(UUID().uuidString.prefix(8)).pdf")
         try data.write(to: url, options: .atomic)
         return url
+    }
+
+    @discardableResult
+    private static func drawGroupedLinesTables(
+        lines: [PhysicalInventoryLine],
+        at startY: CGFloat,
+        pageWidth: CGFloat,
+        pageHeight: CGFloat,
+        context: UIGraphicsPDFRendererContext,
+        sectionFont: UIFont
+    ) -> CGFloat {
+        var y = startY
+        let groups = PhysicalInventoryCategoryGroup.groupedLines(from: lines)
+        if groups.isEmpty {
+            y = drawSection(L10n.tr("inventory.physical_lines_section"), at: y, pageWidth: pageWidth, font: sectionFont)
+            return drawLinesTable(
+                lines: [],
+                at: y,
+                pageWidth: pageWidth,
+                pageHeight: pageHeight,
+                context: context,
+                restartNumbering: true
+            )
+        }
+
+        for (group, groupLines) in groups {
+            if y > pageHeight - margin - 80 {
+                context.beginPage()
+                y = margin
+            }
+            let title = L10n.tr("inventory.physical_category_section", group.label, groupLines.count)
+            y = drawSection(title, at: y, pageWidth: pageWidth, font: sectionFont)
+            y = drawLinesTable(
+                lines: groupLines,
+                at: y,
+                pageWidth: pageWidth,
+                pageHeight: pageHeight,
+                context: context,
+                restartNumbering: true
+            )
+            y += 10
+        }
+        return y
     }
 
     private static var tableWidth: CGFloat {
@@ -128,7 +188,8 @@ enum PhysicalInventoryPDFBuilder {
         at startY: CGFloat,
         pageWidth: CGFloat,
         pageHeight: CGFloat,
-        context: UIGraphicsPDFRendererContext
+        context: UIGraphicsPDFRendererContext,
+        restartNumbering _: Bool
     ) -> CGFloat {
         let headerFont = UIFont.boldSystemFont(ofSize: 7)
         let bodyFont = UIFont.systemFont(ofSize: 7)

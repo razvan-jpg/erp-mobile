@@ -138,25 +138,41 @@ struct MainTabView: View {
 
     private var regularLayout: some View {
         NavigationView {
-            List {
-                homeSidebarRow
-                sidebarRow(.crm)
-                utilitiesSidebarRow
+            VStack(spacing: 0) {
+                List {
+                    homeSidebarRow
+                    sidebarRow(.crm)
+                    utilitiesSidebarRow
 
-                sidebarRow(.help)
-                sidebarRow(.whatsNew)
-                sidebarRow(.settings)
+                    sidebarRow(.help)
+                    sidebarRow(.whatsNew)
+                    sidebarRow(.settings)
+                }
+                .frame(maxHeight: 320)
+                .navigationTitle(L10n.tr("app.name"))
+
+                sidebarCompanyLogo
+                    .padding(.horizontal, 8)
+                    .padding(.top, 8)
 
 #if targetEnvironment(macCatalyst)
-                Section {
+                ZStack {
                     Button {
                         MacInstallSupport.quitApplication()
                     } label: {
-                        Label(L10n.tr("settings.mac_quit_app"), systemImage: "power")
+                        Text(L10n.tr("settings.mac_quit_app"))
+                            .font(.body.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, minHeight: 22, alignment: .center)
                     }
+                    .buttonStyle(SidebarCloseButton3DStyle())
+                    .frame(maxWidth: 220)
+                    .appControlHint(L10n.tr("settings.mac_quit_app"))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 #endif
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle(L10n.tr("app.name"))
 
             Group {
@@ -169,6 +185,38 @@ struct MainTabView: View {
             }
         }
         .navigationViewStyle(DoubleColumnNavigationViewStyle())
+    }
+
+    private var showsNectarieLogo: Bool {
+        guard let company = companyManager.currentCompany else { return false }
+        if let cui = company.cui, let profile = FirmaRegistry.profile(forCUI: cui) {
+            return profile.isNectarie
+        }
+        return Conturi.isNectarieFirma(company.denumire)
+    }
+
+    private var sidebarCompanyLogo: some View {
+        Group {
+            if showsNectarieLogo {
+                Image("NectariePosLogo")
+                    .resizable()
+                    .scaledToFit()
+            } else if let stored = companyManager.currentCompany?.logoUrl,
+                      let image = CompanyLogoStorage.swiftUIImage(from: stored) {
+                image
+                    .resizable()
+                    .scaledToFit()
+            } else if let name = companyManager.currentCompany?.denumire,
+                      let stored = CompanyLogoStorage.suggestedLogo(from: name),
+                      let image = CompanyLogoStorage.swiftUIImage(from: stored) {
+                image
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityHidden(true)
     }
 
     private func sidebarRow(_ section: MainSection) -> some View {
@@ -297,5 +345,56 @@ private enum MainSection: String, CaseIterable, Identifiable {
         case .whatsNew: return "sparkles"
         case .settings: return "gearshape.fill"
         }
+    }
+}
+
+private struct SidebarCloseButton3DStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: configuration.isPressed
+                        ? [
+                            Color(red: 0.55, green: 0.40, blue: 0.16),
+                            Color(red: 0.78, green: 0.62, blue: 0.36)
+                        ]
+                        : [
+                            Color(red: 0.95, green: 0.84, blue: 0.63),
+                            Color(red: 0.78, green: 0.63, blue: 0.35),
+                            Color(red: 0.55, green: 0.41, blue: 0.17)
+                        ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.9), Color.white.opacity(0.08)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .shadow(
+                color: Color(red: 0.36, green: 0.26, blue: 0.09),
+                radius: 0,
+                x: 0,
+                y: configuration.isPressed ? 1 : 4
+            )
+            .shadow(
+                color: Color.black.opacity(0.28),
+                radius: configuration.isPressed ? 1 : 5,
+                x: 0,
+                y: configuration.isPressed ? 1 : 6
+            )
+            .offset(y: configuration.isPressed ? 3 : 0)
     }
 }

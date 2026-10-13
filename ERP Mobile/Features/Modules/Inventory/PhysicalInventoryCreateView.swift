@@ -10,7 +10,6 @@ struct PhysicalInventoryCreateView: View {
 
     @State private var dataInventar = Date()
     @State private var observatii = ""
-    @State private var populateFromStock = true
     @State private var warehouses: [CompanyWarehouse] = []
     @State private var warehouseId: UUID?
     @State private var isSaving = false
@@ -19,7 +18,7 @@ struct PhysicalInventoryCreateView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section {
+                Section(footer: Text(L10n.tr("inventory.physical_create_hint"))) {
                     Picker(L10n.tr("inventory.field_warehouse"), selection: $warehouseId) {
                         Text(L10n.tr("common.select")).tag(Optional<UUID>.none)
                         ForEach(warehouses.filter(\.isActive)) { warehouse in
@@ -27,7 +26,6 @@ struct PhysicalInventoryCreateView: View {
                         }
                     }
                     DateInputField(title: L10n.tr("inventory.physical_field_date"), date: $dataInventar)
-                    Toggle(L10n.tr("inventory.physical_populate_from_stock"), isOn: $populateFromStock)
                 }
 
                 Section(header: Text(L10n.tr("inventory.physical_field_notes"))) {
@@ -70,17 +68,16 @@ struct PhysicalInventoryCreateView: View {
         isSaving = true
         errorMessage = nil
         do {
-            let inventory = try await PhysicalInventoryService.createInventory(
+            _ = try await PhysicalInventoryService.createInventory(
                 companyId: companyId,
                 dataInventar: dataInventar,
                 observatii: observatii,
                 createdBy: session.currentProfile?.id,
                 warehouseId: warehouseId,
-                populateFromStock: populateFromStock
+                populateFromStock: true
             )
             await onSaved()
             presentationMode.wrappedValue.dismiss()
-            _ = inventory
         } catch {
             errorMessage = error.localizedDescription
         }

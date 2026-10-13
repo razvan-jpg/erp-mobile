@@ -9,19 +9,35 @@ struct PhysicalInventoryDetailView: View {
 
     @State private var inventory: PhysicalInventory
     @State private var lines: [PhysicalInventoryLine] = []
+    @State private var countedDrafts: [UUID: String] = [:]
     @State private var isLoading = false
+    @State private var savingLineIds: Set<UUID> = []
     @State private var errorMessage: String?
     @State private var exportErrorMessage: String?
     @State private var searchText = ""
     @State private var lineFilter: PhysicalInventoryLineFilter = .all
-    @State private var lineToEdit: PhysicalInventoryLine?
+    @State private var sortColumn: PhysicalInventorySortColumn = .category
+    @State private var sortAscending = true
     @State private var showProductPicker = false
     @State private var showFinalizeConfirm = false
+    @State private var showReopenConfirm = false
     @State private var showScanner = false
     @State private var showExportShare = false
     @State private var showPrintSheet = false
+    @State private var showGroupedList = false
     @State private var exportShareItems: [Any] = []
     @State private var pdfAttachmentURL: URL?
+    @State private var focusedLineId: UUID?
+    @FocusState private var focusedCountedField: UUID?
+
+    private let borderColor = Color(.separator)
+    private let categoryWidth: CGFloat = 120
+    private let nameWidth: CGFloat = 220
+    private let codeWidth: CGFloat = 88
+    private let qtyWidth: CGFloat = 88
+    private let diffWidth: CGFloat = 80
+    private let unitWidth: CGFloat = 44
+    private let deleteWidth: CGFloat = 36
 
     init(context: PhysicalInventoryContext, onChanged: @escaping () async -> Void) {
         self.context = context
@@ -33,9 +49,13 @@ struct PhysicalInventoryDetailView: View {
         PhysicalInventorySummary.build(from: lines)
     }
 
+    private var tableWidth: CGFloat {
+        categoryWidth + nameWidth + codeWidth + qtyWidth + qtyWidth + diffWidth + unitWidth + (canEdit ? deleteWidth : 0)
+    }
+
     private var filteredLines: [PhysicalInventoryLine] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return lines.filter { line in
+        let filtered = lines.filter { line in
             guard lineFilter.matches(line) else { return false }
             guard !query.isEmpty else { return true }
             let cod = line.product?.cod ?? ""
@@ -44,10 +64,15 @@ struct PhysicalInventoryDetailView: View {
                 || BarcodeMatching.matchesField(cod, query: query)
                 || BarcodeMatching.matchesField(barcode, query: query)
         }
+        return filtered.sorted(by: compareLines)
     }
 
     private var canEdit: Bool {
         context.access.canEdit && inventory.status.isEditable
+    }
+
+    private var canReopen: Bool {
+        context.access.canEdit && inventory.status == .finalized
     }
 
     var body: some View {
@@ -62,10 +87,23 @@ struct PhysicalInventoryDetailView: View {
                             : L10n.tr("inventory.physical_lines_empty_readonly"))
                     )
                 } else {
-                    List {
-                        summarySection
-                        filterSection
-                        linesSection
+                    VStack(spacing: 0) {
+                        summaryBar
+                        filterBar
+                        ScrollView(.horizontal, showsIndicators: true) {
+                            VStack(spacing: 0) {
+                                tableHeaderRow
+                                ScrollView {
+                                    LazyVStack(spacing: 0) {
+                                        ForEach(Array(filteredLines.enumerated()), id: \.element.id) { index, line in
+                                            tableRow(line: line, index: index)
+                                        }
+                                    }
+                                    .appScrollBottomPadding()
+                                }
+                            }
+                            .frame(width: tableWidth, alignment: .leading)
+                        }
                     }
                     .searchableWithBarcodeScanner(
                         text: $searchText,
@@ -74,7 +112,11 @@ struct PhysicalInventoryDetailView: View {
                         showsScanButton: false,
                         onScanned: handleBarcodeScan
                     )
-                    .appScrollBottomPadding()
+                    .onChangeCompat(of: focusedCountedField) { oldValue, _ in
+                        guard let oldValue,
+                              let line = lines.first(where: { $0.id == oldValue }) else { return }
+                        Task { await commitCounted(for: line) }
+                    }
                 }
             }
             .navigationTitle(L10n.tr("inventory.physical_number", inventory.numarInventar))
@@ -90,42 +132,66 @@ struct PhysicalInventoryDetailView: View {
                         } label: {
                             Image(systemName: "barcode.viewfinder")
                         }
-                        .accessibilityLabel(L10n.tr("inventory.scan_barcode"))
+                        .appControlHint(L10n.tr("inventory.scan_barcode"))
 
                         Menu {
+                            Button(L10n.tr("inventory.physical_list_by_category"), systemImage: "list.bullet.rectangle") {
+                                showGroupedList = true
+                            }
+                            .appHoverTip(L10n.tr("inventory.physical_list_by_category"))
                             Button(L10n.tr("account.export_pdf"), systemImage: "doc.fill") {
-                                Task { await exportPDF() }
+                                Task { await exportPDF(groupByCategory: false) }
                             }
+                            .appHoverTip(L10n.tr("account.export_pdf"))
+                            Button(L10n.tr("inventory.physical_export_pdf_by_category"), systemImage: "doc.text.fill") {
+                                Task { await exportPDF(groupByCategory: true) }
+                            }
+                            .appHoverTip(L10n.tr("inventory.physical_export_pdf_by_category"))
                             Button(L10n.tr("account.print"), systemImage: "printer.fill") {
-                                Task { await printPDF() }
+                                Task { await printPDF(groupByCategory: false) }
                             }
+                            .appHoverTip(L10n.tr("account.print"))
+                            Button(L10n.tr("inventory.physical_print_by_category"), systemImage: "printer") {
+                                Task { await printPDF(groupByCategory: true) }
+                            }
+                            .appHoverTip(L10n.tr("inventory.physical_print_by_category"))
                         } label: {
                             Image(systemName: "square.and.arrow.up")
                         }
-                        .accessibilityLabel(L10n.tr("account.export_pdf"))
+                        .appControlHint(L10n.tr("account.export_pdf"))
 
-                        if canEdit {
+                        if canEdit || canReopen {
                             Menu {
-                                Button {
-                                    showProductPicker = true
-                                } label: {
-                                    Label(L10n.tr("inventory.physical_add_product"), systemImage: "plus")
-                                }
-                                Button {
-                                    Task { await populateFromStock() }
-                                } label: {
-                                    Label(L10n.tr("inventory.physical_populate_from_stock"), systemImage: "shippingbox")
-                                }
-                                if summary.countedLines > 0 {
+                                if canEdit {
                                     Button {
-                                        showFinalizeConfirm = true
+                                        showProductPicker = true
                                     } label: {
-                                        Label(L10n.tr("inventory.physical_finalize"), systemImage: "checkmark.seal")
+                                        Label(L10n.tr("inventory.physical_add_product"), systemImage: "plus").appHoverTip(L10n.tr("inventory.physical_add_product"))
+                                    }
+                                    Button {
+                                        Task { await populateFromStock() }
+                                    } label: {
+                                        Label(L10n.tr("inventory.physical_refresh_products"), systemImage: "arrow.clockwise").appHoverTip(L10n.tr("inventory.physical_refresh_products"))
+                                    }
+                                    if summary.countedLines > 0 {
+                                        Button {
+                                            showFinalizeConfirm = true
+                                        } label: {
+                                            Label(L10n.tr("inventory.physical_finalize"), systemImage: "checkmark.seal").appHoverTip(L10n.tr("inventory.physical_finalize"))
+                                        }
+                                    }
+                                }
+                                if canReopen {
+                                    Button {
+                                        showReopenConfirm = true
+                                    } label: {
+                                        Label(L10n.tr("inventory.physical_reopen"), systemImage: "pencil").appHoverTip(L10n.tr("inventory.physical_reopen"))
                                     }
                                 }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
                             }
+                            .appControlHint(L10n.tr("common.more_actions"))
                         }
                     }
                 }
@@ -148,24 +214,14 @@ struct PhysicalInventoryDetailView: View {
                 }
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
-            .appTask { await reload() }
-            .appRefreshable { await reload() }
-            .sheet(item: $lineToEdit) { line in
-                PhysicalInventoryLineEditView(
-                    inventoryId: inventory.id,
-                    line: line,
-                    canEdit: canEdit
-                ) {
-                    await reload()
-                    await onChanged()
-                }
-            }
+            .appTask { await reload(populateIfOpen: true) }
+            .appRefreshable { await reload(populateIfOpen: true) }
             .sheet(isPresented: $showProductPicker) {
                 PhysicalInventoryProductPickerView(
                     inventoryId: inventory.id,
                     existingProductIds: Set(lines.map(\.productId))
                 ) {
-                    await reload()
+                    await reload(populateIfOpen: false)
                     await onChanged()
                 }
             }
@@ -177,6 +233,23 @@ struct PhysicalInventoryDetailView: View {
                         Task { await finalizeInventory() }
                     },
                     secondaryButton: .cancel()
+                )
+            }
+            .alert(isPresented: $showReopenConfirm) {
+                Alert(
+                    title: Text(L10n.tr("inventory.physical_reopen_title")),
+                    message: Text(L10n.tr("inventory.physical_reopen_confirm")),
+                    primaryButton: .default(Text(L10n.tr("inventory.physical_reopen"))) {
+                        Task { await reopenInventory() }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+            .sheet(isPresented: $showGroupedList) {
+                PhysicalInventoryGroupedListView(
+                    snapshot: makeSnapshot(groupByCategory: true),
+                    onExportPDF: { await exportPDF(groupByCategory: true) },
+                    onPrintPDF: { await printPDF(groupByCategory: true) }
                 )
             }
             .sheet(isPresented: $showExportShare) {
@@ -199,41 +272,349 @@ struct PhysicalInventoryDetailView: View {
         }
     }
 
-    private func handleBarcodeScan(_ code: String) {
-        if let line = lines.first(where: { BarcodeMatching.exactMatch(productBarcode: $0.product?.codBare, scanned: code) }) {
-            lineToEdit = line
+    private var summaryBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(inventory.status.label)
+                    .font(.caption.bold())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(inventory.status == .open ? Color.orange.opacity(0.18) : Color.green.opacity(0.18))
+                    .clipShape(Capsule())
+                Text(SupplierFormatting.date(inventory.dataInventar))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+                Spacer()
+                Text("\(summary.countedLines)/\(summary.totalLines)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundColor(AppColors.secondary)
+            }
+            HStack(spacing: 12) {
+                summaryChip(L10n.tr("inventory.physical_summary_differences"), "\(summary.differenceLines)")
+                if summary.plusDifference > 0 {
+                    summaryChip(L10n.tr("inventory.physical_summary_plus"), "+\(SupplierFormatting.amountString(summary.plusDifference))", color: .green)
+                }
+                if summary.minusDifference > 0 {
+                    summaryChip(L10n.tr("inventory.physical_summary_minus"), "−\(SupplierFormatting.amountString(summary.minusDifference))", color: .red)
+                }
+            }
+            if canEdit {
+                Text(L10n.tr("inventory.physical_table_hint"))
+                    .font(.caption2)
+                    .foregroundColor(AppColors.tertiary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.secondary.opacity(0.08))
+    }
+
+    private func summaryChip(_ title: String, _ value: String, color: Color = .primary) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(AppColors.tertiary)
+            Text(value)
+                .font(.caption.bold())
+                .foregroundColor(color)
         }
     }
 
-    private func makeSnapshot() -> PhysicalInventorySnapshot {
+    private var filterBar: some View {
+        Picker(L10n.tr("inventory.physical_filter_picker"), selection: $lineFilter) {
+            ForEach(PhysicalInventoryLineFilter.allCases) { filter in
+                Text(filter.label).tag(filter)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    private var tableHeaderRow: some View {
+        HStack(spacing: 0) {
+            sortHeader(.category, width: categoryWidth)
+            sortHeader(.name, width: nameWidth)
+            sortHeader(.code, width: codeWidth)
+            sortHeader(.bookStock, width: qtyWidth)
+            sortHeader(.counted, width: qtyWidth)
+            sortHeader(.difference, width: diffWidth)
+            headerCell(L10n.tr("inventory.physical_field_unit_short"), width: unitWidth)
+            if canEdit {
+                Color.clear.frame(width: deleteWidth)
+            }
+        }
+        .frame(width: tableWidth, alignment: .leading)
+        .background(Color.secondary.opacity(0.14))
+        .appOverlay(alignment: .bottom) {
+            Rectangle().frame(height: 0.5).foregroundColor(borderColor)
+        }
+    }
+
+    private func sortHeader(_ column: PhysicalInventorySortColumn, width: CGFloat) -> some View {
+        Button {
+            if sortColumn == column {
+                sortAscending.toggle()
+            } else {
+                sortColumn = column
+                sortAscending = true
+            }
+        } label: {
+            HStack(spacing: 2) {
+                Text(column.label)
+                    .font(.caption2.bold())
+                    .lineLimit(1)
+                if sortColumn == column {
+                    Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .bold))
+                }
+            }
+            .foregroundColor(.primary)
+            .frame(width: width, alignment: .leading)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .appOverlay(alignment: .trailing) {
+            Rectangle().frame(width: 0.5).foregroundColor(borderColor)
+        }
+    }
+
+    private func headerCell(_ title: String, width: CGFloat) -> some View {
+        Text(title)
+            .font(.caption2.bold())
+            .frame(width: width, alignment: .leading)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .appOverlay(alignment: .trailing) {
+                Rectangle().frame(width: 0.5).foregroundColor(borderColor)
+            }
+    }
+
+    private func tableRow(line: PhysicalInventoryLine, index: Int) -> some View {
+        let draft = countedDrafts[line.id] ?? countedDisplay(for: line)
+        let parsed = SupplierFormatting.parseAmount(
+            draft,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        )
+        let liveDiff: Decimal? = {
+            if let parsed { return parsed - line.stocScriptic }
+            return line.diferenta
+        }()
+        let isFocused = focusedLineId == line.id || focusedCountedField == line.id
+
+        return HStack(spacing: 0) {
+            Text(line.categoryLabel)
+                .font(.caption)
+                .foregroundColor(AppColors.secondary)
+                .lineLimit(2)
+                .frame(width: categoryWidth, alignment: .leading)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 8)
+
+            Text(line.productName)
+                .font(.subheadline)
+                .lineLimit(2)
+                .frame(width: nameWidth, alignment: .leading)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 8)
+
+            Text(line.product?.cod ?? "—")
+                .font(.caption.monospacedDigit())
+                .foregroundColor(AppColors.secondary)
+                .frame(width: codeWidth, alignment: .leading)
+                .padding(.horizontal, 6)
+
+            Text(SupplierFormatting.amountString(line.stocScriptic))
+                .font(.subheadline.monospacedDigit())
+                .frame(width: qtyWidth, alignment: .trailing)
+                .padding(.horizontal, 6)
+
+            Group {
+                if canEdit {
+                    TextField("—", text: binding(for: line))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .font(.subheadline.monospacedDigit().bold())
+                        .focused($focusedCountedField, equals: line.id)
+                        .onSubmit { Task { await commitCounted(for: line) } }
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                } else {
+                    Text(line.isCounted ? SupplierFormatting.amountString(line.cantitateNumarata ?? 0) : "—")
+                        .font(.subheadline.monospacedDigit().bold())
+                        .foregroundColor(line.isCounted ? .primary : .secondary)
+                }
+            }
+            .frame(width: qtyWidth, alignment: .trailing)
+            .padding(.horizontal, 4)
+
+            Text(differenceText(liveDiff))
+                .font(.caption.bold().monospacedDigit())
+                .foregroundColor(differenceColor(liveDiff))
+                .frame(width: diffWidth, alignment: .trailing)
+                .padding(.horizontal, 6)
+
+            Text(line.unitateMasura)
+                .font(.caption2)
+                .foregroundColor(AppColors.secondary)
+                .frame(width: unitWidth, alignment: .leading)
+                .padding(.horizontal, 4)
+
+            if canEdit {
+                Button {
+                    Task { await deleteLine(line) }
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .frame(width: deleteWidth, height: 28)
+                }
+                .buttonStyle(.plain)
+                .disabled(savingLineIds.contains(line.id))
+                .appControlHint(L10n.tr("common.delete"))
+            }
+        }
+        .frame(width: tableWidth, alignment: .leading)
+        .background(isFocused ? Color.accentColor.opacity(0.10) : rowBackground(for: index))
+        .opacity(savingLineIds.contains(line.id) ? 0.55 : 1)
+        .appOverlay(alignment: .bottom) {
+            Rectangle().frame(height: 0.5).foregroundColor(borderColor.opacity(0.7))
+        }
+        .id(line.id)
+    }
+
+    private func binding(for line: PhysicalInventoryLine) -> Binding<String> {
+        Binding(
+            get: { countedDrafts[line.id] ?? countedDisplay(for: line) },
+            set: { countedDrafts[line.id] = $0 }
+        )
+    }
+
+    private func countedDisplay(for line: PhysicalInventoryLine) -> String {
+        guard let counted = line.cantitateNumarata else { return "" }
+        return SupplierFormatting.amountString(counted)
+    }
+
+    private func rowBackground(for index: Int) -> Color {
+        index.isMultiple(of: 2) ? Color(.systemBackground) : Color.secondary.opacity(0.08)
+    }
+
+    private func differenceText(_ value: Decimal?) -> String {
+        guard let value else { return "—" }
+        if value == 0 { return "0" }
+        let sign = value > 0 ? "+" : "−"
+        return "\(sign)\(SupplierFormatting.amountString(abs(value)))"
+    }
+
+    private func differenceColor(_ value: Decimal?) -> Color {
+        guard let value, value != 0 else { return AppColors.secondary }
+        return value > 0 ? .green : .red
+    }
+
+    private func compareLines(_ lhs: PhysicalInventoryLine, _ rhs: PhysicalInventoryLine) -> Bool {
+        let ascending = sortAscending
+        let result: ComparisonResult
+        switch sortColumn {
+        case .category:
+            if lhs.categorySortIndex != rhs.categorySortIndex {
+                result = lhs.categorySortIndex < rhs.categorySortIndex ? .orderedAscending : .orderedDescending
+            } else {
+                result = lhs.categoryLabel.localizedStandardCompare(rhs.categoryLabel)
+            }
+        case .name:
+            result = lhs.productName.localizedStandardCompare(rhs.productName)
+        case .code:
+            result = (lhs.product?.cod ?? "").localizedStandardCompare(rhs.product?.cod ?? "")
+        case .bookStock:
+            result = compareDecimal(lhs.stocScriptic, rhs.stocScriptic)
+        case .counted:
+            result = compareOptionalDecimal(lhs.cantitateNumarata, rhs.cantitateNumarata)
+        case .difference:
+            result = compareOptionalDecimal(lhs.diferenta, rhs.diferenta)
+        }
+        switch result {
+        case .orderedAscending: return ascending
+        case .orderedDescending: return !ascending
+        case .orderedSame:
+            if sortColumn != .name {
+                let byName = lhs.productName.localizedStandardCompare(rhs.productName)
+                if byName != .orderedSame { return byName == .orderedAscending }
+            }
+            return (lhs.product?.cod ?? "").localizedStandardCompare(rhs.product?.cod ?? "") == .orderedAscending
+        }
+    }
+
+    private func compareDecimal(_ lhs: Decimal, _ rhs: Decimal) -> ComparisonResult {
+        if lhs < rhs { return .orderedAscending }
+        if lhs > rhs { return .orderedDescending }
+        return .orderedSame
+    }
+
+    private func compareOptionalDecimal(_ lhs: Decimal?, _ rhs: Decimal?) -> ComparisonResult {
+        switch (lhs, rhs) {
+        case (nil, nil): return .orderedSame
+        case (nil, _): return .orderedAscending
+        case (_, nil): return .orderedDescending
+        case let (l?, r?): return compareDecimal(l, r)
+        }
+    }
+
+    private func handleBarcodeScan(_ code: String) {
+        guard let line = lines.first(where: {
+            BarcodeMatching.exactMatch(productBarcode: $0.product?.codBare, scanned: code)
+        }) else { return }
+        searchText = ""
+        focusedLineId = line.id
+        focusedCountedField = line.id
+    }
+
+    private func makeSnapshot(groupByCategory: Bool = false) -> PhysicalInventorySnapshot {
         PhysicalInventorySnapshot(
             company: companyManager.currentCompany,
             inventory: inventory,
             lines: lines,
             summary: summary,
-            generatedAt: Date()
+            generatedAt: Date(),
+            groupByCategory: groupByCategory
         )
     }
 
-    private func exportPDF() async {
+    private func exportPDF(groupByCategory: Bool) async {
         exportErrorMessage = nil
         do {
-            let url = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot())
+            let url = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot(groupByCategory: groupByCategory))
+#if targetEnvironment(macCatalyst)
+            let suggested = url.deletingPathExtension().lastPathComponent + ".pdf"
+            if !DocumentExportSupport.saveOnMac(from: url, suggestedName: suggested) {
+                exportErrorMessage = L10n.tr("inventory.stock_control_save_failed")
+            }
+#else
             exportShareItems = [url]
             showExportShare = true
+#endif
         } catch {
             exportErrorMessage = error.localizedDescription
         }
     }
 
-    private func printPDF() async {
+    private func printPDF(groupByCategory: Bool) async {
         exportErrorMessage = nil
         do {
-            let url = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot())
+            let url = try PhysicalInventoryPDFBuilder.writeTemporaryPDF(from: makeSnapshot(groupByCategory: groupByCategory))
 #if targetEnvironment(macCatalyst)
             try DocumentExportSupport.printPDF(
                 url: url,
-                jobName: L10n.tr("inventory.physical_print_job", inventory.numarInventar)
+                jobName: L10n.tr(
+                    groupByCategory
+                        ? "inventory.physical_print_job_by_category"
+                        : "inventory.physical_print_job",
+                    inventory.numarInventar
+                )
             )
 #else
             pdfAttachmentURL = url
@@ -254,74 +635,32 @@ struct PhysicalInventoryDetailView: View {
         )
     }
 
-    @ViewBuilder
-    private var summarySection: some View {
-        Section {
-            AppLabeledContent(L10n.tr("inventory.physical_field_date"), value: SupplierFormatting.date(inventory.dataInventar))
-            AppLabeledContent(L10n.tr("inventory.physical_status"), value: inventory.status.label)
-            AppLabeledContent(L10n.tr("inventory.physical_summary_lines"), value: "\(summary.totalLines)")
-            AppLabeledContent(L10n.tr("inventory.physical_summary_counted"), value: "\(summary.countedLines)")
-            AppLabeledContent(L10n.tr("inventory.physical_summary_differences"), value: "\(summary.differenceLines)")
-            if summary.plusDifference > 0 {
-                AppLabeledContent(L10n.tr("inventory.physical_summary_plus")) {
-                    Text("+\(SupplierFormatting.amountString(summary.plusDifference))")
-                        .foregroundColor(.green)
-                }
-            }
-            if summary.minusDifference > 0 {
-                AppLabeledContent(L10n.tr("inventory.physical_summary_minus")) {
-                    Text("−\(SupplierFormatting.amountString(summary.minusDifference))")
-                        .foregroundColor(.red)
-                }
-            }
-            if let observatii = inventory.observatii, !observatii.isEmpty {
-                AppLabeledContent(L10n.tr("inventory.physical_field_notes"), value: observatii)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var filterSection: some View {
-        Section {
-            Picker(L10n.tr("inventory.physical_filter_picker"), selection: $lineFilter) {
-                ForEach(PhysicalInventoryLineFilter.allCases) { filter in
-                    Text(filter.label).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        }
-    }
-
-    @ViewBuilder
-    private var linesSection: some View {
-        Section(header: Text(L10n.tr("inventory.physical_lines_section"))) {
-            ForEach(filteredLines) { line in
-                Button {
-                    lineToEdit = line
-                } label: {
-                    PhysicalInventoryLineRowView(line: line)
-                }
-                .buttonStyle(.plain)
-                .disabled(!canEdit && !line.isCounted)
-            }
-            .onDelete(perform: canEdit ? deleteLines : { _ in })
-        }
-    }
-
-    private func reload() async {
+    private func reload(populateIfOpen: Bool) async {
         isLoading = true
         errorMessage = nil
         do {
             inventory = try await PhysicalInventoryService.fetchInventory(id: context.inventory.id)
-            if inventory.status == .open {
+            if populateIfOpen, inventory.status == .open {
                 _ = try await PhysicalInventoryService.loadProductsFromStock(inventoryId: inventory.id)
             }
             lines = try await PhysicalInventoryService.fetchLines(inventoryId: inventory.id)
+            syncDrafts(preservingEdits: true)
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    private func syncDrafts(preservingEdits: Bool) {
+        var next = preservingEdits ? countedDrafts : [:]
+        let ids = Set(lines.map(\.id))
+        next = next.filter { ids.contains($0.key) }
+        for line in lines {
+            if next[line.id] == nil {
+                next[line.id] = countedDisplay(for: line)
+            }
+        }
+        countedDrafts = next
     }
 
     private func populateFromStock() async {
@@ -329,20 +668,23 @@ struct PhysicalInventoryDetailView: View {
         errorMessage = nil
         do {
             _ = try await PhysicalInventoryService.loadProductsFromStock(inventoryId: inventory.id)
-            await reload()
+            await reload(populateIfOpen: false)
             await onChanged()
         } catch {
             errorMessage = error.localizedDescription
+            isLoading = false
         }
-        isLoading = false
     }
 
     private func finalizeInventory() async {
         isLoading = true
         errorMessage = nil
         do {
+            for line in lines where canEdit {
+                await commitCounted(for: line)
+            }
             try await PhysicalInventoryService.finalize(inventoryId: inventory.id)
-            await reload()
+            await reload(populateIfOpen: false)
             await onChanged()
         } catch {
             errorMessage = error.localizedDescription
@@ -350,82 +692,88 @@ struct PhysicalInventoryDetailView: View {
         isLoading = false
     }
 
-    private func deleteLines(at offsets: IndexSet) {
+    private func reopenInventory() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await PhysicalInventoryService.reopen(inventoryId: inventory.id)
+            await reload(populateIfOpen: true)
+            await onChanged()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func commitCounted(for line: PhysicalInventoryLine) async {
         guard canEdit else { return }
-        let items = offsets.map { filteredLines[$0] }
-        Task {
-            isLoading = true
+        let raw = (countedDrafts[line.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty {
+            // Gol = nenumărat → la finalizare stocul rămâne intact. Doar „0” explicit face stoc 0.
+            guard line.cantitateNumarata != nil else {
+                countedDrafts[line.id] = ""
+                return
+            }
+            savingLineIds.insert(line.id)
             errorMessage = nil
             do {
-                for line in items {
-                    try await PhysicalInventoryService.deleteLine(id: line.id)
+                try await PhysicalInventoryService.clearCountedQuantity(lineId: line.id)
+                if let idx = lines.firstIndex(where: { $0.id == line.id }) {
+                    lines[idx] = line.withCounted(nil)
                 }
-                await reload()
-                await onChanged()
+                countedDrafts[line.id] = ""
             } catch {
                 errorMessage = error.localizedDescription
+                countedDrafts[line.id] = countedDisplay(for: line)
             }
-            isLoading = false
+            savingLineIds.remove(line.id)
+            return
         }
-    }
-}
-
-private struct PhysicalInventoryLineRowView: View {
-    let line: PhysicalInventoryLine
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(line.productName)
-                .font(.headline)
-            HStack(spacing: 12) {
-                if let cod = line.product?.cod, !cod.isEmpty {
-                    Text(cod)
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondary)
-                }
-                if let barcode = line.product?.codBare, !barcode.isEmpty {
-                    Label(barcode, systemImage: "barcode")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondary)
-                }
-            }
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.tr("inventory.physical_book_stock"))
-                        .font(.caption2)
-                        .foregroundColor(AppColors.tertiary)
-                    Text(quantityLabel(line.stocScriptic))
-                        .font(.subheadline)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(L10n.tr("inventory.physical_counted_stock"))
-                        .font(.caption2)
-                        .foregroundColor(AppColors.tertiary)
-                    Text(line.isCounted ? quantityLabel(line.cantitateNumarata ?? 0) : "—")
-                        .font(.subheadline.bold())
-                        .foregroundColor(line.isCounted ? .primary : .secondary)
-                }
-            }
-            if let diferenta = line.diferenta, diferenta != 0 {
-                Text(differenceLabel(diferenta))
-                    .font(.caption.bold())
-                    .foregroundColor(diferenta > 0 ? .green : .red)
-            } else if !line.isCounted {
-                Text(L10n.tr("inventory.physical_not_counted"))
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
+        guard let amount = SupplierFormatting.parseAmount(
+            raw,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        ), amount >= 0 else {
+            errorMessage = L10n.tr("inventory.physical_error_invalid_quantity")
+            countedDrafts[line.id] = countedDisplay(for: line)
+            return
         }
-        .padding(.vertical, 4)
+        if let existing = line.cantitateNumarata, existing == amount {
+            countedDrafts[line.id] = SupplierFormatting.amountString(amount)
+            return
+        }
+
+        savingLineIds.insert(line.id)
+        errorMessage = nil
+        do {
+            let updated = try await PhysicalInventoryService.upsertLine(
+                inventoryId: inventory.id,
+                productId: line.productId,
+                cantitateNumarata: amount,
+                observatii: line.observatii
+            )
+            if let idx = lines.firstIndex(where: { $0.id == line.id }) {
+                lines[idx] = line.withCounted(updated.cantitateNumarata, stocScriptic: updated.stocScriptic)
+            }
+            countedDrafts[line.id] = SupplierFormatting.amountString(amount)
+        } catch {
+            errorMessage = error.localizedDescription
+            countedDrafts[line.id] = countedDisplay(for: line)
+        }
+        savingLineIds.remove(line.id)
     }
 
-    private func quantityLabel(_ value: Decimal) -> String {
-        "\(SupplierFormatting.amountString(value)) \(line.unitateMasura)"
-    }
-
-    private func differenceLabel(_ value: Decimal) -> String {
-        let sign = value > 0 ? "+" : "−"
-        return L10n.tr("inventory.physical_difference", "\(sign)\(SupplierFormatting.amountString(abs(value))) \(line.unitateMasura)")
+    private func deleteLine(_ line: PhysicalInventoryLine) async {
+        guard canEdit else { return }
+        savingLineIds.insert(line.id)
+        errorMessage = nil
+        do {
+            try await PhysicalInventoryService.deleteLine(id: line.id)
+            lines.removeAll { $0.id == line.id }
+            countedDrafts[line.id] = nil
+            await onChanged()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        savingLineIds.remove(line.id)
     }
 }

@@ -43,8 +43,7 @@ struct FloatingIconActionButton: View {
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.35)
-        .accessibilityLabel(label)
-        .help(Text(verbatim: label))
+        .appControlHint(label)
     }
 }
 

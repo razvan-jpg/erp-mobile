@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POS — vânzare</title>
+  <style>
+    :root {
+      --navy: #0b1f3a;
+      --gold: #c6a15a;
+      --page: #f4f6f8;
+      --muted: #5c6b7a;
+      --line: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--page);
+      color: var(--navy);
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    header, footer {
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 22px;
+      flex: none;
+    }
+    header { border-bottom: 1px solid var(--line); }
+    footer { border-top: 1px solid var(--line); }
+    h1 { margin: 0; font-size: 28px; font-weight: 700; }
+    .actions { display: flex; gap: 10px; }
+    button { font: inherit; cursor: pointer; }
+    .btn {
+      border-radius: 10px;
+      padding: 10px 18px;
+      border: 1px solid var(--navy);
+      background: #fff;
+      color: var(--navy);
+      font-weight: 650;
+    }
+    .btn.solid { background: var(--navy); color: #fff; }
+    .btn.gold { background: var(--gold); color: var(--navy); border-color: var(--gold); font-weight: 700; }
+    .btn.red { background: #c0392b; color: #fff; border-color: #c0392b; border-radius: 12px; padding: 12px 22px; }
+    .btn.navy-pill { background: var(--navy); color: #fff; border: 0; border-radius: 12px; padding: 12px 22px; }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 16px;
+      padding: 16px 18px;
+      min-height: 0;
+    }
+    .catalog { overflow: auto; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+      gap: 14px;
+    }
+    .tile {
+      background: #fff;
+      border: 0;
+      border-radius: 16px;
+      min-height: 210px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(11, 31, 58, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--navy);
+    }
+    .tile:hover { outline: 2px solid var(--gold); }
+    .photo {
+      width: 100%;
+      height: 132px;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .price {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-size: 13px;
+      font-weight: 800;
+      background: #fff;
+      padding: 0 2px;
+    }
+    .caption {
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 6px;
+    }
+    .code { color: var(--muted); font-size: 13px; }
+    .name { font-weight: 700; font-size: 14px; text-align: center; line-height: 1.2; }
+    .group-tile { min-height: 150px; font-size: 22px; font-weight: 700; }
+    .bon {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .bon h2 { margin: 0 0 12px; font-size: 22px; }
+    .lines { flex: 1; overflow: auto; }
+    .line, .sub {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 15px;
+    }
+    .sub { color: var(--muted); font-size: 14px; grid-template-columns: 22px 1fr auto; }
+    .total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-top: 1px solid var(--line);
+      margin-top: 10px;
+      padding-top: 12px;
+      font-weight: 800;
+      font-size: 22px;
+    }
+    .pay { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .pay button { border-radius: 8px; padding: 12px; border: 1px solid var(--navy); background: #fff; font-weight: 700; }
+    .pay button.on { background: var(--navy); color: #fff; }
+    .cash {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    .cash div { padding: 4px 8px; }
+    .cash div + div { border-left: 1px solid var(--line); text-align: right; }
+    .cash span { display: block; color: var(--muted); font-size: 13px; }
+    .cash strong { font-size: 20px; }
+    .emit { width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 8px; background: var(--gold); color: var(--navy); font-weight: 800; font-size: 18px; }
+    .printer { text-align: center; color: #8aa; font-size: 12px; margin: 8px 0 0; }
+    .empty { color: var(--muted); padding: 24px 0; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 84px;
+      transform: translateX(-50%);
+      background: var(--navy);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      display: none;
+      max-width: 520px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">Băuturi · Nectarie</h1>
+    <div class="actions">
+      <button class="btn" id="x">Raport X</button>
+      <button class="btn solid" id="z">Raport Z</button>
+    </div>
+  </header>
+  <main>
+    <section class="catalog" id="catalog"></section>
+    <aside class="bon">
+      <h2>Bon fiscal</h2>
+      <div class="lines" id="lines"></div>
+      <div class="total"><span>Total</span><span id="total">0,00 RON</span></div>
+      <div class="pay">
+        <button class="on" id="cashBtn" type="button">Numerar</button>
+        <button id="cardBtn" type="button">Card</button>
+      </div>
+      <div class="cash" id="cashBox">
+        <div><span>Primește</span><strong id="tender">20,00</strong></div>
+        <div><span>Rest</span><strong id="change">4,50</strong></div>
+      </div>
+      <button class="emit" id="emit" type="button">Emite bon</button>
+      <p class="printer">FP-700 · conectată</p>
+    </aside>
+  </main>
+  <footer>
+    <button class="btn navy-pill" id="back" type="button">Înapoi la grupe</button>
+    <button class="btn red" id="exit" type="button">Ieșire</button>
+  </footer>
+  <div class="toast" id="toast"></div>
+  <script>
+    const groups = ["Băuturi", "Shaorma", "Meniu", "Desert"];
+    const products = [
+      { code: "1465", name: "PEPSI COLA", price: 8.5, sgr: true, color: "#004b93" },
+      { code: "1116", name: "AYRAN", price: 6, sgr: true, color: "#1f8f4e" },
+      { code: "1122", name: "LIMONADĂ", price: 8.5, sgr: false, color: "#f4e27a" },
+      { code: "1469", name: "APA", price: 6, sgr: true, color: "#7eb6e0" },
+      { code: "1478", name: "CARLSBERG", price: 9.5, sgr: true, color: "#1d7a32" },
+      { code: "1128", name: "LIMONADĂ MELON", price: 8.5, sgr: false, color: "#d7ec7a" }
+    ];
+    const money = (n) => n.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let view = "products";
+    let lines = [
+      { qty: 1, name: "PEPSI COLA", price: 8.5 },
+      { qty: null, name: "SGR", price: 0.5 },
+      { qty: 1, name: "AYRAN", price: 6 },
+      { qty: null, name: "SGR", price: 0.5 }
+    ];
+    let pay = "cash";
+
+    const catalog = document.getElementById("catalog");
+    const title = document.getElementById("title");
+    const back = document.getElementById("back");
+
+    function renderCatalog() {
+      const inGroup = view === "products";
+      title.textContent = inGroup ? "Băuturi · Nectarie" : "Nectarie";
+      back.style.visibility = inGroup ? "visible" : "hidden";
+      if (!inGroup) {
+        catalog.innerHTML = `<div class="grid">${groups.map((name) =>
+          `<button class="tile group-tile" data-group="${name}">${name}</button>`).join("")}</div>`;
+        return;
+      }
+      catalog.innerHTML = `<div class="grid">${products.map((p) => `
+        <button class="tile" data-code="${p.code}">
+          <div class="photo">
+            <span class="price">${money(p.price)} RON</span>
+            <svg width="54" height="110" viewBox="0 0 54 110" aria-hidden="true">
+              <rect x="18" y="2" width="18" height="10" rx="3" fill="${p.color}"/>
+              <rect x="8" y="14" width="38" height="88" rx="12" fill="${p.color}"/>
+              <rect x="14" y="48" width="26" height="22" rx="3" fill="#fff" opacity="0.9"/>
+            </svg>
+          </div>
+          <div class="caption">
+            <span class="code">${p.code}</span>
+            <span class="name">${p.name}</span>
+            <span></span>
+          </div>
+        </button>`).join("")}</div>`;
+    }
+
+    function renderBon() {
+      const box = document.getElementById("lines");
+      if (!lines.length) {
+        box.innerHTML = `<div class="empty">Niciun articol pe bon.</div>`;
+      } else {
+        box.innerHTML = lines.map((line) => `
+          <div class="${line.qty == null ? "sub" : "line"}">
+            <span>${line.qty == null ? "" : line.qty}</span>
+            <span>${line.name}</span>
+            <span>${money(line.price)}</span>
+          </div>`).join("");
+      }
+      const total = lines.reduce((sum, line) => sum + line.price * (line.qty || 1), 0);
+      document.getElementById("total").textContent = money(total) + " RON";
+      const tender = Math.ceil(total / 5) * 5 || 0;
+      document.getElementById("tender").textContent = money(pay === "cash" ? tender : total);
+      document.getElementById("change").textContent = money(pay === "cash" ? Math.max(0, tender - total) : 0);
+      document.getElementById("cashBox").style.display = pay === "cash" ? "grid" : "none";
+    }
+
+    function toast(text) {
+      const el = document.getElementById("toast");
+      el.textContent = text;
+      el.style.display = "block";
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.style.display = "none"; }, 2800);
+    }
+
+    catalog.addEventListener("click", (event) => {
+      const group = event.target.closest("[data-group]");
+      if (group) {
+        view = "products";
+        renderCatalog();
+        return;
+      }
+      const tile = event.target.closest("[data-code]");
+      if (!tile) return;
+      const product = products.find((item) => item.code === tile.dataset.code);
+      lines.push({ qty: 1, name: product.name, price: product.price });
+      if (product.sgr) lines.push({ qty: null, name: "SGR", price: 0.5 });
+      renderBon();
+    });
+
+    document.getElementById("cashBtn").onclick = () => {
+      pay = "cash";
+      document.getElementById("cashBtn").classList.add("on");
+      document.getElementById("cardBtn").classList.remove("on");
+      renderBon();
+    };
+    document.getElementById("cardBtn").onclick = () => {
+      pay = "card";
+      document.getElementById("cardBtn").classList.add("on");
+      document.getElementById("cashBtn").classList.remove("on");
+      renderBon();
+    };
+    back.onclick = () => { view = "groups"; renderCatalog(); };
+    document.getElementById("exit").onclick = () => toast("Ieșire închide POS-ul și revine la Casier. Nu emite bon.");
+    document.getElementById("x").onclick = () => toast("Raport X: situația zilei pe FP-700, fără închiderea zilei.");
+    document.getElementById("z").onclick = () => toast("Raport Z: închide ziua fiscală pe FP-700. După el nu se mai vinde pe tura asta.");
+    document.getElementById("emit").onclick = () => {
+      if (!lines.length) { toast("Bonul este gol."); return; }
+      const total = lines.reduce((sum, line) => sum + line.price * (line.qty || 1), 0);
+      toast("Bon trimis la FP-700. Se salvează doar după numărul primit de la imprimantă. Total " + money(total) + " RON, " + (pay === "cash" ? "numerar" : "card") + ".");
+      lines = [];
+      renderBon();
+    };
+
+    renderCatalog();
+    renderBon();
+  </script>
+</body>
+</html>

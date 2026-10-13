@@ -333,16 +333,31 @@ stage_app_for_distribution() {
 create_dmg() {
   local staging_dir="$1"
   local dmg_path="${DIST_DIR}/${DMG_NAME}"
+  local tmp_root tmp_dmg attempt
+  tmp_root="$(mktemp -d /tmp/erp-mobile-dmg.XXXXXX)"
+  tmp_dmg="${tmp_root}/${DMG_NAME}"
   echo "" >&2
   echo "[3/4] Creare DMG..." >&2
+  ditto --norsrc "${staging_dir}" "${tmp_root}/src"
   rm -f "${dmg_path}"
-  hdiutil create \
-    -volname "ERP Mobile ${MARKETING_VERSION}" \
-    -srcfolder "${staging_dir}" \
-    -ov \
-    -format UDZO \
-    "${dmg_path}" >/dev/null
-  echo "DMG: ${dmg_path}" >&2
+  for attempt in 1 2 3 4 5; do
+    if hdiutil create \
+      -volname "ERP Mobile ${MARKETING_VERSION}" \
+      -srcfolder "${tmp_root}/src" \
+      -ov \
+      -format UDZO \
+      "${tmp_dmg}" >/dev/null; then
+      mv -f "${tmp_dmg}" "${dmg_path}"
+      rm -rf "${tmp_root}"
+      echo "DMG: ${dmg_path}" >&2
+      return 0
+    fi
+    echo "hdiutil ocupat, reîncerc (${attempt}/5)..." >&2
+    sleep 3
+  done
+  rm -rf "${tmp_root}"
+  echo "Eroare: crearea DMG a eșuat." >&2
+  return 1
 }
 
 create_pkg() {

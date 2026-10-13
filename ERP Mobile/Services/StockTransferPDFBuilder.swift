@@ -157,7 +157,7 @@ enum StockTransferPDFBuilder {
         return url
     }
 
-    static func exportFileName(from snapshot: StockTransferSnapshot) -> String {
+    nonisolated static func exportFileName(from snapshot: StockTransferSnapshot) -> String {
         let safeName = snapshot.transfer.numar
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")

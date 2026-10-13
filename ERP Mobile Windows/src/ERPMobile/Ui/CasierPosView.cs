@@ -1,6 +1,10 @@
+using System.Collections.Concurrent;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media.Imaging;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -14,6 +18,8 @@ namespace ERPMobile.Ui;
 public sealed class CasierPosView : UserControl
 {
     private static readonly HttpClient Http = new();
+    private static readonly IBrush TileFill = new SolidColorBrush(Color.FromArgb(140, 255, 255, 255));
+    private static readonly ConcurrentDictionary<string, Task<Bitmap?>> PhotoCache = new(StringComparer.Ordinal);
     private static readonly StringComparer NameOrder = StringComparer.Create(CultureInfo.GetCultureInfo("ro-RO"), true);
     private readonly AppSession _session;
     private readonly Guid _locationId;
@@ -44,10 +50,25 @@ public sealed class CasierPosView : UserControl
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 6 };
     private readonly Button _cashButton;
     private Button? _emit;
+    private Button _printer = new();
     private readonly Button _cardButton;
+    private string? _cardAcceptedKey;
+    private bool _fiscalBusy;
     private readonly Button _modernButton;
+    private readonly Button _splitButton;
+    private readonly TextBox _splitCashBox;
+    private readonly TextBox _splitCardBox;
+    private readonly TextBlock _splitHint;
+    private readonly StackPanel _splitPanel = new() { Spacing = 8, IsVisible = false };
+    private bool _splitFilling;
     private readonly List<Ticket> _tickets = new() { new Ticket() };
     private readonly Dictionary<Guid, List<CartAddon>> _addons = new();
+    private readonly List<CatalogProduct> _catalogProducts = new();
+    private readonly List<CatalogMenu> _catalogMenus = new();
+    private bool _catalogIsProducts;
+    private bool _catalogWithAddons = true;
+    private Button _storeChannel = new();
+    private Button _onlineChannel = new();
     private int _active;
     private bool _loadingTicket;
     private bool _padOpen;
@@ -83,6 +104,7 @@ public sealed class CasierPosView : UserControl
             IsVisible = false
         };
         _back.Click += (_, _) => _ = LoadGroups();
+        ToolTip.SetTip(_back, "Înapoi la grupe");
         _empty = new TextBlock
         {
             Text = "Bonul este gol.",
@@ -108,6 +130,17 @@ public sealed class CasierPosView : UserControl
             IsReadOnly = true,
             IsHitTestVisible = false
         };
+        _splitCashBox = SplitAmountBox();
+        _splitCardBox = SplitAmountBox();
+        _splitHint = new TextBlock
+        {
+            Text = "Scrieți suma la numerar sau la card. Restul se pune pe cealaltă metodă.",
+            FontSize = 12,
+            Foreground = Brand.Brush(Brand.Muted),
+            TextWrapping = TextWrapping.Wrap
+        };
+        _splitCashBox.TextChanged += (_, _) => OnSplitEdited(true);
+        _splitCardBox.TextChanged += (_, _) => OnSplitEdited(false);
         _discountBox = new TextBox
         {
             Watermark = "0",
@@ -198,7 +231,7 @@ public sealed class CasierPosView : UserControl
         _modernChoices.Children.Add(_woltButton);
         _takings = new TextBlock
         {
-            Text = "Numerar = 0,00    Card = 0,00    Glovo = 0,00    Bolt = 0,00    Wolt = 0,00",
+            Text = "Numerar = 0,00    Card = 0,00    G = 0,00    B = 0,00    W = 0,00",
             FontSize = 13,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brand.Brush(Brand.Navy),
@@ -212,6 +245,7 @@ public sealed class CasierPosView : UserControl
         _cashButton = PayButton("Numerar", true, () => SetPay(PayKind.Cash));
         _cardButton = PayButton("Card", false, () => SetPay(PayKind.Card));
         _modernButton = PayButton("Modernă", false, () => SetPay(PayKind.Modern));
+        _splitButton = PayButton("Numerar + Card", false, () => SetPay(PayKind.Split));
         _tenderBox.TextChanged += (_, _) =>
         {
             if (_loadingTicket) return;
@@ -243,7 +277,7 @@ public sealed class CasierPosView : UserControl
                 _pendingClientAddress = null;
                 if (string.IsNullOrEmpty(next))
                     Active.PrintInvoice = false;
-                if (!string.IsNullOrEmpty(next) && Active.Pay == PayKind.Modern)
+                if (!string.IsNullOrEmpty(next) && Active.Pay == PayKind.Modern && !Active.OnlineSale)
                     SetPay(PayKind.Cash);
             }
             SyncInvoiceBox();
@@ -266,12 +300,14 @@ public sealed class CasierPosView : UserControl
 
     private void Build()
     {
+        var nectarie = _session.CurrentCompany?.IsNectarie == true;
         Background = Brand.Brush(Brand.Page);
-        var dock = new DockPanel();
+        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("*,380") };
+        var left = new DockPanel();
 
         var footer = new Border
         {
-            Background = Brushes.White,
+            Background = nectarie ? new SolidColorBrush(Color.FromArgb(140, 255, 255, 255)) : Brushes.White,
             BorderBrush = Brand.Brush(Brand.Line),
             BorderThickness = new Avalonia.Thickness(0, 1, 0, 0),
             Padding = new Avalonia.Thickness(20, 12)
@@ -298,7 +334,7 @@ public sealed class CasierPosView : UserControl
         bar.Children.Add(edges);
         footer.Child = bar;
         DockPanel.SetDock(footer, Dock.Bottom);
-        dock.Children.Add(footer);
+        left.Children.Add(footer);
 
         var header = new Grid
         {
@@ -306,7 +342,7 @@ public sealed class CasierPosView : UserControl
             Margin = new Avalonia.Thickness(20, 14)
         };
         header.Children.Add(_heading);
-        var reportX = ReportButton("Raport X", filled: false, () => _ = Tell("Raportul X se va tipări la imprimanta fiscală. Încă nu este legată."));
+        var reportX = ReportButton("Raport X", filled: false, () => _ = PrintX());
         var reportZ = ReportButton("Raport Z", filled: true, () => _ = CloseZ());
         reportX.Margin = new Avalonia.Thickness(8, 0, 8, 0);
         Grid.SetColumn(reportX, 1);
@@ -314,20 +350,20 @@ public sealed class CasierPosView : UserControl
         header.Children.Add(reportX);
         header.Children.Add(reportZ);
         DockPanel.SetDock(header, Dock.Top);
-        dock.Children.Add(header);
+        left.Children.Add(header);
 
-        var body = new Grid { ColumnDefinitions = new ColumnDefinitions("*,380"), Margin = new Avalonia.Thickness(16, 0, 16, 12) };
         var catalog = new StackPanel { Spacing = 12 };
         catalog.Children.Add(_status);
         catalog.Children.Add(_tiles);
-        body.Children.Add(new ScrollViewer { Content = catalog });
+        left.Children.Add(new ScrollViewer { Content = catalog, Margin = new Avalonia.Thickness(16) });
 
         var receipt = new Border
         {
             Background = Brushes.White,
-            CornerRadius = new Avalonia.CornerRadius(16),
+            CornerRadius = new Avalonia.CornerRadius(0),
             Padding = new Avalonia.Thickness(16),
-            Margin = new Avalonia.Thickness(12, 0, 0, 0)
+            BorderBrush = Brand.Brush(Brand.Line),
+            BorderThickness = new Avalonia.Thickness(1, 0, 0, 0)
         };
         var receiptDock = new DockPanel();
         var bottom = new StackPanel { Spacing = 0 };
@@ -380,7 +416,14 @@ public sealed class CasierPosView : UserControl
         pay.Children.Add(_cardButton);
         pay.Children.Add(_modernButton);
         bottom.Children.Add(pay);
+        _splitButton.Margin = new Avalonia.Thickness(0, 8, 0, 0);
+        bottom.Children.Add(_splitButton);
         bottom.Children.Add(_modernChoices);
+        _splitPanel.Margin = new Avalonia.Thickness(0, 10, 0, 0);
+        _splitPanel.Children.Add(SplitAmountRow("Numerar", _splitCashBox, () => OpenSplitPad(true)));
+        _splitPanel.Children.Add(SplitAmountRow("Card", _splitCardBox, () => OpenSplitPad(false)));
+        _splitPanel.Children.Add(_splitHint);
+        bottom.Children.Add(_splitPanel);
 
         var cashGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), Margin = new Avalonia.Thickness(0, 10, 0, 0) };
         var receivedStack = new StackPanel();
@@ -421,16 +464,24 @@ public sealed class CasierPosView : UserControl
             Margin = new Avalonia.Thickness(0, 12, 0, 0)
         };
         _emit.Click += (_, _) => _ = Emit();
+        ToolTip.SetTip(_emit, "Emite bonul fiscal");
         bottom.Children.Add(_emit);
         RefreshEmitButton();
-        bottom.Children.Add(new TextBlock
+        _printer = new Button
         {
-            Text = "FP-700 · neconectată",
+            Content = FiscalNetStation.IsReady ? "FP-700 · FiscalNet" : "FP-700 · alegeți folderul Bonuri",
             FontSize = 12,
+            Background = Brushes.Transparent,
             Foreground = Brand.Brush(Brand.Muted),
+            BorderThickness = new Avalonia.Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Avalonia.Thickness(0, 8, 0, 0)
-        });
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            Margin = new Avalonia.Thickness(0, 8, 0, 0),
+            Padding = new Avalonia.Thickness(8, 4)
+        };
+        _printer.Click += (_, _) => _ = ChooseFiscalFolder();
+        ToolTip.SetTip(_printer, "Setări folder bonuri / FiscalNet FP-700");
+        bottom.Children.Add(_printer);
         receiptDock.Children.Add(bottom);
 
         var linesHost = new StackPanel();
@@ -447,6 +498,18 @@ public sealed class CasierPosView : UserControl
         Grid.SetColumn(_tabs, 1);
         titleRow.Children.Add(_tabs);
         linesHost.Children.Add(titleRow);
+        _storeChannel = PayButton("In Store", true, () => SetPriceChannel(false));
+        _onlineChannel = PayButton("On line", false, () => SetPriceChannel(true));
+        _onlineChannel.Margin = new Avalonia.Thickness(8, 0, 0, 0);
+        var channel = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,*"),
+            Margin = new Avalonia.Thickness(0, 0, 0, 8)
+        };
+        channel.Children.Add(_storeChannel);
+        Grid.SetColumn(_onlineChannel, 1);
+        channel.Children.Add(_onlineChannel);
+        linesHost.Children.Add(channel);
         var cuiHost = new Border
         {
             Background = Brushes.Transparent,
@@ -474,13 +537,34 @@ public sealed class CasierPosView : UserControl
         receiptDock.Children.Add(new ScrollViewer { Content = linesHost });
         receipt.Child = receiptDock;
         Grid.SetColumn(receipt, 1);
-        body.Children.Add(receipt);
-        dock.Children.Add(body);
-        Content = dock;
+        if (nectarie)
+        {
+            var catalogHost = new Grid { ClipToBounds = true };
+            catalogHost.Children.Add(new Image
+            {
+                Source = Brand.NectarieLogo,
+                Stretch = Stretch.UniformToFill,
+                Opacity = 0.5,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                IsHitTestVisible = false
+            });
+            catalogHost.Children.Add(left);
+            root.Children.Add(catalogHost);
+        }
+        else
+        {
+            root.Children.Add(left);
+        }
+        root.Children.Add(receipt);
+        Content = root;
     }
 
     private async Task LoadGroups()
     {
+        _catalogIsProducts = false;
+        _tilesAreProducts = false;
+        _tilesAreMenus = false;
         _tiles.Children.Clear();
         _fitProductColumns = false;
         _back.IsVisible = false;
@@ -515,6 +599,8 @@ public sealed class CasierPosView : UserControl
     }
 
     private bool _fitProductColumns;
+    private bool _tilesAreProducts;
+    private bool _tilesAreMenus;
 
     private void FitProductColumns()
     {
@@ -554,13 +640,15 @@ public sealed class CasierPosView : UserControl
 
     private async Task LoadMenus()
     {
+        _catalogIsProducts = false;
         var company = RequireCompany();
         var rows = await _session.SelectRows(
             "cm_menus",
-            $"company_id=eq.{company}&is_active=eq.true&select=id,name,pret_vanzare,cod,permite_secundare_multiple&order=sort_order.asc,name.asc");
-        _tiles.Children.Clear();
+            $"company_id=eq.{company}&is_active=eq.true&select=id,name,pret_vanzare,pret_vanzare_online,cod,permite_secundare_multiple&order=sort_order.asc,name.asc");
+        _catalogMenus.Clear();
         if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
         {
+            _tiles.Children.Clear();
             _status.Text = "Grupa nu are produse.";
             return;
         }
@@ -569,13 +657,41 @@ public sealed class CasierPosView : UserControl
         {
             if (!row.TryGetProperty("id", out var idValue) || !idValue.TryGetGuid(out var id))
                 continue;
-            var name = Text(row, "name");
-            var price = Number(row, "pret_vanzare");
-            var code = Text(row, "cod");
-            var multiple = row.TryGetProperty("permite_secundare_multiple", out var flag) && flag.ValueKind == JsonValueKind.True;
+            var store = Number(row, "pret_vanzare");
+            var online = row.TryGetProperty("pret_vanzare_online", out _) ? Number(row, "pret_vanzare_online") : store;
             photos.TryGetValue(id, out var photo);
-            _tiles.Children.Add(ProductTile(name, code, Ron(price), photo ?? "", () => _ = AskMenu(id, name, price, multiple)));
+            _catalogMenus.Add(new CatalogMenu
+            {
+                Id = id,
+                Name = Text(row, "name"),
+                Code = Text(row, "cod"),
+                StorePrice = store,
+                OnlinePrice = online,
+                Multiple = row.TryGetProperty("permite_secundare_multiple", out var flag) && flag.ValueKind == JsonValueKind.True,
+                Image = photo ?? ""
+            });
         }
+        _status.Text = "";
+        PaintMenus(rebuild: true);
+    }
+
+    private void PaintMenus(bool rebuild = false)
+    {
+        if (!rebuild && _tilesAreMenus && TryRetint(_catalogMenus.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
+            return;
+        _tiles.Children.Clear();
+        foreach (var item in _catalogMenus)
+        {
+            var menu = item;
+            var price = Active.OnlineSale ? menu.OnlinePrice : menu.StorePrice;
+            var tile = ProductTile(menu.Name, menu.Code, Ron(price), menu.Image, () =>
+                _ = AskMenu(menu.Id, menu.Name, menu.StorePrice, menu.OnlinePrice, menu.Multiple));
+            if (price <= 0)
+                tile.Opacity = 0.4;
+            _tiles.Children.Add(tile);
+        }
+        _tilesAreMenus = true;
+        _tilesAreProducts = false;
         _fitProductColumns = true;
         FitProductColumns();
     }
@@ -632,8 +748,13 @@ public sealed class CasierPosView : UserControl
         return result;
     }
 
-    private async Task AskMenu(Guid menuId, string name, decimal price, bool multiple)
+    private async Task AskMenu(Guid menuId, string name, decimal storePrice, decimal onlinePrice, bool multiple)
     {
+        if ((Active.OnlineSale ? onlinePrice : storePrice) <= 0)
+        {
+            await Tell("Prețul de vânzare este 0. Nu se poate marca pe bon.");
+            return;
+        }
         try
         {
             var lines = await _session.SelectRows(
@@ -662,12 +783,20 @@ public sealed class CasierPosView : UserControl
             ids.AddRange(secondaryIds);
             var products = await _session.SelectRows(
                 "products",
-                "id=in.(" + string.Join(",", ids) + ")&select=id,denumire,cota_tva,pret_vanzare");
-            var info = new Dictionary<Guid, (string Name, decimal Vat, decimal Price)>();
+                "id=in.(" + string.Join(",", ids) + ")&select=id,denumire,cota_tva,pret_vanzare,pret_vanzare_online");
+            var info = new Dictionary<Guid, MenuProduct>();
             if (products.ValueKind == JsonValueKind.Array)
             {
                 foreach (var row in products.EnumerateArray())
-                    info[row.GetProperty("id").GetGuid()] = (Text(row, "denumire"), Number(row, "cota_tva"), Number(row, "pret_vanzare"));
+                {
+                    info[row.GetProperty("id").GetGuid()] = new MenuProduct
+                    {
+                        Name = Text(row, "denumire"),
+                        Vat = Number(row, "cota_tva"),
+                        Store = Number(row, "pret_vanzare"),
+                        Online = Number(row, "pret_vanzare_online")
+                    };
+                }
             }
             if (!info.ContainsKey(mainId.Value))
             {
@@ -687,7 +816,7 @@ public sealed class CasierPosView : UserControl
             var picked = await MenuSaleWindow.Ask(this, name, info[mainId.Value].Name, choices, multiple);
             if (picked == null)
                 return;
-            CommitMenu(name, price, mainId.Value, info[mainId.Value], picked, info);
+            CommitMenu(name, storePrice, onlinePrice, mainId.Value, info[mainId.Value], picked, info);
         }
         catch (Exception ex)
         {
@@ -697,11 +826,12 @@ public sealed class CasierPosView : UserControl
 
     private void CommitMenu(
         string name,
-        decimal price,
+        decimal storePrice,
+        decimal onlinePrice,
         Guid mainId,
-        (string Name, decimal Vat, decimal Price) main,
+        MenuProduct main,
         IReadOnlyList<Guid> selectedSecondaries,
-        Dictionary<Guid, (string Name, decimal Vat, decimal Price)> info)
+        Dictionary<Guid, MenuProduct> info)
     {
         var block = Guid.NewGuid();
         var selected = new List<Guid> { mainId };
@@ -714,8 +844,14 @@ public sealed class CasierPosView : UserControl
             foreach (var addon in addons)
             {
                 if (IsSgr(addon.Name))
-                    sgr += addon.PerUnit * addon.UnitPrice;
+                    sgr += addon.PerUnit * Chosen(addon);
             }
+        }
+            var price = Active.OnlineSale ? onlinePrice : storePrice;
+        if (price <= 0)
+        {
+            _ = Tell("Prețul de vânzare este 0. Nu se poate marca pe bon.");
+            return;
         }
         var mainPrice = Math.Max(0, price - sgr);
         Active.Lines.Add(new CartRow
@@ -727,13 +863,24 @@ public sealed class CasierPosView : UserControl
             MenuHeader = true,
             MenuBlock = block
         });
-        Active.Lines.Add(MenuRow(mainId, main.Name, main.Vat, mainPrice, 0, false, block));
+        var mainRow = MenuRow(mainId, main.Name, main.Vat, mainPrice, 0, false, block);
+        mainRow.IsMenuMain = true;
+        mainRow.MenuPrice = price;
+        mainRow.MenuStorePrice = storePrice;
+        mainRow.MenuOnlinePrice = onlinePrice;
+        Active.Lines.Add(mainRow);
         foreach (var productId in selectedSecondaries)
         {
             if (!info.TryGetValue(productId, out var product))
                 continue;
-            Active.Lines.Add(MenuRow(productId, product.Name, product.Vat, product.Price, product.Price, true, block));
+            var chosen = Active.OnlineSale ? product.Online : product.Store;
+            var secondary = MenuRow(productId, product.Name, product.Vat, chosen, chosen, true, block);
+            secondary.StorePrice = product.Store;
+            secondary.OnlinePrice = product.Online;
+            secondary.IsMenuSecondary = true;
+            Active.Lines.Add(secondary);
         }
+        ApplyPriceChannel();
         RefreshTabs();
         RefreshReceipt();
     }
@@ -745,13 +892,17 @@ public sealed class CasierPosView : UserControl
         {
             foreach (var addon in list)
             {
+                var charges = IsSgr(addon.Name);
                 addons.Add(new CartAddon
                 {
                     ProductId = addon.ProductId,
                     Name = addon.Name,
                     PerUnit = addon.PerUnit,
-                    UnitPrice = IsSgr(addon.Name) ? addon.UnitPrice : 0,
-                    VatRate = addon.VatRate
+                    StorePrice = addon.StorePrice,
+                    OnlinePrice = addon.OnlinePrice,
+                    UnitPrice = charges ? Chosen(addon) : 0,
+                    VatRate = addon.VatRate,
+                    Charges = charges
                 });
             }
         }
@@ -783,13 +934,17 @@ public sealed class CasierPosView : UserControl
         }
         if (ids.Count == 0)
         {
+            _catalogIsProducts = false;
+            _catalogProducts.Clear();
             _status.Text = "Grupa nu are produse.";
             return;
         }
-        var rows = await _session.SelectRows(
+        var rowsTask = _session.SelectRows(
             "products",
-            "id=in.(" + string.Join(",", ids) + ")&is_active=eq.true&select=id,cod,denumire,pret_vanzare,cota_tva,imagine_url");
-        await LoadAddons(ids);
+            "id=in.(" + string.Join(",", ids) + ")&is_active=eq.true&select=id,cod,denumire,pret_vanzare,pret_vanzare_online,cota_tva,imagine_url");
+        var addonsTask = LoadAddons(ids);
+        await Task.WhenAll(rowsTask, addonsTask);
+        var rows = await rowsTask;
         var list = rows.ValueKind == JsonValueKind.Array
             ? rows.EnumerateArray().OrderBy(row => Text(row, "denumire"), NameOrder).ToList()
             : new List<JsonElement>();
@@ -810,12 +965,16 @@ public sealed class CasierPosView : UserControl
             addonIds.Add(row.GetProperty("addon_product_id").GetGuid().ToString());
         var products = await _session.SelectRows(
             "products",
-            "id=in.(" + string.Join(",", addonIds) + ")&select=id,denumire,pret_vanzare,cota_tva");
-        var names = new Dictionary<Guid, (string Name, decimal Price, decimal Vat)>();
+            "id=in.(" + string.Join(",", addonIds) + ")&select=id,denumire,pret_vanzare,pret_vanzare_online,cota_tva");
+        var names = new Dictionary<Guid, (string Name, decimal Store, decimal Online, decimal Vat)>();
         if (products.ValueKind == JsonValueKind.Array)
         {
             foreach (var row in products.EnumerateArray())
-                names[row.GetProperty("id").GetGuid()] = (Text(row, "denumire"), Number(row, "pret_vanzare"), Number(row, "cota_tva"));
+                names[row.GetProperty("id").GetGuid()] = (
+                    Text(row, "denumire"),
+                    Number(row, "pret_vanzare"),
+                    Number(row, "pret_vanzare_online"),
+                    Number(row, "cota_tva"));
         }
         foreach (var row in links.EnumerateArray())
         {
@@ -831,9 +990,18 @@ public sealed class CasierPosView : UserControl
                 list = new List<CartAddon>();
                 _addons[parent] = list;
             }
-            if (list.Any(item => item.Name == addon.Name && item.UnitPrice == addon.Price))
+            if (list.Any(item => item.Name == addon.Name && item.StorePrice == addon.Store))
                 continue;
-            list.Add(new CartAddon { ProductId = addonId, Name = addon.Name, PerUnit = perUnit, UnitPrice = addon.Price, VatRate = addon.Vat });
+            list.Add(new CartAddon
+            {
+                ProductId = addonId,
+                Name = addon.Name,
+                PerUnit = perUnit,
+                StorePrice = addon.Store,
+                OnlinePrice = addon.Online,
+                UnitPrice = addon.Store,
+                VatRate = addon.Vat
+            });
         }
     }
 
@@ -846,26 +1014,79 @@ public sealed class CasierPosView : UserControl
 
     private void ShowProductTiles(IReadOnlyList<JsonElement> rows, string nameField, string? codeField, bool withAddons)
     {
+        _catalogProducts.Clear();
+        _catalogIsProducts = true;
+        _catalogWithAddons = withAddons;
         _status.Text = rows.Count == 0 ? "Grupa nu are produse." : "";
         foreach (var row in rows)
         {
-            var name = Text(row, nameField);
-            var code = codeField == null ? "" : Text(row, codeField);
-            var amount = Number(row, "pret_vanzare");
-            decimal? vat = withAddons ? Number(row, "cota_tva") : null;
-            var image = Text(row, "imagine_url");
-            Guid? id = row.TryGetProperty("id", out var idValue) && idValue.TryGetGuid(out var parsed) ? parsed : null;
-            Action? tap = id is Guid key
-                ? () => AddItem(key, name, amount, vat, withAddons)
-                : null;
-            _tiles.Children.Add(ProductTile(name, code, Ron(amount), image, tap));
+            if (!row.TryGetProperty("id", out var idValue) || !idValue.TryGetGuid(out var id))
+                continue;
+            _catalogProducts.Add(new CatalogProduct
+            {
+                Id = id,
+                Name = Text(row, nameField),
+                Code = codeField == null ? "" : Text(row, codeField),
+                StorePrice = Number(row, "pret_vanzare"),
+                OnlinePrice = Number(row, "pret_vanzare_online"),
+                Vat = withAddons ? Number(row, "cota_tva") : null,
+                Image = Text(row, "imagine_url")
+            });
         }
+        PaintCatalog(rebuild: true);
+    }
+
+    private void PaintCatalog(bool rebuild = false)
+    {
+        if (!_catalogIsProducts)
+            return;
+        if (!rebuild && _tilesAreProducts && TryRetint(_catalogProducts.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
+            return;
+        _tiles.Children.Clear();
+        foreach (var product in _catalogProducts)
+        {
+            var item = product;
+            var price = Active.OnlineSale ? item.OnlinePrice : item.StorePrice;
+            var tile = ProductTile(item.Name, item.Code, Ron(price), item.Image, () =>
+                AddItem(item.Id, item.Name, item.StorePrice, item.OnlinePrice, item.Vat, _catalogWithAddons));
+            if (price <= 0)
+                tile.Opacity = 0.4;
+            _tiles.Children.Add(tile);
+        }
+        _tilesAreProducts = true;
+        _tilesAreMenus = false;
         _fitProductColumns = true;
         FitProductColumns();
     }
 
-    private void AddItem(Guid id, string name, decimal price, decimal? vat, bool withAddons)
+    private bool TryRetint(IReadOnlyList<(decimal Store, decimal Online)> prices)
     {
+        if (prices.Count == 0 || _tiles.Children.Count != prices.Count)
+            return false;
+        for (var i = 0; i < prices.Count; i++)
+        {
+            if (_tiles.Children[i] is not Button button || button.Tag is not TextBlock)
+                return false;
+        }
+        for (var i = 0; i < prices.Count; i++)
+        {
+            var button = (Button)_tiles.Children[i];
+            var label = (TextBlock)button.Tag!;
+            var amount = Active.OnlineSale ? prices[i].Online : prices[i].Store;
+            label.Text = Ron(amount);
+            button.Opacity = amount <= 0 ? 0.4 : 1;
+        }
+        return true;
+    }
+
+    private void AddItem(Guid id, string name, decimal store, decimal online, decimal? vat, bool withAddons)
+    {
+        var price = Active.OnlineSale ? online : store;
+        if (price <= 0)
+        {
+            _ = Tell("Prețul de vânzare este 0. Nu se poate marca pe bon.");
+            return;
+        }
         var existing = Active.Lines.Find(row => row.Id == id);
         if (existing != null)
         {
@@ -874,17 +1095,125 @@ public sealed class CasierPosView : UserControl
         else
         {
             var addons = withAddons && _addons.TryGetValue(id, out var list)
-                ? list.Select(item => new CartAddon { Name = item.Name, PerUnit = item.PerUnit, UnitPrice = item.UnitPrice, VatRate = item.VatRate }).ToList()
+                ? list.Select(item => new CartAddon
+                {
+                    ProductId = item.ProductId,
+                    Name = item.Name,
+                    PerUnit = item.PerUnit,
+                    StorePrice = item.StorePrice,
+                    OnlinePrice = item.OnlinePrice,
+                    UnitPrice = Chosen(item),
+                    VatRate = item.VatRate,
+                    Charges = true
+                }).ToList()
                 : new List<CartAddon>();
-            Active.Lines.Add(new CartRow { Id = id, Name = name, UnitPrice = price, VatRate = vat, Quantity = 1, Addons = addons });
+            Active.Lines.Add(new CartRow
+            {
+                Id = id,
+                Name = name,
+                UnitPrice = price,
+                StorePrice = store,
+                OnlinePrice = online,
+                VatRate = vat,
+                Quantity = 1,
+                Addons = addons
+            });
         }
         RefreshTabs();
         RefreshReceipt();
     }
 
+    private void SetPriceChannel(bool online)
+    {
+        Active.OnlineSale = online;
+        if (online)
+            Active.Pay = PayKind.Modern;
+        else if (Active.Pay == PayKind.Modern)
+        {
+            Active.Pay = PayKind.Cash;
+            Active.Channel = "";
+        }
+        PaintPay(_storeChannel, !online);
+        PaintPay(_onlineChannel, online);
+        PaintPay(_cashButton, Active.Pay == PayKind.Cash);
+        PaintPay(_cardButton, Active.Pay == PayKind.Card);
+        PaintPay(_modernButton, Active.Pay == PayKind.Modern);
+        PaintPay(_splitButton, Active.Pay == PayKind.Split);
+        if (ApplyPriceChannel())
+            _ = Tell("Prețul de vânzare este 0. Nu se poate marca pe bon.");
+        if (_tilesAreProducts)
+            PaintCatalog();
+        else if (_tilesAreMenus)
+            PaintMenus();
+        RefreshReceipt();
+    }
+
+    private bool ApplyPriceChannel()
+    {
+        foreach (var line in Active.Lines)
+        {
+            foreach (var addon in line.Addons)
+                addon.UnitPrice = addon.Charges ? Chosen(addon) : 0;
+        }
+        foreach (var line in Active.Lines)
+        {
+            if (line.MenuHeader)
+                continue;
+            if (line.IsMenuSecondary)
+            {
+                var price = Chosen(line);
+                line.UnitPrice = price;
+                line.DiscountAmount = price;
+            }
+            else if (line.IsMenuMain)
+            {
+                decimal sgr = 0;
+                foreach (var other in Active.Lines)
+                {
+                    if (other.MenuBlock != line.MenuBlock)
+                        continue;
+                    foreach (var addon in other.Addons)
+                    {
+                        if (addon.Charges)
+                            sgr += addon.PerUnit * addon.UnitPrice;
+                    }
+                }
+                var menuPrice = line.MenuStorePrice == 0 && line.MenuOnlinePrice == 0
+                    ? line.MenuPrice
+                    : Active.OnlineSale ? line.MenuOnlinePrice : line.MenuStorePrice;
+                line.MenuPrice = menuPrice;
+                line.UnitPrice = Math.Max(0, menuPrice - sgr);
+            }
+            else
+                line.UnitPrice = Chosen(line);
+        }
+        var before = Active.Lines.Count;
+        var doomed = new HashSet<Guid>();
+        foreach (var line in Active.Lines)
+        {
+            if (line.IsMenuMain && line.MenuPrice <= 0 && line.MenuBlock is Guid block)
+                doomed.Add(block);
+        }
+        Active.Lines.RemoveAll(line =>
+        {
+            if (line.MenuBlock is Guid block && doomed.Contains(block))
+                return true;
+            if (line.MenuHeader || line.IsMenuMain || line.IsMenuSecondary)
+                return false;
+            return line.UnitPrice <= 0;
+        });
+        return Active.Lines.Count != before;
+    }
+
+    private decimal Chosen(CartAddon addon) => Active.OnlineSale ? addon.OnlinePrice : addon.StorePrice;
+
+    private decimal Chosen(CartRow line) => Active.OnlineSale ? line.OnlinePrice : line.StorePrice;
+
     private void SetPay(PayKind pay)
     {
-        if (pay == PayKind.Modern && !string.IsNullOrEmpty(Active.Cui))
+        if (Active.OnlineSale && pay != PayKind.Modern)
+            return;
+        if (!Active.OnlineSale && pay == PayKind.Modern)
             return;
         Active.Pay = pay;
         if (pay != PayKind.Modern)
@@ -892,28 +1221,41 @@ public sealed class CasierPosView : UserControl
         PaintPay(_cashButton, pay == PayKind.Cash);
         PaintPay(_cardButton, pay == PayKind.Card);
         PaintPay(_modernButton, pay == PayKind.Modern);
+        PaintPay(_splitButton, pay == PayKind.Split);
         ShowModern();
         UpdateChange();
     }
 
     private void SetChannel(string channel)
     {
-        if (!string.IsNullOrEmpty(Active.Cui))
+        if (!Active.OnlineSale)
             return;
         Active.Pay = PayKind.Modern;
         Active.Channel = channel;
         PaintPay(_cashButton, false);
         PaintPay(_cardButton, false);
         PaintPay(_modernButton, true);
+        PaintPay(_splitButton, false);
         ShowModern();
         UpdateChange();
     }
 
     private void ShowModern()
     {
-        var locked = !string.IsNullOrEmpty(Active.Cui);
-        _modernButton.IsEnabled = !locked;
-        if (locked && Active.Pay == PayKind.Modern)
+        var online = Active.OnlineSale;
+        _cashButton.IsEnabled = !online;
+        _cardButton.IsEnabled = !online;
+        _splitButton.IsEnabled = !online;
+        _modernButton.IsEnabled = online;
+        if (online && Active.Pay != PayKind.Modern)
+        {
+            Active.Pay = PayKind.Modern;
+            PaintPay(_cashButton, false);
+            PaintPay(_cardButton, false);
+            PaintPay(_modernButton, true);
+            PaintPay(_splitButton, false);
+        }
+        if (!online && Active.Pay == PayKind.Modern)
         {
             Active.Pay = PayKind.Cash;
             Active.Channel = "";
@@ -922,7 +1264,7 @@ public sealed class CasierPosView : UserControl
             PaintPay(_modernButton, false);
             _cash.IsVisible = true;
         }
-        _modernChoices.IsVisible = !locked && Active.Pay == PayKind.Modern;
+        _modernChoices.IsVisible = online && Active.Pay == PayKind.Modern;
         PaintPay(_glovoButton, Active.Channel == "glovo");
         PaintPay(_boltButton, Active.Channel == "bolt");
         PaintPay(_woltButton, Active.Channel == "wolt");
@@ -975,6 +1317,9 @@ public sealed class CasierPosView : UserControl
         _discountValue.Text = sale.Discount > 0 ? Money(-sale.Discount) : "";
         var cash = Active.Pay == PayKind.Cash;
         _cash.IsVisible = cash;
+        _splitPanel.IsVisible = Active.Pay == PayKind.Split;
+        if (Active.Pay == PayKind.Split)
+            ApplySplitRemainder();
         ShowModern();
         if (!cash)
         {
@@ -1060,12 +1405,21 @@ public sealed class CasierPosView : UserControl
         _tenderBox.Text = Active.Tender;
         _discountBox.Text = Active.DiscountText;
         _printInvoice.IsChecked = Active.PrintInvoice && !string.IsNullOrEmpty(Active.Cui);
+        _splitCashBox.Text = Active.CashPart;
+        _splitCardBox.Text = Active.CardPart;
         _loadingTicket = false;
         SyncInvoiceBox();
         ShowClientName();
         PaintPay(_cashButton, Active.Pay == PayKind.Cash);
         PaintPay(_cardButton, Active.Pay == PayKind.Card);
         PaintPay(_modernButton, Active.Pay == PayKind.Modern);
+        PaintPay(_splitButton, Active.Pay == PayKind.Split);
+        PaintPay(_storeChannel, !Active.OnlineSale);
+        PaintPay(_onlineChannel, Active.OnlineSale);
+        if (_tilesAreProducts)
+            PaintCatalog();
+        else if (_tilesAreMenus)
+            PaintMenus();
         ShowModern();
         RefreshTabs();
         RefreshReceipt();
@@ -1109,6 +1463,129 @@ public sealed class CasierPosView : UserControl
         if (Active.Pay != PayKind.Cash)
             return Task.CompletedTask;
         return ShowKeypad("Sumă primită", Active.Tender, NormalizeTender, ",", "0,00", money: true, verifyCui: false, value => _tenderBox.Text = value);
+    }
+
+    private Task OpenSplitPad(bool cash)
+    {
+        if (Active.Pay != PayKind.Split)
+            return Task.CompletedTask;
+        var box = cash ? _splitCashBox : _splitCardBox;
+        return ShowKeypad(cash ? "Numerar" : "Card", box.Text ?? "", NormalizeTender, ",", "0,00", money: true, verifyCui: false, value => box.Text = value);
+    }
+
+    private static TextBox SplitAmountBox() => new()
+    {
+        Watermark = "0,00",
+        FontSize = 20,
+        FontWeight = FontWeight.Bold,
+        Foreground = Brand.Brush(Brand.Navy),
+        Background = Brushes.White,
+        BorderBrush = Brand.Brush(Brand.Line),
+        Padding = new Avalonia.Thickness(8, 4),
+        IsReadOnly = true,
+        IsHitTestVisible = false
+    };
+
+    private static Control SplitAmountRow(string title, TextBox box, Func<Task> open)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("88,*") };
+        row.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontSize = 15,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brand.Brush(Brand.Navy),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var entry = new Border
+        {
+            Background = Brushes.Transparent,
+            Cursor = new Cursor(StandardCursorType.Hand),
+            Child = box
+        };
+        entry.PointerPressed += (_, e) =>
+        {
+            e.Handled = true;
+            _ = open();
+        };
+        Grid.SetColumn(entry, 1);
+        row.Children.Add(entry);
+        return row;
+    }
+
+    private void OnSplitEdited(bool cash)
+    {
+        if (_loadingTicket || _splitFilling)
+            return;
+        _splitFilling = true;
+        try
+        {
+            var box = cash ? _splitCashBox : _splitCardBox;
+            var text = NormalizeTender(box.Text ?? "");
+            Active.SplitAnchorCash = cash;
+            if (cash)
+                Active.CashPart = text;
+            else
+                Active.CardPart = text;
+            if (box.Text != text)
+                box.Text = text;
+        }
+        finally
+        {
+            _splitFilling = false;
+        }
+        ApplySplitRemainder();
+    }
+
+    private void ApplySplitRemainder()
+    {
+        if (_splitFilling)
+            return;
+        _splitFilling = true;
+        try
+        {
+            var total = TicketTotal(Active);
+            var source = Active.SplitAnchorCash ? Active.CashPart : Active.CardPart;
+            var other = "";
+            if (TryMoney(source, out var entered) && entered > 0 && entered < total)
+                other = Money(total - entered);
+            if (Active.SplitAnchorCash)
+            {
+                Active.CardPart = other;
+                if (_splitCardBox.Text != other)
+                    _splitCardBox.Text = other;
+            }
+            else
+            {
+                Active.CashPart = other;
+                if (_splitCashBox.Text != other)
+                    _splitCashBox.Text = other;
+            }
+            var problem = SplitProblem();
+            _splitHint.Text = problem ?? "";
+            _splitHint.Foreground = problem == null || string.IsNullOrEmpty(source)
+                ? Brand.Brush(Brand.Muted)
+                : Brushes.Firebrick;
+            if (problem != null && string.IsNullOrEmpty(source))
+                _splitHint.Text = problem;
+        }
+        finally
+        {
+            _splitFilling = false;
+        }
+    }
+
+    private string? SplitProblem()
+    {
+        if (Active.Pay != PayKind.Split)
+            return null;
+        var total = TicketTotal(Active);
+        var source = Active.SplitAnchorCash ? Active.CashPart : Active.CardPart;
+        if (!TryMoney(source, out var entered) || entered <= 0)
+            return "Scrieți suma la numerar sau la card. Restul se pune pe cealaltă metodă.";
+        if (total <= 0 || entered >= total)
+            return "Scrieți o sumă mai mică decât totalul. Restul se încasează cu cealaltă metodă.";
+        return null;
     }
 
     private Task OpenCuiPad() =>
@@ -1445,6 +1922,361 @@ public sealed class CasierPosView : UserControl
         return button;
     }
 
+    private async Task ChooseFiscalFolder()
+    {
+        var storage = TopLevel.GetTopLevel(this)?.StorageProvider;
+        if (storage == null)
+            return;
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Folderul Bonuri din FiscalNet",
+            AllowMultiple = false
+        });
+        var path = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (string.IsNullOrEmpty(path))
+            return;
+        var error = FiscalNetStation.SaveBonuriFolder(path);
+        _printer.Content = FiscalNetStation.IsReady ? "FP-700 · FiscalNet" : "FP-700 · alegeți folderul Bonuri";
+        if (error != null)
+            await Tell(error);
+    }
+
+    private async Task<string?> PickFolder(string title)
+    {
+        var storage = TopLevel.GetTopLevel(this)?.StorageProvider;
+        if (storage == null)
+            return null;
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false
+        });
+        return folders.FirstOrDefault()?.TryGetLocalPath();
+    }
+
+    private async Task<bool> Ask(string message, string accept, string decline)
+    {
+        var done = new TaskCompletionSource<bool>();
+        var window = new Window
+        {
+            Title = "POS",
+            Width = 480,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Icon = Brand.WindowIcon(),
+            Background = Brushes.White
+        };
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 16 };
+        panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Foreground = Brand.Brush(Brand.Navy) });
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
+        var no = new Button { Content = decline, Padding = new Avalonia.Thickness(14, 8) };
+        var yes = new Button
+        {
+            Content = accept,
+            Padding = new Avalonia.Thickness(14, 8),
+            Background = Brand.Brush(Brand.Navy),
+            Foreground = Brushes.White
+        };
+        no.Click += (_, _) =>
+        {
+            done.TrySetResult(false);
+            window.Close();
+        };
+        yes.Click += (_, _) =>
+        {
+            done.TrySetResult(true);
+            window.Close();
+        };
+        window.Closed += (_, _) => done.TrySetResult(false);
+        buttons.Children.Add(no);
+        buttons.Children.Add(yes);
+        panel.Children.Add(buttons);
+        window.Content = panel;
+        if (TopLevel.GetTopLevel(this) is Window parent)
+            await window.ShowDialog(parent);
+        else
+            window.Show();
+        return await done.Task;
+    }
+
+    private async Task EmitFiscal(string channel, string payment)
+    {
+        if (_fiscalBusy)
+            return;
+        _fiscalBusy = true;
+        if (_emit != null)
+            _emit.IsEnabled = false;
+        try
+        {
+            var withInvoice = Active.PrintInvoice && !string.IsNullOrEmpty(Active.Cui);
+            Guid? series = null;
+            string? folder = null;
+            if (withInvoice)
+            {
+                series = await FiscalSeries();
+                if (series == null)
+                {
+                    await Tell("Nu există serie de factură fiscală pentru acest punct de lucru. O adăugați în Nomenclatoare → Societăți → Serii documente.");
+                    return;
+                }
+                folder = await PickFolder("Folder pentru bon și factură");
+                if (string.IsNullOrEmpty(folder))
+                    return;
+            }
+
+            var amount = TicketTotal(Active);
+            var tender = 0m;
+            if (channel == "cash")
+                TryMoney(Active.Tender, out tender);
+            var split = SplitEntry();
+            var built = FiscalNet.BuildReceipt(Active.Cui, FiscalLines(Active), amount, FiscalNet.PayType(channel), tender, null, split.Entered, split.IsCash);
+            if (Active.Pay == PayKind.Split)
+                payment = SplitLabel(built.CashTaken, built.CardTaken);
+            var key = CardKey(Active);
+            if (ChargesCard(channel) && built.CardTaken > 0 && _cardAcceptedKey != key)
+            {
+                var pos = await FiscalNetStation.SendAsync(FiscalNet.FileName("pos", false), FiscalNet.Pos(built.CardTaken), TimeSpan.FromSeconds(180));
+                if (pos.BonOk == 0)
+                {
+                    await Tell(FiscalNet.Failure(pos, "Banca a refuzat plata. Bonul nu s-a emis."));
+                    return;
+                }
+                if (pos.BonOk != 1)
+                {
+                    var accepted = await Ask(
+                        "Terminalul nu a confirmat plata. Verificați POS-ul bancar și spuneți dacă plata a reușit.",
+                        "Plata a reușit",
+                        "Nu emite bonul");
+                    if (!accepted)
+                        return;
+                }
+                _cardAcceptedKey = key;
+            }
+
+            var slipLines = SlipLines(Active);
+            var bands = VatBands(Active);
+            var total = Ron(built.Payment);
+            var supplier = await SupplierLines();
+            var stamp = DateTime.Now;
+            var shown = stamp.ToString("dd.MM.yyyy HH:mm", CultureInfo.GetCultureInfo("ro-RO"));
+            var clientName = Active.ClientName;
+            var bonUrl = "";
+            string? bonPath = null;
+            var online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable() && _session.CurrentCompany != null;
+            if (online)
+            {
+                var target = _session.PosDocumentTarget(_session.CurrentCompany!.Id);
+                bonUrl = target.Url;
+                bonPath = target.Path;
+            }
+            if (bonPath != null)
+            {
+                try
+                {
+                    var draft = PosSlipPdf.Make(ReceiptRows(supplier, shown, clientName, payment, slipLines, total, bands, bonUrl, "FP-700"));
+                    await _session.UploadPosDocument(bonPath, draft);
+                }
+                catch
+                {
+                    bonUrl = "";
+                }
+            }
+            var receipt = FiscalNet.BuildReceipt(Active.Cui, FiscalLines(Active), amount, FiscalNet.PayType(channel), tender, bonUrl, split.Entered, split.IsCash);
+            var printed = await FiscalNetStation.SendAsync(FiscalNet.FileName("bf", false), receipt.Commands, TimeSpan.FromSeconds(60));
+            if (printed.BonOk != 1 || printed.Number.Length == 0)
+            {
+                var charged = ChargesCard(channel) && _cardAcceptedKey == key
+                    ? "Cardul a fost încasat. Nu modificați bonul și apăsați din nou Emite bon, fără o plată nouă.\n"
+                    : "";
+                await Tell(charged + FiscalNet.Failure(printed, "Bonul nu s-a tipărit. Nu a fost salvat."));
+                return;
+            }
+
+            var note = "Bon fiscal nr. " + printed.Number;
+            var invoiceNote = "";
+            string? invoiceName = null;
+            var bonName = "Bon fiscal " + stamp.ToString("yyyy-MM-dd HHmm", CultureInfo.InvariantCulture) + ".pdf";
+            if (bonPath != null && bonUrl.Length > 0)
+            {
+                try
+                {
+                    var finalBon = PosSlipPdf.Make(ReceiptRows(supplier, shown, clientName, payment, slipLines, total, bands, bonUrl, note));
+                    await _session.UploadPosDocument(bonPath, finalBon);
+                }
+                catch
+                {
+                    bonUrl = "";
+                }
+            }
+
+            if (withInvoice && series != null && !string.IsNullOrEmpty(folder))
+            {
+                try
+                {
+                    var issued = await _session.Rpc("consume_fiscal_invoice_number", new { p_series_id = series.Value.ToString() });
+                    if (issued.ValueKind != JsonValueKind.Array || issued.GetArrayLength() == 0)
+                        throw new InvalidOperationException("Nu am putut rezerva numărul facturii.");
+                    var row = issued[0];
+                    var serie = row.GetProperty("serie").GetString() ?? "";
+                    var number = row.GetProperty("issued_number").GetInt32();
+                    var clientAddress = Active.ClientAddress;
+                    if (string.IsNullOrEmpty(clientName) || string.IsNullOrEmpty(clientAddress))
+                    {
+                        var lookup = await AnafCui.Check(Active.Cui);
+                        if (lookup.Result == AnafCui.CheckResult.Valid)
+                        {
+                            if (string.IsNullOrEmpty(clientName)) clientName = lookup.Name;
+                            if (string.IsNullOrEmpty(clientAddress)) clientAddress = lookup.Address;
+                        }
+                    }
+                    var invoiceLines = InvoiceLines(Active);
+                    var invoiceUrl = "";
+                    string? invoicePath = null;
+                    if (online && _session.CurrentCompany != null)
+                    {
+                        var target = _session.PosDocumentTarget(_session.CurrentCompany.Id);
+                        invoiceUrl = target.Url;
+                        invoicePath = target.Path;
+                        try
+                        {
+                            var draft = PosSlipPdf.Make(InvoiceRows(supplier, serie, number, shown, clientName, clientAddress, payment, invoiceLines, total, invoiceUrl, "FP-700"));
+                            await _session.UploadPosDocument(invoicePath, draft);
+                        }
+                        catch
+                        {
+                            invoiceUrl = "";
+                        }
+                    }
+                    var text = InvoicePaper(supplier, serie, number, shown, clientName, Active.Cui, clientAddress, payment, invoiceLines, total);
+                    var invoiceReply = await FiscalNetStation.SendAsync(
+                        FiscalNet.FileName("ff", true),
+                        FiscalNet.NonFiscal(text, invoiceUrl),
+                        TimeSpan.FromSeconds(60));
+                    if (invoiceReply.BonOk != 1)
+                        invoiceNote = "\n" + FiscalNet.Failure(invoiceReply, "Bonul fiscal s-a emis, dar factura nu a ieșit pe imprimantă.");
+                    invoiceName = "Factura " + serie + " " + number + ".pdf";
+                    var bonBytes = PosSlipPdf.Make(ReceiptRows(supplier, shown, clientName, payment, slipLines, total, bands, bonUrl, note));
+                    var invoiceBytes = PosSlipPdf.Make(InvoiceRows(supplier, serie, number, shown, clientName, clientAddress, payment, invoiceLines, total, invoiceUrl, invoiceReply.BonOk == 1 ? "Tipărită pe FP-700" : null));
+                    await File.WriteAllBytesAsync(Path.Combine(folder, bonName), bonBytes);
+                    await File.WriteAllBytesAsync(Path.Combine(folder, invoiceName), invoiceBytes);
+                    if (invoicePath != null && invoiceUrl.Length > 0 && invoiceReply.BonOk == 1)
+                    {
+                        try
+                        {
+                            await _session.UploadPosDocument(invoicePath, invoiceBytes);
+                        }
+                        catch
+                        {
+                            // PDF-ul local rămâne. Codul QR de pe hârtie poate să nu se deschidă.
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    invoiceNote = "\nBonul fiscal s-a emis. Factura nu a putut fi tipărită.\n" + ex.Message;
+                }
+            }
+
+            var recap = "";
+            try
+            {
+                await RecordSale(channel, receipt.Payment);
+                await LoadTakings();
+            }
+            catch (Exception ex)
+            {
+                recap = "\n" + ex.Message;
+            }
+            _cardAcceptedKey = null;
+            ClearSoldTicket();
+            var saved = invoiceName == null ? "" : "\nAu fost salvate două fișiere:\n" + bonName + "\n" + invoiceName;
+            var auth = printed.Authorization.Length > 0 ? "\nAutorizare " + printed.Authorization : "";
+            await Tell(note + auth + saved + invoiceNote + recap);
+        }
+        finally
+        {
+            _fiscalBusy = false;
+            if (_emit != null)
+                _emit.IsEnabled = true;
+        }
+    }
+
+    private static List<string> InvoicePaper(List<string> supplier, string serie, int number, string stamp, string clientName, string cui, string clientAddress, string payment, List<InvoiceLine> lines, string total)
+    {
+        var text = new List<string>
+        {
+            "FACTURA FISCALA",
+            serie + " " + number,
+            stamp
+        };
+        text.AddRange(supplier);
+        if (clientName.Length > 0)
+            text.Add(clientName);
+        if (cui.Length > 0)
+            text.Add("CUI " + cui);
+        if (clientAddress.Length > 0)
+            text.Add(clientAddress);
+        foreach (var line in lines)
+        {
+            text.Add(line.Name);
+            if (line.Quantity.Length > 0)
+                text.Add(line.Quantity + "  " + line.Value + "  TVA " + line.Vat + "  " + line.Rate);
+        }
+        var net = lines.Sum(line => line.NetAmount);
+        var vat = lines.Sum(line => line.VatAmount);
+        text.Add("Baza " + Ron(net));
+        text.Add("TVA " + Ron(vat));
+        text.Add("TOTAL " + total);
+        text.Add("Incasare " + payment);
+        return text;
+    }
+
+    private static List<FiscalNet.SaleLine> FiscalLines(Ticket ticket)
+    {
+        var lines = new List<FiscalNet.SaleLine>();
+        string? menu = null;
+        foreach (var line in ticket.Lines)
+        {
+            if (line.MenuHeader)
+            {
+                menu = line.Name;
+                continue;
+            }
+            var full = line.DiscountAmount > 0 || line.ShowsDiscount;
+            lines.Add(new FiscalNet.SaleLine(line.Name, line.UnitPrice, line.Quantity, FiscalNet.VatGroup(line.VatRate), full, !full, menu));
+            menu = null;
+            foreach (var addon in line.Addons)
+            {
+                if (IsSgr(addon.Name))
+                    continue;
+                lines.Add(new FiscalNet.SaleLine(addon.Name, addon.UnitPrice, addon.PerUnit * line.Quantity, FiscalNet.VatGroup(addon.VatRate), false, true, null));
+            }
+        }
+        foreach (var sgr in SgrLines(ticket.Lines))
+        {
+            if (sgr.Quantity <= 0 || sgr.Amount <= 0)
+                continue;
+            lines.Add(new FiscalNet.SaleLine(sgr.Name, sgr.Amount / sgr.Quantity, sgr.Quantity, FiscalNet.VatGroup(sgr.VatRate), false, false, null));
+        }
+        return lines;
+    }
+
+    private static string CardKey(Ticket ticket)
+    {
+        var text = new StringBuilder();
+        foreach (var line in ticket.Lines)
+        {
+            text.Append(line.Name).Append('|').Append(line.Quantity).Append('|').Append(line.UnitPrice).Append('|').Append(line.DiscountAmount).Append(';');
+            foreach (var addon in line.Addons)
+                text.Append(addon.Name).Append('|').Append(addon.PerUnit).Append('|').Append(addon.UnitPrice).Append(';');
+        }
+        text.Append(ticket.DiscountText);
+        if (ticket.Pay == PayKind.Split)
+            text.Append("|split|").Append(ticket.SplitAnchorCash ? "cash" : "card").Append('|').Append(ticket.CashPart).Append('|').Append(ticket.CardPart);
+        return text.ToString();
+    }
+
     private async Task Emit()
     {
         if (Active.Lines.Count == 0)
@@ -1458,22 +2290,31 @@ public sealed class CasierPosView : UserControl
             await Tell("Alegeți Glovo, Bolt sau Wolt.");
             return;
         }
+        var splitProblem = SplitProblem();
+        if (splitProblem != null)
+        {
+            await Tell(splitProblem);
+            return;
+        }
         var amount = TicketTotal(Active);
-        var payment = PaymentName(channel);
+        var payment = PaymentName(Active, amount);
+        if (FiscalNetStation.IsReady)
+        {
+            await EmitFiscal(channel, payment);
+            return;
+        }
         var slipLines = SlipLines(Active);
         var invoiceLines = InvoiceLines(Active);
         var bands = VatBands(Active);
-        var stock = StockCuts(Active);
         var total = Ron(amount);
         if (!(Active.PrintInvoice && !string.IsNullOrEmpty(Active.Cui)))
         {
             try
             {
-                await RecordTaking(channel, amount);
-                var stockNote = await ConsumeStock(stock);
+                await RecordSale(channel, amount);
                 await LoadTakings();
                 ClearSoldTicket();
-                await Tell("Imprimanta fiscală nu este legată, bonul nu s-a tipărit. Încasarea a intrat în recapitularea de la ultimul Z." + stockNote);
+                await Tell("Imprimanta fiscală nu este legată, bonul nu s-a tipărit. Încasarea a intrat în recapitularea de la ultimul Z.");
             }
             catch (Exception ex)
             {
@@ -1560,14 +2401,13 @@ public sealed class CasierPosView : UserControl
             var recap = "";
             try
             {
-                await RecordTaking(channel, amount);
+                await RecordSale(channel, amount);
                 await LoadTakings();
             }
             catch (Exception ex)
             {
                 recap = "\n" + ex.Message;
             }
-            recap += await ConsumeStock(stock);
             ClearSoldTicket();
             await Tell("Au fost salvate două fișiere:\n" + bonName + "\n" + invoiceName + recap);
         }
@@ -1594,11 +2434,54 @@ public sealed class CasierPosView : UserControl
 
     private static string? TakingChannel(Ticket ticket)
     {
+        if (ticket.OnlineSale)
+            return ticket.Channel is "glovo" or "bolt" or "wolt" ? ticket.Channel : null;
         if (ticket.Pay == PayKind.Card)
             return "card";
         if (ticket.Pay == PayKind.Cash)
             return "cash";
-        return ticket.Channel is "glovo" or "bolt" or "wolt" ? ticket.Channel : null;
+        if (ticket.Pay == PayKind.Split)
+            return "split";
+        return null;
+    }
+
+    private static bool ChargesCard(string channel) => channel is "card" or "split";
+
+    private (decimal? Entered, bool IsCash) SplitEntry()
+    {
+        if (Active.Pay != PayKind.Split)
+            return (null, true);
+        var text = Active.SplitAnchorCash ? Active.CashPart : Active.CardPart;
+        return TryMoney(text, out var entered) ? (entered, Active.SplitAnchorCash) : (null, Active.SplitAnchorCash);
+    }
+
+    private static string SplitLabel(decimal cash, decimal card) =>
+        "Numerar " + Money(cash) + " + Card " + Money(card);
+
+    private string PaymentName(Ticket ticket, decimal amount)
+    {
+        if (ticket.Pay != PayKind.Split)
+            return PaymentName(TakingChannel(ticket) ?? "cash");
+        var text = ticket.SplitAnchorCash ? ticket.CashPart : ticket.CardPart;
+        if (!TryMoney(text, out var entered))
+            return "Numerar + Card";
+        var parts = FiscalNet.Split(amount, entered, ticket.SplitAnchorCash);
+        return SplitLabel(parts.Cash, parts.Card);
+    }
+
+    private async Task RecordSale(string channel, decimal amount)
+    {
+        if (Active.Pay == PayKind.Split)
+        {
+            var text = Active.SplitAnchorCash ? Active.CashPart : Active.CardPart;
+            if (!TryMoney(text, out var entered))
+                return;
+            var parts = FiscalNet.Split(amount, entered, Active.SplitAnchorCash);
+            await RecordTaking("cash", parts.Cash);
+            await RecordTaking("card", parts.Card);
+            return;
+        }
+        await RecordTaking(channel, amount);
     }
 
     private static string PaymentName(string channel) => channel switch
@@ -1639,9 +2522,9 @@ public sealed class CasierPosView : UserControl
             }
             var text = "Numerar = " + Money(cash)
                 + "    Card = " + Money(card)
-                + "    Glovo = " + Money(glovo)
-                + "    Bolt = " + Money(bolt)
-                + "    Wolt = " + Money(wolt);
+                + "    G = " + Money(glovo)
+                + "    B = " + Money(bolt)
+                + "    W = " + Money(wolt);
             await Dispatcher.UIThread.InvokeAsync(() => _takings.Text = text);
         }
         catch
@@ -1650,10 +2533,57 @@ public sealed class CasierPosView : UserControl
         }
     }
 
+    private async Task PrintX()
+    {
+        if (!FiscalNetStation.IsReady)
+        {
+            await Tell("Raportul X se va tipări la imprimanta fiscală. Încă nu este legată. Apăsați „FP-700” și alegeți folderul Bonuri.");
+            return;
+        }
+        if (_fiscalBusy)
+            return;
+        _fiscalBusy = true;
+        try
+        {
+            var reply = await FiscalNetStation.SendAsync(FiscalNet.FileName("x", false), FiscalNet.Report("X"), TimeSpan.FromSeconds(90));
+            await Tell(reply.BonOk == 1
+                ? "Raportul X a fost trimis la imprimantă."
+                : FiscalNet.Failure(reply, "Raportul X nu s-a tipărit."));
+        }
+        finally
+        {
+            _fiscalBusy = false;
+        }
+    }
+
     private async Task CloseZ()
     {
         try
         {
+            if (FiscalNetStation.IsReady)
+            {
+                if (_fiscalBusy)
+                    return;
+                _fiscalBusy = true;
+                FiscalNet.Reply reply;
+                try
+                {
+                    reply = await FiscalNetStation.SendAsync(FiscalNet.FileName("z", false), FiscalNet.Report("Z"), TimeSpan.FromSeconds(90));
+                }
+                finally
+                {
+                    _fiscalBusy = false;
+                }
+                if (reply.BonOk != 1)
+                {
+                    await Tell(FiscalNet.Failure(reply, "Raportul Z nu s-a tipărit. Încasările au rămas deschise."));
+                    return;
+                }
+                await _session.Rpc("pos_close_takings_z", new { p_work_location_id = _locationId });
+                await LoadTakings();
+                await Tell("Raportul Z a fost tipărit. Încasările au fost închise.");
+                return;
+            }
             await _session.Rpc("pos_close_takings_z", new { p_work_location_id = _locationId });
             await LoadTakings();
             await Tell("Imprimanta nu este legată, raportul Z nu s-a tipărit. Încasările de până acum au fost închise.");
@@ -1680,17 +2610,23 @@ public sealed class CasierPosView : UserControl
         Active.Tender = "";
         Active.DiscountText = "";
         Active.PrintInvoice = false;
-        Active.Pay = PayKind.Cash;
+        Active.Pay = Active.OnlineSale ? PayKind.Modern : PayKind.Cash;
         Active.Channel = "";
+        Active.CashPart = "";
+        Active.CardPart = "";
+        Active.SplitAnchorCash = true;
         _loadingTicket = true;
         _cuiBox.Text = "";
         _tenderBox.Text = "";
+        _splitCashBox.Text = "";
+        _splitCardBox.Text = "";
         _discountBox.Text = "";
         _printInvoice.IsChecked = false;
         _loadingTicket = false;
-        PaintPay(_cashButton, true);
+        PaintPay(_cashButton, !Active.OnlineSale);
         PaintPay(_cardButton, false);
-        PaintPay(_modernButton, false);
+        PaintPay(_modernButton, Active.OnlineSale);
+        PaintPay(_splitButton, false);
         ShowClientName();
         SyncInvoiceBox();
         RefreshReceipt();
@@ -1824,45 +2760,7 @@ public sealed class CasierPosView : UserControl
         return letter + " " + rate.Value.ToString("0.##", CultureInfo.GetCultureInfo("ro-RO")) + "%";
     }
 
-    private static List<(Guid ProductId, decimal Quantity)> StockCuts(Ticket ticket)
-    {
-        var totals = new Dictionary<Guid, decimal>();
-        foreach (var line in ticket.Lines)
-        {
-            if (line.ProductId is not Guid productId)
-                continue;
-            totals[productId] = totals.GetValueOrDefault(productId) + line.Quantity;
-            foreach (var addon in line.Addons)
-            {
-                if (addon.ProductId is not Guid addonId)
-                    continue;
-                totals[addonId] = totals.GetValueOrDefault(addonId) + addon.PerUnit * line.Quantity;
-            }
-        }
-        return totals.Where(pair => pair.Value > 0).Select(pair => (pair.Key, pair.Value)).ToList();
-    }
-
-    private async Task<string> ConsumeStock(List<(Guid ProductId, decimal Quantity)> items)
-    {
-        if (items.Count == 0)
-            return "";
-        try
-        {
-            var payload = items.Select(item => new Dictionary<string, object>
-            {
-                ["product_id"] = item.ProductId,
-                ["cantitate"] = item.Quantity.ToString(CultureInfo.InvariantCulture)
-            }).ToList();
-            await _session.Rpc("pos_consume_stock", new Dictionary<string, object> { ["p_items"] = payload });
-            return "";
-        }
-        catch (Exception ex)
-        {
-            return "\n" + ex.Message;
-        }
-    }
-
-    private List<PosSlipPdf.Row> ReceiptRows(List<string> supplier, string stamp, string clientName, string payment, List<(string Name, string Amount)> lines, string total, List<VatBand> bands, string documentUrl)
+    private List<PosSlipPdf.Row> ReceiptRows(List<string> supplier, string stamp, string clientName, string payment, List<(string Name, string Amount)> lines, string total, List<VatBand> bands, string documentUrl, string? printedNote = null)
     {
         var rows = new List<PosSlipPdf.Row> { PosSlipPdf.Title("BON FISCAL") };
         rows.AddRange(supplier.Select(line => PosSlipPdf.Center(line, 7)));
@@ -1888,13 +2786,13 @@ public sealed class CasierPosView : UserControl
         rows.Add(PosSlipPdf.Line(" "));
             if (!string.IsNullOrEmpty(documentUrl))
                 rows.Add(PosSlipPdf.Qr(documentUrl));
-        rows.Add(PosSlipPdf.Center("PDF — imprimanta fiscală nu este conectată", 6));
+        rows.Add(PosSlipPdf.Center(printedNote ?? "PDF — imprimanta fiscală nu este conectată", 6));
         rows.Add(PosSlipPdf.Line(" "));
         rows.Add(PosSlipPdf.Center("Document generat cu ERP Mobile by DateConta", 6));
         return rows;
     }
 
-    private List<PosSlipPdf.Row> InvoiceRows(List<string> supplier, string serie, int number, string stamp, string clientName, string clientAddress, string payment, List<InvoiceLine> lines, string total, string documentUrl)
+    private List<PosSlipPdf.Row> InvoiceRows(List<string> supplier, string serie, int number, string stamp, string clientName, string clientAddress, string payment, List<InvoiceLine> lines, string total, string documentUrl, string? printedNote = null)
     {
         var rows = new List<PosSlipPdf.Row>
         {
@@ -1930,7 +2828,7 @@ public sealed class CasierPosView : UserControl
         rows.Add(PosSlipPdf.Line(" "));
             if (!string.IsNullOrEmpty(documentUrl))
                 rows.Add(PosSlipPdf.Qr(documentUrl));
-        rows.Add(PosSlipPdf.Center("80 mm · PDF — imprimanta fiscală nu este conectată", 6));
+        rows.Add(PosSlipPdf.Center(printedNote ?? "80 mm · PDF — imprimanta fiscală nu este conectată", 6));
         rows.Add(PosSlipPdf.Line(" "));
         rows.Add(PosSlipPdf.Center("Document generat cu ERP Mobile by DateConta", 6));
         return rows;
@@ -1995,7 +2893,7 @@ public sealed class CasierPosView : UserControl
             Width = 220,
             Height = 140,
             Margin = new Avalonia.Thickness(0, 0, 12, 12),
-            Background = Brushes.White,
+            Background = TileFill,
             CornerRadius = new Avalonia.CornerRadius(14),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center
@@ -2011,6 +2909,7 @@ public sealed class CasierPosView : UserControl
             Margin = new Avalonia.Thickness(12)
         };
         button.Click += (_, _) => open();
+        ToolTip.SetTip(button, name);
         return button;
     }
 
@@ -2021,7 +2920,7 @@ public sealed class CasierPosView : UserControl
             Width = 160,
             Height = 260,
             Margin = new Avalonia.Thickness(0, 0, 8, 8),
-            Background = Brushes.White,
+            Background = TileFill,
             Padding = new Avalonia.Thickness(10),
             CornerRadius = new Avalonia.CornerRadius(14),
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -2038,7 +2937,7 @@ public sealed class CasierPosView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
         imageZone.Children.Add(photo);
-        imageZone.Children.Add(new TextBlock
+        var priceLabel = new TextBlock
         {
             Text = price,
             FontWeight = FontWeight.Bold,
@@ -2046,8 +2945,9 @@ public sealed class CasierPosView : UserControl
             Foreground = Brand.Brush(Brand.Navy),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
-            Background = Brushes.White
-        });
+            Background = new SolidColorBrush(Color.FromArgb(230, 255, 255, 255))
+        };
+        imageZone.Children.Add(priceLabel);
         grid.Children.Add(imageZone);
         var title = new StackPanel
         {
@@ -2079,10 +2979,13 @@ public sealed class CasierPosView : UserControl
         Grid.SetRow(title, 1);
         grid.Children.Add(title);
         button.Content = grid;
+        button.Tag = priceLabel;
         if (onTap != null)
             button.Click += (_, _) => onTap();
         if (!string.IsNullOrWhiteSpace(imageUrl))
             _ = LoadPhoto(photo, imageUrl);
+        var tip = string.IsNullOrWhiteSpace(code) ? $"{name} · {price}" : $"{name} ({code}) · {price}";
+        ToolTip.SetTip(button, tip);
         return button;
     }
 
@@ -2101,6 +3004,7 @@ public sealed class CasierPosView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
         button.Click += (_, _) => action();
+        ToolTip.SetTip(button, title);
         return button;
     }
 
@@ -2120,6 +3024,7 @@ public sealed class CasierPosView : UserControl
         };
         PaintPay(button, selected);
         button.Click += (_, _) => action();
+        ToolTip.SetTip(button, title);
         return button;
     }
 
@@ -2170,13 +3075,36 @@ public sealed class CasierPosView : UserControl
     {
         try
         {
-            var bytes = await Http.GetByteArrayAsync(url);
-            var bitmap = new Avalonia.Media.Imaging.Bitmap(new MemoryStream(bytes));
-            await Dispatcher.UIThread.InvokeAsync(() => target.Source = bitmap);
+            var bitmap = await PhotoCache.GetOrAdd(url, LoadPhotoBytes);
+            if (bitmap != null)
+                await Dispatcher.UIThread.InvokeAsync(() => target.Source = bitmap);
         }
         catch
         {
-            // Produsul rămâne fără poză dacă adresa nu poate fi citită.
+            PhotoCache.TryRemove(url, out _);
+        }
+    }
+
+    private static async Task<Bitmap?> LoadPhotoBytes(string url)
+    {
+        try
+        {
+            var bytes = await Http.GetByteArrayAsync(url);
+            using var stream = new MemoryStream(bytes);
+            var source = new Bitmap(stream);
+            var width = source.PixelSize.Width;
+            var height = source.PixelSize.Height;
+            if (width <= 448 && height <= 448)
+                return source;
+            var scale = Math.Min(448d / width, 448d / height);
+            var size = new PixelSize(Math.Max(1, (int)(width * scale)), Math.Max(1, (int)(height * scale)));
+            var scaled = source.CreateScaledBitmap(size, BitmapInterpolationMode.MediumQuality);
+            source.Dispose();
+            return scaled;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -2443,7 +3371,8 @@ public sealed class CasierPosView : UserControl
     {
         Cash,
         Card,
-        Modern
+        Modern,
+        Split
     }
 
     private sealed class Ticket
@@ -2457,6 +3386,10 @@ public sealed class CasierPosView : UserControl
         public string ClientName { get; set; } = "";
         public string ClientAddress { get; set; } = "";
         public bool PrintInvoice { get; set; }
+        public bool OnlineSale { get; set; }
+        public string CashPart { get; set; } = "";
+        public string CardPart { get; set; } = "";
+        public bool SplitAnchorCash { get; set; } = true;
     }
 
     private sealed class CartAddon
@@ -2464,8 +3397,11 @@ public sealed class CasierPosView : UserControl
         public Guid? ProductId { get; init; }
         public string Name { get; init; } = "";
         public decimal PerUnit { get; init; }
-        public decimal UnitPrice { get; init; }
+        public decimal StorePrice { get; set; }
+        public decimal OnlinePrice { get; set; }
+        public decimal UnitPrice { get; set; }
         public decimal VatRate { get; init; }
+        public bool Charges { get; set; } = true;
     }
 
     private sealed class CartRow
@@ -2473,14 +3409,51 @@ public sealed class CasierPosView : UserControl
         public Guid Id { get; init; }
         public Guid? ProductId { get; init; }
         public string Name { get; init; } = "";
-        public decimal UnitPrice { get; init; }
+        public decimal UnitPrice { get; set; }
+        public decimal StorePrice { get; set; }
+        public decimal OnlinePrice { get; set; }
+        public decimal MenuPrice { get; set; }
+        public decimal MenuStorePrice { get; set; }
+        public decimal MenuOnlinePrice { get; set; }
         public decimal? VatRate { get; init; }
         public int Quantity { get; set; }
         public List<CartAddon> Addons { get; init; } = new();
-        public decimal DiscountAmount { get; init; }
+        public decimal DiscountAmount { get; set; }
         public bool ShowsDiscount { get; init; }
         public bool MenuHeader { get; init; }
+        public bool IsMenuMain { get; set; }
+        public bool IsMenuSecondary { get; set; }
         public Guid? MenuBlock { get; init; }
+    }
+
+    private sealed class CatalogMenu
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public string Code { get; init; } = "";
+        public decimal StorePrice { get; init; }
+        public decimal OnlinePrice { get; init; }
+        public bool Multiple { get; init; }
+        public string Image { get; init; } = "";
+    }
+
+    private sealed class CatalogProduct
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public string Code { get; init; } = "";
+        public decimal StorePrice { get; init; }
+        public decimal OnlinePrice { get; init; }
+        public decimal? Vat { get; init; }
+        public string Image { get; init; } = "";
+    }
+
+    private sealed class MenuProduct
+    {
+        public string Name { get; init; } = "";
+        public decimal Vat { get; init; }
+        public decimal Store { get; init; }
+        public decimal Online { get; init; }
     }
 }
 

@@ -56,7 +56,7 @@ struct CashRegisterManualEntrySheet: View {
             .onAppear {
                 casa = viewModel.selectedCasa
             }
-            .onChange(of: kind) { newKind in
+            .onChange(of: kind) { _, newKind in
                 if newKind != .plataFurnizor {
                     selectedSupplierId = nil
                     supplierSearch = ""

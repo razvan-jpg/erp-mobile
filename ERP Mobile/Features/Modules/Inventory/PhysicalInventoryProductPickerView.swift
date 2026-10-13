@@ -16,13 +16,16 @@ struct PhysicalInventoryProductPickerView: View {
     @State private var selectedProduct: Product?
     @State private var countedText = ""
     @State private var showScanner = false
+    @State private var sortColumn: PhysicalInventorySortColumn = .category
+    @State private var sortAscending = true
 
     private var availableProducts: [Product] {
-        products
-            .filter { !existingProductIds.contains($0.id) && $0.isActive }
-            .sorted {
-                $0.denumire.localizedStandardCompare($1.denumire) == .orderedAscending
-            }
+        let filtered = products.filter {
+            !existingProductIds.contains($0.id)
+                && $0.isActive
+                && $0.tip.isStockable
+        }
+        return filtered.sorted(by: compareProducts)
     }
 
     private var filteredProducts: [Product] {
@@ -73,6 +76,29 @@ struct PhysicalInventoryProductPickerView: View {
                             Task { await addProduct() }
                         }
                         .disabled(isLoading || parsedCount == nil)
+                    } else {
+                        Menu {
+                            ForEach([PhysicalInventorySortColumn.category, .name, .code], id: \.id) { column in
+                                Button {
+                                    if sortColumn == column {
+                                        sortAscending.toggle()
+                                    } else {
+                                        sortColumn = column
+                                        sortAscending = true
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(column.label)
+                                        if sortColumn == column {
+                                            Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .appControlHint(L10n.tr("inventory.physical_sort_category"))
                     }
                 }
             }
@@ -99,6 +125,9 @@ struct PhysicalInventoryProductPickerView: View {
                             Text(product.denumire)
                                 .font(.headline)
                                 .foregroundColor(AppColors.primary)
+                            Text(product.tip.label)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondary)
                             HStack {
                                 if let cod = product.cod, !cod.isEmpty {
                                     Text(cod)
@@ -164,6 +193,35 @@ struct PhysicalInventoryProductPickerView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func compareProducts(_ lhs: Product, _ rhs: Product) -> Bool {
+        let ascending = sortAscending
+        let result: ComparisonResult
+        switch sortColumn {
+        case .category:
+            let li = PhysicalInventoryCategoryGroup.displayOrder
+                .firstIndex(where: { $0.id == PhysicalInventoryCategoryGroup.group(for: lhs.tip).id })
+                ?? PhysicalInventoryCategoryGroup.displayOrder.count
+            let ri = PhysicalInventoryCategoryGroup.displayOrder
+                .firstIndex(where: { $0.id == PhysicalInventoryCategoryGroup.group(for: rhs.tip).id })
+                ?? PhysicalInventoryCategoryGroup.displayOrder.count
+            if li != ri {
+                result = li < ri ? .orderedAscending : .orderedDescending
+            } else {
+                result = lhs.tip.label.localizedStandardCompare(rhs.tip.label)
+            }
+        case .code:
+            result = (lhs.cod ?? "").localizedStandardCompare(rhs.cod ?? "")
+        case .name, .bookStock, .counted, .difference:
+            result = lhs.denumire.localizedStandardCompare(rhs.denumire)
+        }
+        switch result {
+        case .orderedAscending: return ascending
+        case .orderedDescending: return !ascending
+        case .orderedSame:
+            return lhs.denumire.localizedStandardCompare(rhs.denumire) == .orderedAscending
         }
     }
 

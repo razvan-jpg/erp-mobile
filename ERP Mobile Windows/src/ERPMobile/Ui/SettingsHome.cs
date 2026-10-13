@@ -34,7 +34,7 @@ public sealed class SettingsHome : UserControl
         {
             page.Children.Add(Row("Sync offline", "Documente salvate fără internet și stare sync.", () => Show(new SyncSettings(_session, this))));
             page.Children.Add(Row("Setări Zetta", "Case de marcat, conturi casă și cote TVA pentru raportul Z.", () => Show(new ZettaSettingsScreen(_session, this))));
-            page.Children.Add(Row("e-Factura (SPV)", "Autorizare prin contabil, cu semnătura lui electronică. Vedeți starea și până când este valabilă.", () => Show(new EFacturaSettingsScreen(_session))));
+            page.Children.Add(Row("e-Factura (SPV)", "Invitație pe email către contabil. Data de valabilitate se citește din SPV.", () => Show(new EFacturaSettingsScreen(_session))));
         }
         page.Children.Add(Row("Adaugă scurtătură pe Desktop", "Creează scurtătura ERP Mobile pe Desktop.", CreateShortcut));
         if (profile?.IsSuperAdmin == true)
@@ -64,6 +64,7 @@ public sealed class SettingsHome : UserControl
             HorizontalAlignment = HorizontalAlignment.Left,
             Background = Brushes.White
         };
+        ToolTip.SetTip(back, "Înapoi la Setări");
         back.Click += (_, _) => Dispatcher.UIThread.Post(ShowMenu);
         DockPanel.SetDock(back, Dock.Top);
         root.Children.Add(back);
@@ -111,6 +112,7 @@ public sealed class SettingsHome : UserControl
             Padding = new Avalonia.Thickness(14, 12)
         };
         button.Click += (_, _) => Dispatcher.UIThread.Post(open);
+        ToolTip.SetTip(button, string.IsNullOrWhiteSpace(subtitle) ? title : title + " — " + subtitle);
         return button;
     }
 

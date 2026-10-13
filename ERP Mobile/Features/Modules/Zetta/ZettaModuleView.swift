@@ -44,7 +44,7 @@ struct ZettaModuleView: View {
         .navigationTitle(L10n.tr("module.clients.tile_zetta"))
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             model.resetForCompanyChange()
             Task { await loadAccess() }
         }

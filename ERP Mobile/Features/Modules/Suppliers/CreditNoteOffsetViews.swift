@@ -218,8 +218,9 @@ struct CreditNoteOffsetSheet: View {
                         onSkip()
                     }
                 }
-                if !isLocked {
-                    ToolbarItem(placement: .confirmationAction) {
+                // Keep ToolbarItem unconditional: Optional ToolbarContent needs iOS 16+ (Swift 6).
+                ToolbarItem(placement: .confirmationAction) {
+                    if !isLocked {
                         Button(L10n.tr("credit_note.offset_apply")) {
                             Task { await applyOffsets() }
                         }

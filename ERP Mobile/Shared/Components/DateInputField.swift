@@ -21,7 +21,7 @@ struct DateInputField: View {
                 TextField(L10n.tr("date.format_placeholder"), text: $text)
                     .keyboardType(.numbersAndPunctuation)
                     .textFieldStyle(.roundedBorder)
-                    .onChange(of: text) { newValue in
+                    .onChange(of: text) { _, newValue in
                         if let parsed = SupplierFormatting.parseInputDate(newValue) {
                             date = parsed
                         }
@@ -37,7 +37,7 @@ struct DateInputField: View {
         .onAppear {
             text = SupplierFormatting.inputDateString(date)
         }
-        .onChange(of: date) { newValue in
+        .onChange(of: date) { _, newValue in
             let formatted = SupplierFormatting.inputDateString(newValue)
             if text != formatted {
                 text = formatted

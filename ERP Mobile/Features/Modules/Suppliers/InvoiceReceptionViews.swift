@@ -217,6 +217,7 @@ struct InvoiceImportPreviewSheet: View {
                         lineCount: 0,
                         isDuplicate: false,
                         duplicateLabel: nil,
+                        softDuplicateWarning: nil,
                         isCreditNote: false,
                         errorMessage: nil,
                         createNIR: false
@@ -286,6 +287,13 @@ private struct InvoiceImportPreviewRow: View {
                         .font(.caption2)
                         .foregroundColor(AppColors.secondary)
                 }
+            } else if let softDuplicateWarning = item.softDuplicateWarning {
+                Text(L10n.tr("invoices.import_preview_soft_duplicate"))
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Text(softDuplicateWarning)
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondary)
             } else if item.isCreditNote {
                 Text(L10n.tr("invoices.import_preview_credit_note"))
                     .font(.caption)
@@ -353,7 +361,7 @@ struct NIRExportSheet: View {
                     Button {
                         showShareSheet = true
                     } label: {
-                        Label(L10n.tr("nir.export_save_pdf"), systemImage: "square.and.arrow.up")
+                        Label(L10n.tr("nir.export_save_pdf"), systemImage: "square.and.arrow.up").appHoverTip(L10n.tr("nir.export_save_pdf"))
                     }
 
                     if DocumentExportSupport.canSendMail {
@@ -366,7 +374,7 @@ struct NIRExportSheet: View {
                         Button {
                             showMailSheet = true
                         } label: {
-                            Label(L10n.tr("nir.export_send_email"), systemImage: "envelope")
+                            Label(L10n.tr("nir.export_send_email"), systemImage: "envelope").appHoverTip(L10n.tr("nir.export_send_email"))
                         }
                         .disabled(emailAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     } else {

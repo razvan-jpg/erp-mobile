@@ -4,6 +4,7 @@ struct ProductThumbnailView: View {
     let imagineUrl: String?
     var showsPlaceholder: Bool = true
     var contentMode: ContentMode = .fill
+    var plate: Color = Color(.tertiarySystemBackground)
 
     var body: some View {
         Group {
@@ -22,7 +23,7 @@ struct ProductThumbnailView: View {
                 placeholder
             }
         }
-        .background(showsPlaceholder ? Color(.tertiarySystemBackground) : .clear)
+        .background(showsPlaceholder ? plate : .clear)
         .clipped()
     }
 
@@ -37,6 +38,7 @@ struct ProductThumbnailView: View {
 struct ProductTileView: View {
     let product: Product
     let stockQuantity: Decimal
+    var locationStocks: [ProductLocationStock] = []
     var productionCost: Decimal?
     var purchasePrice: Decimal?
     var showsExtendedMetrics: Bool = false
@@ -47,11 +49,27 @@ struct ProductTileView: View {
     private static let imageHeightFraction: CGFloat = 2.0 / 3.0
     private static let textHeightFraction: CGFloat = 1.0 / 3.0
     private static let maxImageWidthFraction: CGFloat = 0.8
-    private static let titleZoneHeightFraction: CGFloat = 0.42
+    private static let titleZoneHeightFraction: CGFloat = 0.36
     private static let tileTextHorizontalPadding: CGFloat = 2
 
     private static func titleFontSize(for tileWidth: CGFloat) -> CGFloat {
         min(17, max(13, tileWidth * 0.14))
+    }
+
+    private var optimalStockLabel: String {
+        L10n.tr(
+            "module.products.tile_optimal_stock",
+            SupplierFormatting.amountString(product.cantitateOptima),
+            product.unitateMasura
+        )
+    }
+
+    private var minimumStockLabel: String {
+        L10n.tr(
+            "module.products.tile_min_stock",
+            SupplierFormatting.amountString(product.cantitateMinima),
+            product.unitateMasura
+        )
     }
 
     private var stockLabel: String {
@@ -62,10 +80,30 @@ struct ProductTileView: View {
         )
     }
 
+    private var showsLocationStocks: Bool {
+        !locationStocks.isEmpty
+    }
+
+    private func locationStockLabel(_ line: ProductLocationStock) -> String {
+        L10n.tr(
+            "module.products.tile_stock_location",
+            line.locationName,
+            SupplierFormatting.amountString(line.quantity),
+            product.unitateMasura
+        )
+    }
+
     private var salePriceLabel: String {
         L10n.tr(
             "module.products.tile_sale_price",
             SupplierFormatting.amountString(product.pretVanzare)
+        )
+    }
+
+    private var onlinePriceLabel: String {
+        L10n.tr(
+            "module.products.tile_sale_price_online",
+            SupplierFormatting.amountString(product.pretVanzareOnline)
         )
     }
 
@@ -209,29 +247,44 @@ struct ProductTileView: View {
     }
 
     private var compactMetricsContent: some View {
-        VStack(spacing: 3) {
-            Text(stockLabel)
-                .foregroundColor(AppColors.secondary)
-            Text(SupplierFormatting.amountString(product.pretVanzare))
+        VStack(spacing: 2) {
+            Text(salePriceLabel)
                 .foregroundColor(.blue)
+            Text(onlinePriceLabel)
+                .foregroundColor(.blue)
+            stockMetricsBlock
         }
         .font(.caption.weight(.semibold))
         .multilineTextAlignment(.center)
         .lineLimit(1)
-        .minimumScaleFactor(0.85)
+        .minimumScaleFactor(0.75)
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
     private var catalogMetricsContent: some View {
-        VStack(spacing: 3) {
-            metricLine(stockLabel, color: AppColors.secondary)
-            metricLine(costPriceLabel, color: .orange)
+        VStack(spacing: 2) {
             metricLine(salePriceLabel, color: .blue)
+            metricLine(onlinePriceLabel, color: .blue)
+            stockMetricsBlock
+            metricLine(costPriceLabel, color: .orange)
             metricLine(profitPerUnitLabel, color: profitColor(profitPerUnit))
         }
         .font(.caption.weight(.semibold))
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var stockMetricsBlock: some View {
+        if showsLocationStocks {
+            ForEach(locationStocks) { line in
+                metricLine(locationStockLabel(line), color: AppColors.secondary)
+            }
+        } else {
+            metricLine(stockLabel, color: AppColors.secondary)
+        }
+        metricLine(minimumStockLabel, color: AppColors.secondary)
+        metricLine(optimalStockLabel, color: AppColors.secondary)
     }
 
     private func metricLine(_ text: String, color: Color) -> some View {

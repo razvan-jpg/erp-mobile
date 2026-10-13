@@ -44,9 +44,7 @@ struct CRMLeadsListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 44)).appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -154,7 +152,7 @@ struct CRMCompaniesListView: View {
                                             }
                                         }
                                     } label: {
-                                        Label(L10n.tr("common.delete"), systemImage: "trash")
+                                        Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                                     }
                                 }
                             }
@@ -166,9 +164,7 @@ struct CRMCompaniesListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate, companyManager.currentCompany != nil {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 44)).appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -474,7 +470,7 @@ struct CRMContactsListView: View {
                                             }
                                         }
                                     } label: {
-                                        Label(L10n.tr("common.delete"), systemImage: "trash")
+                                        Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                                     }
                                 }
                             }
@@ -486,9 +482,7 @@ struct CRMContactsListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate, companyManager.currentCompany != nil {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 44)).appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -810,9 +804,7 @@ struct CRMQuotesListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 44)).appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -1212,7 +1204,7 @@ struct CRMDealProductsSection: View {
                         Text("—").tag(UUID?.none)
                         ForEach(catalog) { p in Text(p.denumire).tag(Optional(p.id)) }
                     }
-                    .onChange(of: selectedProductId) { id in
+                    .onChange(of: selectedProductId) { _, id in
                         guard let id, let product = catalog.first(where: { $0.id == id }) else { return }
                         description = product.denumire
                         unitPrice = SupplierFormatting.amountString(product.pretVanzare)

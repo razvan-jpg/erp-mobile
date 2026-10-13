@@ -59,11 +59,7 @@ struct CRMDealListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -486,12 +482,12 @@ struct CRMDealFormView: View {
             }
             .onAppear { populate() }
             .appTask { await loadReferenceData() }
-            .onChange(of: selectedCRMCompanyId) { companyId in
+            .onChange(of: selectedCRMCompanyId) { _, companyId in
                 guard let companyId, let company = crmCompanies.first(where: { $0.id == companyId }) else { return }
                 organizationName = company.name
                 if selectedClientId == nil { selectedClientId = company.clientId }
             }
-            .onChange(of: selectedCRMContactId) { contactId in
+            .onChange(of: selectedCRMContactId) { _, contactId in
                 guard let contactId, let contact = crmContacts.first(where: { $0.id == contactId }) else { return }
                 contactName = CRMContactDisplay.localizedName(contact)
                 email = contact.email ?? ""
@@ -706,6 +702,7 @@ struct CRMActivityRowView: View {
                         .foregroundColor(.green)
                 }
                 .buttonStyle(.plain)
+                .appControlHint(L10n.tr("common.complete"))
             }
         }
         .padding(.vertical, 4)

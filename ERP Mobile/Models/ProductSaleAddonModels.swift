@@ -56,12 +56,14 @@ nonisolated struct ProductSaleAddonRef: Codable, Hashable, Sendable {
     let cod: String?
     let tip: ProductKind
     var pretVanzare: Decimal
+    var pretVanzareOnline: Decimal
     var cotaTva: Decimal
     let unitateMasura: String
 
     enum CodingKeys: String, CodingKey {
         case id, denumire, cod, tip
         case pretVanzare = "pret_vanzare"
+        case pretVanzareOnline = "pret_vanzare_online"
         case cotaTva = "cota_tva"
         case unitateMasura = "unitate_masura"
     }
@@ -73,6 +75,11 @@ nonisolated struct ProductSaleAddonRef: Codable, Hashable, Sendable {
         cod = try c.decodeIfPresent(String.self, forKey: .cod)
         tip = try c.decode(ProductKind.self, forKey: .tip)
         pretVanzare = try c.decode(SupabaseDecimal.self, forKey: .pretVanzare).wrappedValue
+        if let online = try c.decodeIfPresent(SupabaseDecimal.self, forKey: .pretVanzareOnline) {
+            pretVanzareOnline = online.wrappedValue
+        } else {
+            pretVanzareOnline = pretVanzare
+        }
         cotaTva = try c.decode(SupabaseDecimal.self, forKey: .cotaTva).wrappedValue
         unitateMasura = try c.decode(String.self, forKey: .unitateMasura)
     }
@@ -84,6 +91,7 @@ nonisolated struct ProductSaleAddonRef: Codable, Hashable, Sendable {
         try c.encodeIfPresent(cod, forKey: .cod)
         try c.encode(tip, forKey: .tip)
         try c.encode(SupabaseDecimal(wrappedValue: pretVanzare), forKey: .pretVanzare)
+        try c.encode(SupabaseDecimal(wrappedValue: pretVanzareOnline), forKey: .pretVanzareOnline)
         try c.encode(SupabaseDecimal(wrappedValue: cotaTva), forKey: .cotaTva)
         try c.encode(unitateMasura, forKey: .unitateMasura)
     }

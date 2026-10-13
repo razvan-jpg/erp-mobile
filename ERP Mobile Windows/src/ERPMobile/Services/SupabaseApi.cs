@@ -107,13 +107,13 @@ public sealed class SupabaseApi : IDisposable
         return (_accessToken, _refreshToken, _expiresAt);
     }
 
-    public async Task<JsonElement> Select(string table, string query)
+    public async Task<JsonElement> Select(string table, string query, string? range = null)
     {
         await RefreshIfNeeded();
         var url = $"{_url}/rest/v1/{table}";
         if (!string.IsNullOrEmpty(query))
             url += "?" + query;
-        using var response = await SendRaw(HttpMethod.Get, url, null, auth: true, range: "0-999");
+        using var response = await SendRaw(HttpMethod.Get, url, null, auth: true, range: range ?? "0-999");
         return await ReadRequired(response);
     }
 

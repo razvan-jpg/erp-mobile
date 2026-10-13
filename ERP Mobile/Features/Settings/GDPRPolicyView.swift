@@ -46,7 +46,7 @@ struct GDPRPolicyView: View {
         .onAppear {
             Task { await loadPolicy() }
         }
-        .onChange(of: localeManager.language) { _ in
+        .onChange(of: localeManager.language) { _, _ in
             Task { await loadPolicy() }
         }
     }

@@ -23,6 +23,7 @@ struct NIREditorView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var exportItem: NIRExportItem?
+    @State private var invoicePaidCash = false
 
     private var selectableInvoiceLines: [SupplierInvoiceLine] {
         invoiceLines.filter { NIRLineEligibility.isSelectable($0) }
@@ -100,8 +101,23 @@ struct NIREditorView: View {
             Section {
                 AppLabeledContent(L10n.tr("nir.export_invoice"), value: context.invoice.numarFactura)
                 AppLabeledContent(L10n.tr("nir.export_supplier"), value: context.supplier.denumire)
+                AppLabeledContent(
+                    L10n.tr("nir.export_invoice_total"),
+                    value: SupplierFormatting.compactAmount(
+                        context.invoice.sumaTotala,
+                        code: context.invoice.moneda
+                    )
+                )
                 if let existingNIR = context.existingNIR {
                     AppLabeledContent(L10n.tr("nir.export_number"), value: existingNIR.numarNir)
+                }
+                if canOfferCashPayment {
+                    Toggle(L10n.tr("nir.editor_paid_cash"), isOn: $invoicePaidCash)
+                    if invoicePaidCash {
+                        Text(L10n.tr("nir.editor_paid_cash_hint"))
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondary)
+                    }
                 }
             }
 
@@ -200,6 +216,21 @@ struct NIREditorView: View {
             .sorted { $0.numarLinie < $1.numarLinie }
     }
 
+    /// Chitanță cash doar la NIR nou, pe facturi cu rest de plată (nu storno).
+    private var canOfferCashPayment: Bool {
+        context.existingNIR == nil
+            && !context.invoice.isCreditNote
+            && context.invoice.restDePlata > 0
+            && context.invoice.status != .anulata
+    }
+
+    private var cashPaymentCasa: CashRegisterCasaTarget {
+        if let workLocationId = receptionOptions.workLocationId {
+            return .workLocation(workLocationId)
+        }
+        return .headquarters
+    }
+
     private func selectedLineRow(_ line: SupplierInvoiceLine, showsSeparator: Bool) -> some View {
         let reception = reception(for: line)
         let isRegularWidth = DeviceLayout.isRegularWidth(horizontalSizeClass)
@@ -256,7 +287,7 @@ struct NIREditorView: View {
             Button {
                 removeLine(line)
             } label: {
-                Label(L10n.tr("common.delete"), systemImage: "trash")
+                Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
             }
         }
     }
@@ -344,7 +375,7 @@ struct NIREditorView: View {
             .buttonStyle(.borderless)
             .compactLineControl()
             .padding(.bottom, 2)
-            .accessibilityLabel(L10n.tr("common.delete"))
+            .appControlHint(L10n.tr("common.delete"))
         }
     }
 
@@ -797,6 +828,9 @@ struct NIREditorView: View {
                 productsById: productsById,
                 conversions: conversions
             )
+            if invoicePaidCash, canOfferCashPayment {
+                try await createCashPaymentForInvoice()
+            }
             await onSaved()
             await MainActor.run {
                 isSaving = false
@@ -847,6 +881,50 @@ struct NIREditorView: View {
                 isSaving = false
             }
         }
+    }
+
+    private func createCashPaymentForInvoice() async throws {
+        let amount = context.invoice.restDePlata
+        guard amount > 0 else { return }
+
+        let invoiceNumber = context.invoice.numarFactura.trimmingCharacters(in: .whitespacesAndNewlines)
+        let documentNumber = invoiceNumber.isEmpty
+            ? "CH-\(CashRegisterJournalFormatting.fileDate(context.invoice.dataFactura))"
+            : invoiceNumber
+        let explanation = L10n.tr(
+            "module.cash_register.line_plata_furnizor",
+            invoiceNumber.isEmpty ? "—" : invoiceNumber,
+            context.supplier.denumire
+        )
+
+        _ = try await SupplierService.createPayment(
+            companyId: company.id,
+            supplierId: context.supplier.id,
+            invoiceId: context.invoice.id,
+            dataPlata: context.invoice.dataFactura,
+            suma: amount,
+            metodaPlata: .numerar,
+            referinta: documentNumber,
+            observatii: explanation,
+            createdBy: createdBy
+        )
+
+        // Pe sediu, registrul preia deja plățile numerar din Furnizori → Plăți.
+        // Pe punct de lucru scriem operațiunea manuală pe casa NIR-ului.
+        let casa = cashPaymentCasa
+        guard !casa.isHeadquarters else { return }
+
+        let entry = CashRegisterManualEntry(
+            date: context.invoice.dataFactura,
+            casaTarget: casa,
+            kind: .plataFurnizor,
+            documentNumber: documentNumber,
+            explanation: explanation,
+            amount: amount,
+            supplierId: context.supplier.id,
+            supplierName: context.supplier.denumire
+        )
+        _ = try await CashRegisterEntryService.insert(entry, companyId: company.id)
     }
 
     private func conversionsForSelectedLines() throws -> [UUID: StockUnitConversion.Reception] {

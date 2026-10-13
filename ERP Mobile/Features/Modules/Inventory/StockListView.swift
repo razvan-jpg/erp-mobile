@@ -13,6 +13,7 @@ struct StockListView: View {
     @State private var selectedCard: ProductWarehouseCardContext?
     @State private var showScanner = false
     @State private var showTransfers = false
+    @State private var showStockControl = false
 
     private var filteredRows: [ProductStockRow] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -46,15 +47,24 @@ struct StockListView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showTransfers = true
-                } label: {
-                    Image(systemName: "arrow.left.arrow.right.square")
+                HStack(spacing: 16) {
+                    Button {
+                        showStockControl = true
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                    }
+                    .appControlHint(L10n.tr("inventory.stock_control_title"))
+
+                    Button {
+                        showTransfers = true
+                    } label: {
+                        Image(systemName: "arrow.left.arrow.right.square")
+                    }
+                    .appControlHint(L10n.tr("inventory.transfer_title"))
                 }
-                .accessibilityLabel(L10n.tr("inventory.transfer_title"))
             }
         }
-        .onChange(of: selectedWarehouseId) { _ in
+        .onChange(of: selectedWarehouseId) { _, _ in
             Task { await loadRows() }
         }
         .fullScreenCover(isPresented: $showTransfers, onDismiss: {
@@ -62,6 +72,13 @@ struct StockListView: View {
         }) {
             StockTransferListView()
                 .environmentObject(companyManager)
+        }
+        .sheet(isPresented: $showStockControl) {
+            StockControlSheet(
+                warehouses: warehouses,
+                initialWarehouseId: selectedWarehouseId
+            )
+            .environmentObject(companyManager)
         }
     }
 

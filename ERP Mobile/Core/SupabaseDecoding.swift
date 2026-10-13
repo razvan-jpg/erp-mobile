@@ -1,6 +1,6 @@
 import Foundation
 
-enum SupabaseDecoding {
+nonisolated enum SupabaseDecoding {
     static let jsonDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
@@ -144,7 +144,7 @@ enum SupabaseDecoding {
 }
 
 @propertyWrapper
-struct SupabaseOptionalDecimal: Codable, Hashable, Sendable {
+nonisolated struct SupabaseOptionalDecimal: Codable, Hashable, Sendable {
     var wrappedValue: Decimal?
 
     nonisolated init(wrappedValue: Decimal?) {
@@ -171,7 +171,7 @@ struct SupabaseOptionalDecimal: Codable, Hashable, Sendable {
 }
 
 @propertyWrapper
-struct SupabaseDecimal: Codable, Hashable, Sendable {
+nonisolated struct SupabaseDecimal: Codable, Hashable, Sendable {
     var wrappedValue: Decimal
 
     nonisolated init(wrappedValue: Decimal) {

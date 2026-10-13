@@ -325,7 +325,7 @@ private struct ZettaVatCategorySection: View {
                         Text(rate.label).tag(rate)
                     }
                 }
-                .onChange(of: settings.rate) { newRate in
+                .onChange(of: settings.rate) { _, newRate in
                     syncSalesMappingsForRate(newRate)
                 }
 

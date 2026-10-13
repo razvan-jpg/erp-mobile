@@ -102,6 +102,7 @@ struct DashboardView: View {
                 } label: {
                     Image(systemName: "person.circle")
                 }
+                .appControlHint(L10n.tr("common.account_menu"))
             }
         }
         .appSafeAreaInsetBottom {

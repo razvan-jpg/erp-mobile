@@ -288,7 +288,7 @@ extension View {
                 onScanned?(code)
             }
         }
-        .onChange(of: text.wrappedValue) { newValue in
+        .onChange(of: text.wrappedValue) { _, newValue in
             guard let code = MacBarcodeWedgeInput.normalizedScanFromSearchField(newValue) else { return }
             // Evită bucla: după normalizare textul nu mai conține \\n / \\r.
             guard code != newValue else { return }
@@ -321,7 +321,7 @@ extension View {
                         } label: {
                             Image(systemName: "barcode.viewfinder")
                         }
-                        .accessibilityLabel(L10n.tr("inventory.scan_barcode"))
+                        .appControlHint(L10n.tr("inventory.scan_barcode"))
                     }
                 }
             }
@@ -335,7 +335,7 @@ extension View {
         text: Binding<String>,
         onScanned: ((String) -> Void)? = nil
     ) -> some View {
-        onChange(of: text.wrappedValue) { newValue in
+        onChange(of: text.wrappedValue) { _, newValue in
             guard let code = MacBarcodeWedgeInput.normalizedScanFromSearchField(newValue) else { return }
             guard code != newValue else { return }
             text.wrappedValue = code

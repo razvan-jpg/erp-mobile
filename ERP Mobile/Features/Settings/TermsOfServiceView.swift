@@ -46,7 +46,7 @@ struct TermsOfServiceView: View {
         .onAppear {
             Task { await loadTerms() }
         }
-        .onChange(of: localeManager.language) { _ in
+        .onChange(of: localeManager.language) { _, _ in
             Task { await loadTerms() }
         }
     }

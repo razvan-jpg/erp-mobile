@@ -17,11 +17,14 @@ struct ProductDetailView: View {
     @State private var unitateAchizitie: String
     @State private var factorConversieText: String
     @State private var tip: ProductKind
+    @State private var cantitateMinimaText: String
+    @State private var cantitateOptimaText: String
     @State private var inCatalog: Bool
     @State private var inStockSheet: Bool
     @State private var hasRecipe: Bool
     @State private var selectedVatRate: Decimal
     @State private var pretVanzareText: String
+    @State private var pretVanzareOnlineText: String
     @State private var imagineUrl: String?
     @State private var showPhotoLibrary = false
     @State private var showCamera = false
@@ -75,11 +78,14 @@ struct ProductDetailView: View {
         _unitateAchizitie = State(initialValue: product.unitateAchizitie ?? "")
         _factorConversieText = State(initialValue: SupplierFormatting.amountString(product.factorConversie))
         _tip = State(initialValue: product.tip)
+        _cantitateMinimaText = State(initialValue: SupplierFormatting.amountString(product.cantitateMinima))
+        _cantitateOptimaText = State(initialValue: SupplierFormatting.amountString(product.cantitateOptima))
         _inCatalog = State(initialValue: product.inCatalog)
         _inStockSheet = State(initialValue: product.inStockSheet)
         _hasRecipe = State(initialValue: product.hasRecipe)
         _selectedVatRate = State(initialValue: product.cotaTva)
         _pretVanzareText = State(initialValue: product.pretVanzareInputText)
+        _pretVanzareOnlineText = State(initialValue: product.pretVanzareOnlineInputText)
         _imagineUrl = State(initialValue: product.imagineUrl)
     }
 
@@ -89,6 +95,7 @@ struct ProductDetailView: View {
                 imageSection
                 categorySection
                 identitySection
+                minimumStockSection
                 pricingSection
                 catalogSection
                 cmGroupsSection
@@ -250,7 +257,7 @@ struct ProductDetailView: View {
                 Button {
                     showPhotoLibrary = true
                 } label: {
-                    Label(L10n.tr("module.products.pick_image_gallery"), systemImage: "photo.on.rectangle.angled")
+                    Label(L10n.tr("module.products.pick_image_gallery"), systemImage: "photo.on.rectangle.angled").appHoverTip(L10n.tr("module.products.pick_image_gallery"))
                 }
                 .disabled(isSaving || isUploadingImage || isSearchingImageOnline)
 
@@ -258,7 +265,7 @@ struct ProductDetailView: View {
                     Button {
                         showCamera = true
                     } label: {
-                        Label(L10n.tr("module.products.take_photo"), systemImage: "camera")
+                        Label(L10n.tr("module.products.take_photo"), systemImage: "camera").appHoverTip(L10n.tr("module.products.take_photo"))
                     }
                     .disabled(isSaving || isUploadingImage || isSearchingImageOnline)
                 }
@@ -267,7 +274,7 @@ struct ProductDetailView: View {
                     Button {
                         Task { await findImageOnline() }
                     } label: {
-                        Label(L10n.tr("module.products.find_image_online"), systemImage: "globe")
+                        Label(L10n.tr("module.products.find_image_online"), systemImage: "globe").appHoverTip(L10n.tr("module.products.find_image_online"))
                     }
                     .disabled(isSaving || isUploadingImage || isSearchingImageOnline)
                 }
@@ -291,7 +298,12 @@ struct ProductDetailView: View {
         Section(header: Text(L10n.tr("module.products.section_identity"))) {
             if canEdit {
                 FormTextField(title: L10n.tr("module.products.field_name"), text: $denumire, isRequired: true)
-                FormTextField(title: L10n.tr("module.products.field_code"), text: $cod, autocapitalization: .characters)
+                FormTextField(
+                    title: L10n.tr("module.products.field_code"),
+                    text: $cod,
+                    isRequired: true,
+                    autocapitalization: .characters
+                )
                 FormTextField(
                     title: L10n.tr("inventory.physical_field_barcode"),
                     text: $codBare,
@@ -301,7 +313,7 @@ struct ProductDetailView: View {
                 Button {
                     showFieldScanner = true
                 } label: {
-                    Label(L10n.tr("module.products.scan_fill_barcode"), systemImage: "barcode.viewfinder")
+                    Label(L10n.tr("module.products.scan_fill_barcode"), systemImage: "barcode.viewfinder").appHoverTip(L10n.tr("module.products.scan_fill_barcode"))
                 }
                 .disabled(isSaving || isLookingUpName)
 
@@ -309,7 +321,7 @@ struct ProductDetailView: View {
                     Button {
                         Task { await lookupNameFromBarcode() }
                     } label: {
-                        Label(L10n.tr("module.products.lookup_name_from_barcode"), systemImage: "magnifyingglass")
+                        Label(L10n.tr("module.products.lookup_name_from_barcode"), systemImage: "magnifyingglass").appHoverTip(L10n.tr("module.products.lookup_name_from_barcode"))
                     }
                     .disabled(isSaving || isLookingUpName)
                 }
@@ -353,6 +365,57 @@ struct ProductDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var minimumStockSection: some View {
+        if tip != .produsFinit {
+            Section {
+                if canEdit {
+                    FormTextField(
+                        title: L10n.tr("module.products.field_min_stock"),
+                        text: $cantitateMinimaText,
+                        keyboardType: .decimalPad
+                    )
+                    FormTextField(
+                        title: L10n.tr("module.products.field_optimal_stock"),
+                        text: $cantitateOptimaText,
+                        keyboardType: .decimalPad
+                    )
+                } else {
+                    AppLabeledContent(
+                        L10n.tr("module.products.field_min_stock"),
+                        value: "\(SupplierFormatting.amountString(parsedMinimumStock)) \(unitateMasura)"
+                    )
+                    AppLabeledContent(
+                        L10n.tr("module.products.field_optimal_stock"),
+                        value: "\(SupplierFormatting.amountString(parsedOptimalStock)) \(unitateMasura)"
+                    )
+                }
+            } header: {
+                Text(L10n.tr("module.products.section_min_stock"))
+            } footer: {
+                Text(L10n.tr("module.products.field_min_stock_hint"))
+            }
+        }
+    }
+
+    private var parsedMinimumStock: Decimal {
+        guard tip != .produsFinit else { return 0 }
+        let parsed = SupplierFormatting.parseAmount(
+            cantitateMinimaText,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        ) ?? 0
+        return max(0, parsed)
+    }
+
+    private var parsedOptimalStock: Decimal {
+        guard tip != .produsFinit else { return 0 }
+        let parsed = SupplierFormatting.parseAmount(
+            cantitateOptimaText,
+            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+        ) ?? 0
+        return max(0, parsed)
+    }
+
     private var categoryBinding: Binding<ProductKind> {
         Binding(
             get: { tip.isArticleCategory ? tip : .materiePrima },
@@ -370,6 +433,7 @@ struct ProductDetailView: View {
                 canEdit: canEdit,
                 selectedVatRate: $selectedVatRate,
                 pretVanzareText: $pretVanzareText,
+                pretVanzareOnlineText: $pretVanzareOnlineText,
                 isSaving: isSaving,
                 showsSaveButton: false,
                 onSave: {}
@@ -615,7 +679,13 @@ struct ProductDetailView: View {
             errorMessage = ProductCreateError.missingName.localizedDescription
             return
         }
-        guard let pretVanzare = ProductService.parseSalePrice(pretVanzareText) else {
+        let trimmedCode = cod.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCode.isEmpty else {
+            errorMessage = ProductCreateError.missingCode.localizedDescription
+            return
+        }
+        guard let pretVanzare = ProductService.parseSalePrice(pretVanzareText),
+              let pretVanzareOnline = ProductService.parseSalePrice(pretVanzareOnlineText) else {
             errorMessage = ProductCreateError.invalidSalePrice.localizedDescription
             return
         }
@@ -645,7 +715,9 @@ struct ProductDetailView: View {
                     unitateMasura: unitateMasura,
                     unitateAchizitie: unitateAchizitie,
                     factorConversie: factorConversie,
-                    tip: tip
+                    tip: tip,
+                    cantitateMinima: parsedMinimumStock,
+                    cantitateOptima: parsedOptimalStock
                 )
             )
             applyUpdatedProduct(updatedDetails)
@@ -662,10 +734,12 @@ struct ProductDetailView: View {
                 productId: product.id,
                 cotaTva: vatRate,
                 pretVanzare: pretVanzare,
+                pretVanzareOnline: pretVanzareOnline,
                 isVatPayer: isVatPayer
             )
             selectedVatRate = ProductVATRates.normalizedRate(updatedPricing.cotaTva, isVatPayer: isVatPayer)
             pretVanzareText = updatedPricing.pretVanzareInputText
+            pretVanzareOnlineText = updatedPricing.pretVanzareOnlineInputText
 
             if selectedCMGroupIds != initialCMGroupIds {
                 try await CMProductGroupService.setProductGroups(
@@ -804,6 +878,8 @@ struct ProductDetailView: View {
         unitateAchizitie = updated.unitateAchizitie ?? ""
         factorConversieText = SupplierFormatting.amountString(updated.factorConversie)
         tip = updated.tip
+        cantitateMinimaText = SupplierFormatting.amountString(updated.cantitateMinima)
+        cantitateOptimaText = SupplierFormatting.amountString(updated.cantitateOptima)
         imagineUrl = updated.imagineUrl
     }
 }

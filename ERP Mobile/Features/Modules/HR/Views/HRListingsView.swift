@@ -52,13 +52,13 @@ struct HRListingsView: View {
                 Button {
                     Task { await export(.journal, applyNoteStyle: true) }
                 } label: {
-                    Label(L10n.tr("utilities.payroll_nc.preview"), systemImage: "doc.text.magnifyingglass")
+                    Label(L10n.tr("utilities.payroll_nc.preview"), systemImage: "doc.text.magnifyingglass").appHoverTip(L10n.tr("utilities.payroll_nc.preview"))
                 }
                 .disabled(!access.canView || isLoading)
                 Button {
                     Task { await export(.nextUpExcel) }
                 } label: {
-                    Label(L10n.tr("module.hr.listing_nextUpExcel"), systemImage: "tablecells")
+                    Label(L10n.tr("module.hr.listing_nextUpExcel"), systemImage: "tablecells").appHoverTip(L10n.tr("module.hr.listing_nextUpExcel"))
                 }
                 .disabled(!access.canView || isLoading)
             } header: {
@@ -100,7 +100,7 @@ struct HRListingsView: View {
         Button {
             Task { await export(kind) }
         } label: {
-            Label(L10n.tr("module.hr.listing_\(kind.rawValue)"), systemImage: image)
+            Label(L10n.tr("module.hr.listing_\(kind.rawValue)"), systemImage: image).appHoverTip(L10n.tr("module.hr.listing_\(kind.rawValue)"))
         }
         .disabled(!access.canView || isLoading)
     }

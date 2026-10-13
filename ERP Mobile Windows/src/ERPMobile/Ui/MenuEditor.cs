@@ -12,7 +12,8 @@ public sealed class MenuEditor : Window
     private readonly AppSession _session;
     private readonly string? _menuId;
     private readonly TextBox _name = new() { Watermark = "Denumire meniu" };
-    private readonly TextBox _price = new() { Watermark = "Preț vânzare" };
+    private readonly TextBox _price = new() { Watermark = "Preț vânzare In Store" };
+    private readonly TextBox _onlinePrice = new() { Watermark = "Preț vânzare On Line" };
     private readonly CheckBox _active = new() { Content = "Activ", IsChecked = true };
     private readonly CheckBox _multiple = new() { Content = "La vânzare se pot alege mai multe produse secundare" };
     private readonly TextBlock _code = new() { TextWrapping = TextWrapping.Wrap };
@@ -97,8 +98,10 @@ public sealed class MenuEditor : Window
         var form = new StackPanel { Spacing = 10 };
         form.Children.Add(Label("Denumire"));
         form.Children.Add(_name);
-        form.Children.Add(Label("Preț vânzare"));
+        form.Children.Add(Label("Preț vânzare In Store"));
         form.Children.Add(_price);
+        form.Children.Add(Label("Preț vânzare On Line"));
+        form.Children.Add(_onlinePrice);
         form.Children.Add(_code);
         form.Children.Add(_active);
         form.Children.Add(_multiple);
@@ -152,12 +155,17 @@ public sealed class MenuEditor : Window
             _code.Text = "Codul de produs se alocă automat și este unic.";
             return;
         }
-        var menus = await _session.SelectRows("cm_menus", "id=eq." + _menuId + "&select=name,pret_vanzare,is_active,cod,permite_secundare_multiple");
+        var menus = await _session.SelectRows("cm_menus", "id=eq." + _menuId + "&select=name,pret_vanzare,pret_vanzare_online,is_active,cod,permite_secundare_multiple");
         if (menus.ValueKind == JsonValueKind.Array && menus.GetArrayLength() > 0)
         {
             var menu = menus[0];
             _name.Text = Text(menu, "name");
-            _price.Text = Number(menu, "pret_vanzare").ToString("0.##", CultureInfo.GetCultureInfo("ro-RO"));
+            var store = Number(menu, "pret_vanzare");
+            var online = menu.TryGetProperty("pret_vanzare_online", out _) ? Number(menu, "pret_vanzare_online") : store;
+            if (online == 0 && store != 0)
+                online = store;
+            _price.Text = store.ToString("0.##", CultureInfo.GetCultureInfo("ro-RO"));
+            _onlinePrice.Text = online.ToString("0.##", CultureInfo.GetCultureInfo("ro-RO"));
             _active.IsChecked = menu.TryGetProperty("is_active", out var flag) && flag.ValueKind == JsonValueKind.True;
             _multiple.IsChecked = menu.TryGetProperty("permite_secundare_multiple", out var many) && many.ValueKind == JsonValueKind.True;
             var code = Text(menu, "cod");
@@ -221,7 +229,16 @@ public sealed class MenuEditor : Window
         var name = _name.Text?.Trim() ?? "";
         if (name.Length == 0 || !TryPrice(_price.Text, out var price))
         {
-            _error.Text = "Completați denumirea și prețul.";
+            _error.Text = "Completați denumirea și prețul In Store.";
+            return;
+        }
+        var onlineText = _onlinePrice.Text?.Trim() ?? "";
+        decimal onlinePrice;
+        if (onlineText.Length == 0)
+            onlinePrice = price;
+        else if (!TryPrice(onlineText, out onlinePrice))
+        {
+            _error.Text = "Prețul On Line nu este valid.";
             return;
         }
         var main = (_main.SelectedItem as ProductPick)?.Id ?? Guid.Empty;
@@ -248,6 +265,7 @@ public sealed class MenuEditor : Window
             {
                 ["name"] = name,
                 ["pret_vanzare"] = price.ToString(CultureInfo.InvariantCulture),
+                ["pret_vanzare_online"] = onlinePrice.ToString(CultureInfo.InvariantCulture),
                 ["is_active"] = _active.IsChecked == true,
                 ["permite_secundare_multiple"] = _multiple.IsChecked == true
             };

@@ -33,8 +33,10 @@ enum ProductRecipeService {
         ingredient:products!product_recipe_lines_ingredient_product_id_fkey(id, denumire, cod, unitate_masura, tip)
         """
 
+    /// Materie primă / marfă / ambalaj / consumabile — și produse finite (consum 1/1 din rețeta lor).
     static let allowedIngredientKinds: Set<ProductKind> = [
         .materiePrima,
+        .produsFinit,
         .ambalaj,
         .materialeConsumabile,
         .marfa,

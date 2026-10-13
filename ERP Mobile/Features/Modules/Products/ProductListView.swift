@@ -22,6 +22,18 @@ enum ProductListScope {
     }
 }
 
+private enum ProductListLayoutMode: String, CaseIterable {
+    case tiles
+    case list
+
+    var systemImage: String {
+        switch self {
+        case .tiles: return "square.grid.2x2"
+        case .list: return "list.bullet"
+        }
+    }
+}
+
 struct ProductListView: View {
     let scope: ProductListScope
     let canEdit: Bool
@@ -29,8 +41,11 @@ struct ProductListView: View {
     var canDelete: Bool = false
 
     @EnvironmentObject private var companyManager: CompanyManager
+    @AppStorage("products.list.layout") private var layoutRaw = ProductListLayoutMode.tiles.rawValue
+    @State private var selectedCategoryRaws: Set<String> = []
     @State private var products: [Product] = []
     @State private var stockByProductId: [UUID: Decimal] = [:]
+    @State private var locationStockByProductId: [UUID: [ProductLocationStock]] = [:]
     @State private var productionCostByProductId: [UUID: Decimal] = [:]
     @State private var purchasePriceByProductId: [UUID: Decimal] = [:]
     @State private var isLoading = false
@@ -40,7 +55,7 @@ struct ProductListView: View {
     @State private var menus: [CMMenu] = []
     @State private var menuImages: [UUID: String] = [:]
     @State private var groupIdsByProduct: [UUID: Set<UUID>] = [:]
-    @State private var selectedGroupId: UUID?
+    @State private var selectedGroupIds: Set<UUID> = []
     @State private var selectedProduct: Product?
     @State private var selectedMenu: CMMenu?
     @State private var menuPendingDelete: CMMenu?
@@ -48,13 +63,27 @@ struct ProductListView: View {
     @State private var showScanner = false
     @State private var showCreate = false
     @State private var showCreateMenu = false
+    @State private var showGroupFilter = false
+    @State private var showCategoryFilter = false
 
     private var allowsCreate: Bool {
         scope == .articles && canCreate
     }
 
-    private var usesTileLayout: Bool {
+    private var supportsLayoutToggle: Bool {
         scope == .catalog || scope == .articles
+    }
+
+    private var layoutMode: ProductListLayoutMode {
+        ProductListLayoutMode(rawValue: layoutRaw) ?? .tiles
+    }
+
+    private var usesTileLayout: Bool {
+        supportsLayoutToggle && layoutMode == .tiles
+    }
+
+    private var loadsProductMetrics: Bool {
+        supportsLayoutToggle
     }
 
     private let tileColumns = [
@@ -64,8 +93,8 @@ struct ProductListView: View {
     ]
 
     private var showsMenus: Bool {
-        guard let selectedGroupId else { return false }
-        return catalogGroups.first(where: { $0.id == selectedGroupId })?.kind == .menus
+        let selected = catalogGroups.filter { selectedGroupIds.contains($0.id) }
+        return selected.count == 1 && selected[0].kind == .menus
     }
 
     private var filteredMenus: [CMMenu] {
@@ -79,8 +108,19 @@ struct ProductListView: View {
 
     private var filteredProducts: [Product] {
         var base = ProductSorting.sortedByName(products)
-        if let selectedGroupId {
-            base = base.filter { groupIdsByProduct[$0.id]?.contains(selectedGroupId) == true }
+        let productGroupIds = Set(
+            catalogGroups
+                .filter { selectedGroupIds.contains($0.id) && $0.kind != .menus }
+                .map(\.id)
+        )
+        if !productGroupIds.isEmpty {
+            base = base.filter { product in
+                guard let groups = groupIdsByProduct[product.id] else { return false }
+                return !groups.isDisjoint(with: productGroupIds)
+            }
+        }
+        if scope == .articles, !selectedCategoryRaws.isEmpty {
+            base = base.filter { selectedCategoryRaws.contains($0.tip.rawValue) }
         }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return base }
@@ -91,47 +131,164 @@ struct ProductListView: View {
         }
     }
 
-    private var selectedGroupTitle: String {
-        if let selectedGroupId,
-           let name = catalogGroups.first(where: { $0.id == selectedGroupId })?.name {
-            return name
+    private var selectedCategoryTitle: String {
+        if selectedCategoryRaws.isEmpty {
+            return L10n.tr("module.products.filter_categories_all")
         }
-        return L10n.tr("module.products.filter_group_all")
+        if selectedCategoryRaws.count == 1,
+           let raw = selectedCategoryRaws.first,
+           let kind = ProductKind(rawValue: raw) {
+            return kind.label
+        }
+        return L10n.tr("module.products.filter_categories_count", selectedCategoryRaws.count)
     }
 
-    private var groupFilterBar: some View {
-        HStack {
-            Menu {
-                Button(L10n.tr("module.products.filter_group_all")) {
-                    selectedGroupId = nil
+    private var selectedGroupTitle: String {
+        let names = catalogGroups.filter { selectedGroupIds.contains($0.id) }.map(\.name)
+        if names.isEmpty {
+            return L10n.tr("module.products.filter_group_all")
+        }
+        if names.count == 1 {
+            return names[0]
+        }
+        return L10n.tr("module.products.filter_groups_count", names.count)
+    }
+
+    private func groupSelection(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { selectedGroupIds.contains(id) },
+            set: { isOn in
+                if isOn {
+                    selectedGroupIds.insert(id)
+                } else {
+                    selectedGroupIds.remove(id)
                 }
-                ForEach(catalogGroups) { group in
-                    Button(group.name) {
-                        selectedGroupId = group.id
+            }
+        )
+    }
+
+    private func categorySelection(_ raw: String) -> Binding<Bool> {
+        Binding(
+            get: { selectedCategoryRaws.contains(raw) },
+            set: { isOn in
+                if isOn {
+                    selectedCategoryRaws.insert(raw)
+                } else {
+                    selectedCategoryRaws.remove(raw)
+                }
+            }
+        )
+    }
+
+    private func filterCapsule(_ title: String, hint: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                Text(title)
+                    .lineLimit(1)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(AppColors.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color(.secondarySystemBackground)))
+        }
+        .buttonStyle(.plain)
+        .appControlHint(hint)
+    }
+
+    private var listToolbarBar: some View {
+        HStack(spacing: 10) {
+            if scope == .articles {
+                filterCapsule(selectedGroupTitle, hint: L10n.tr("common.filter") + ": " + selectedGroupTitle) {
+                    showGroupFilter = true
+                }
+                .popover(isPresented: $showGroupFilter, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(L10n.tr("module.products.filter_group_all")) {
+                            selectedGroupIds = []
+                        }
+                        ForEach(catalogGroups) { group in
+                            Toggle(group.name, isOn: groupSelection(group.id))
+                        }
+                    }
+                    .padding(16)
+                    .frame(minWidth: 220)
+                }
+            }
+
+            if scope == .articles, !showsMenus {
+                filterCapsule(selectedCategoryTitle, hint: L10n.tr("common.filter") + ": " + selectedCategoryTitle) {
+                    showCategoryFilter = true
+                }
+                .popover(isPresented: $showCategoryFilter, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(L10n.tr("module.products.filter_categories_all")) {
+                            selectedCategoryRaws = []
+                        }
+                        ForEach(ProductKind.articleCategories) { kind in
+                            Toggle(kind.label, isOn: categorySelection(kind.rawValue))
+                        }
+                    }
+                    .padding(16)
+                    .frame(minWidth: 220)
+                }
+
+                Text(articlesCountLabel)
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundColor(AppColors.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color(.secondarySystemBackground)))
+                    .appControlHint(articlesCountLabel)
+            }
+
+            Spacer(minLength: 8)
+
+            if supportsLayoutToggle, !showsMenus {
+                Picker(L10n.tr("module.products.layout_picker"), selection: layoutSelection) {
+                    ForEach(ProductListLayoutMode.allCases, id: \.rawValue) { mode in
+                        Image(systemName: mode.systemImage)
+                            .tag(mode.rawValue)
+                            .appControlHint(layoutAccessibilityLabel(mode))
                     }
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                    Text(selectedGroupTitle)
-                        .lineLimit(1)
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color(.secondarySystemBackground)))
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 120)
+                .appControlHint(L10n.tr("module.products.layout_picker"))
             }
-            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
 
+    private var articlesCountLabel: String {
+        let total = products.count
+        let visible = filteredProducts.count
+        if visible != total {
+            return L10n.tr("module.products.articles_count_filtered", visible, total)
+        }
+        return L10n.tr("module.products.articles_count", total)
+    }
+
+    private var layoutSelection: Binding<String> {
+        Binding(
+            get: { layoutRaw },
+            set: { layoutRaw = $0 }
+        )
+    }
+
+    private func layoutAccessibilityLabel(_ mode: ProductListLayoutMode) -> String {
+        switch mode {
+        case .tiles: return L10n.tr("module.products.layout_tiles")
+        case .list: return L10n.tr("module.products.layout_list")
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            if scope == .articles {
-                groupFilterBar
+            if scope == .articles || supportsLayoutToggle {
+                listToolbarBar
             }
             Group {
                 if showsMenus {
@@ -170,6 +327,7 @@ struct ProductListView: View {
                                 ProductTileView(
                                     product: product,
                                     stockQuantity: stockByProductId[product.id] ?? 0,
+                                    locationStocks: locationStockByProductId[product.id] ?? [],
                                     productionCost: productionCostByProductId[product.id],
                                     purchasePrice: purchasePriceByProductId[product.id],
                                     showsExtendedMetrics: true
@@ -184,10 +342,15 @@ struct ProductListView: View {
                     .appScrollBottomPadding()
                 } else {
                     List(filteredProducts) { product in
-                        ProductRowView(product: product) {
+                        ProductRowView(
+                            product: product,
+                            stockQuantity: stockByProductId[product.id] ?? 0,
+                            locationStocks: locationStockByProductId[product.id] ?? []
+                        ) {
                             selectedProduct = product
                         }
                     }
+                    .listStyle(.plain)
                     .appScrollBottomPadding()
                 }
             }
@@ -211,17 +374,9 @@ struct ProductListView: View {
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .floatingBottomTrailing {
             if showsMenus && canCreate {
-                Button { showCreateMenu = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreateMenu = true }
             } else if allowsCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appTask { await loadProducts() }
@@ -317,6 +472,7 @@ struct ProductListView: View {
             menuImages = [:]
             groupIdsByProduct = [:]
             stockByProductId = [:]
+            locationStockByProductId = [:]
             productionCostByProductId = [:]
             purchasePriceByProductId = [:]
             return
@@ -343,9 +499,9 @@ struct ProductListView: View {
                     menus = try await CMProductGroupService.fetchMenus(companyId: companyId)
                     menuImages = (try? await CMProductGroupService.fetchMainProductImages(menuIds: menus.map(\.id))) ?? [:]
                     groupIdsByProduct = try await CMProductGroupService.fetchProductGroupIds(companyId: companyId)
-                    if let selectedGroupId, !catalogGroups.contains(where: { $0.id == selectedGroupId }) {
-                        self.selectedGroupId = nil
-                    }
+                    selectedGroupIds = Set(selectedGroupIds.filter { id in
+                        catalogGroups.contains(where: { $0.id == id })
+                    })
                 } catch {
                     catalogGroups = []
                     menus = []
@@ -357,15 +513,20 @@ struct ProductListView: View {
                 menus = []
             menuImages = [:]
                 groupIdsByProduct = [:]
-                selectedGroupId = nil
+                selectedGroupIds = []
             }
-            if usesTileLayout {
+            if loadsProductMetrics {
                 let stockRows = try await InventoryService.fetchStockRows(companyId: companyId)
                 stockByProductId = Dictionary(uniqueKeysWithValues: stockRows.map { ($0.productId, $0.cantitate) })
+                locationStockByProductId = try await InventoryService.fetchLocationStocksByProduct(
+                    companyId: companyId,
+                    productIds: products.map(\.id)
+                )
                 productionCostByProductId = try await ProductRecipeService.fetchProductionCosts(companyId: companyId)
                 purchasePriceByProductId = try await ProductRecipeService.fetchLatestPurchasePrices(companyId: companyId)
             } else {
                 stockByProductId = [:]
+                locationStockByProductId = [:]
                 productionCostByProductId = [:]
                 purchasePriceByProductId = [:]
             }
@@ -376,6 +537,7 @@ struct ProductListView: View {
             menuImages = [:]
             groupIdsByProduct = [:]
             stockByProductId = [:]
+            locationStockByProductId = [:]
             productionCostByProductId = [:]
             purchasePriceByProductId = [:]
             errorMessage = error.localizedDescription
@@ -399,6 +561,8 @@ struct ProductListView: View {
 
 private struct ProductRowView: View {
     let product: Product
+    var stockQuantity: Decimal = 0
+    var locationStocks: [ProductLocationStock] = []
     let onTap: () -> Void
 
     var body: some View {
@@ -408,6 +572,13 @@ private struct ProductRowView: View {
                     .font(.headline)
                     .foregroundColor(AppColors.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(product.pretVanzare)))
+                    Text(L10n.tr("module.products.tile_sale_price_online", SupplierFormatting.amountString(product.pretVanzareOnline)))
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.blue)
 
                 HStack(spacing: 8) {
                     if let cod = product.cod, !cod.isEmpty {
@@ -419,6 +590,53 @@ private struct ProductRowView: View {
                         .font(.caption)
                         .foregroundColor(AppColors.secondary)
                 }
+
+                if !locationStocks.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(locationStocks) { line in
+                            Text(
+                                L10n.tr(
+                                    "module.products.tile_stock_location",
+                                    line.locationName,
+                                    SupplierFormatting.amountString(line.quantity),
+                                    product.unitateMasura
+                                )
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondary)
+                        }
+                    }
+                } else {
+                    Text(
+                        L10n.tr(
+                            "module.products.tile_stock",
+                            SupplierFormatting.amountString(stockQuantity),
+                            product.unitateMasura
+                        )
+                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondary)
+                }
+
+                Text(
+                    L10n.tr(
+                        "module.products.tile_min_stock",
+                        SupplierFormatting.amountString(product.cantitateMinima),
+                        product.unitateMasura
+                    )
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondary)
+
+                Text(
+                    L10n.tr(
+                        "module.products.tile_optimal_stock",
+                        SupplierFormatting.amountString(product.cantitateOptima),
+                        product.unitateMasura
+                    )
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondary)
 
                 HStack(spacing: 8) {
                     if product.inCatalog {
@@ -435,6 +653,8 @@ private struct ProductRowView: View {
                 }
             }
             .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -473,7 +693,10 @@ private struct ArticleMenuTile: View {
                             .font(.caption)
                             .foregroundColor(AppColors.secondary)
                     }
-                    Text(SupplierFormatting.amountString(menu.pretVanzare) + " RON")
+                    Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(menu.pretVanzare)))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.secondary)
+                    Text(L10n.tr("module.products.tile_sale_price_online", SupplierFormatting.amountString(menu.pretVanzareOnline)))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondary)
                     if !menu.isActive {
@@ -498,7 +721,7 @@ private struct ArticleMenuTile: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Șterge meniul")
+                .appControlHint("Șterge meniul")
             }
         }
     }

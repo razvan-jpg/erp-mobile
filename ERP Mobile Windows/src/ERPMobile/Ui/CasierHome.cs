@@ -79,23 +79,31 @@ public sealed class CasierHome : UserControl
         var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 640 };
         page.Children.Add(Back("← Producție", ShowProduction));
         page.Children.Add(Title("Bon producție"));
+        page.Children.Add(ActionButton("Bon producție nou", () => Dispatcher.UIThread.Post(() => _ = ShowCreateProductionNote())));
         _host.Child = new ScrollViewer { Content = page };
         try
         {
             var company = Company();
-            var rows = await _session.SelectRows("products", $"company_id=eq.{company}&has_recipe=eq.true&is_active=eq.true&select=id,cod,denumire&order=denumire.asc");
+            var rows = await _session.SelectRows(
+                "production_vouchers",
+                $"company_id=eq.{company}&select=id,numar,data_bon,cantitate,unitate_masura,product:products(denumire),warehouse:company_warehouses(denumire)&order=data_bon.desc");
             if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
             {
-                page.Children.Add(Muted("Nu există articole cu rețetă de producție."));
+                page.Children.Add(Muted("Nu există bonuri de producție. Creați unul: gestiune, produs finit și cantitate."));
                 return;
             }
             foreach (var row in rows.EnumerateArray())
             {
-                var name = TextOf(row, "denumire");
-                var code = TextOf(row, "cod");
+                var number = TextOf(row, "numar");
+                var date = TextOf(row, "data_bon");
+                var qty = TextOf(row, "cantitate");
+                var unit = TextOf(row, "unitate_masura");
+                var product = NestedText(row, "product", "denumire");
+                var warehouse = NestedText(row, "warehouse", "denumire");
                 page.Children.Add(new TextBlock
                 {
-                    Text = string.IsNullOrWhiteSpace(code) ? name : name + "  ·  " + code,
+                    Text = "BP " + number + "  ·  " + date + "  ·  " + product + "  ·  " + qty + " " + unit
+                        + (string.IsNullOrWhiteSpace(warehouse) ? "" : "  ·  " + warehouse),
                     Foreground = Brand.Brush(Brand.Navy),
                     FontSize = 15,
                     TextWrapping = TextWrapping.Wrap
@@ -106,6 +114,145 @@ public sealed class CasierHome : UserControl
         {
             page.Children.Add(new TextBlock { Text = ex.Message, Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap });
         }
+    }
+
+    private async Task ShowCreateProductionNote()
+    {
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 520 };
+        page.Children.Add(Back("← Bonuri producție", () => Dispatcher.UIThread.Post(() => _ = ShowProductionNotes())));
+        page.Children.Add(Title("Bon producție nou"));
+        _host.Child = new ScrollViewer { Content = page };
+
+        var warehouseCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
+        var productCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
+        var qtyBox = new TextBox { Watermark = "Cantitate" };
+        var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Firebrick };
+
+        page.Children.Add(Muted("Gestiune"));
+        page.Children.Add(warehouseCombo);
+        page.Children.Add(Muted("Produs finit (cu rețetă)"));
+        page.Children.Add(productCombo);
+        page.Children.Add(Muted("Cantitate"));
+        page.Children.Add(qtyBox);
+        page.Children.Add(Muted("La salvare: +stoc produs finit, −consum rețetă (inclusiv PF imbricate) pe gestiunea aleasă."));
+        page.Children.Add(status);
+
+        try
+        {
+            var company = Company();
+            var warehouses = await _session.SelectRows(
+                "company_warehouses",
+                $"company_id=eq.{company}&is_active=eq.true&select=id,denumire&order=denumire.asc");
+            var products = await _session.SelectRows(
+                "products",
+                $"company_id=eq.{company}&has_recipe=eq.true&tip=eq.produs_finit&is_active=eq.true&select=id,denumire,cod,unitate_masura&order=denumire.asc");
+
+            var warehouseItems = new List<NamedPick>();
+            if (warehouses.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in warehouses.EnumerateArray())
+                    warehouseItems.Add(new NamedPick(row.GetProperty("id").GetGuid(), TextOf(row, "denumire")));
+            }
+            warehouseCombo.ItemsSource = warehouseItems;
+            if (warehouseItems.Count > 0)
+                warehouseCombo.SelectedIndex = 0;
+
+            var productItems = new List<NamedPick>();
+            if (products.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in products.EnumerateArray())
+                {
+                    var name = TextOf(row, "denumire");
+                    var code = TextOf(row, "cod");
+                    var unit = TextOf(row, "unitate_masura");
+                    var label = string.IsNullOrWhiteSpace(code) ? name : name + "  ·  " + code;
+                    if (!string.IsNullOrWhiteSpace(unit))
+                        label += " (" + unit + ")";
+                    productItems.Add(new NamedPick(row.GetProperty("id").GetGuid(), label));
+                }
+            }
+            productCombo.ItemsSource = productItems;
+            if (productItems.Count == 0)
+                status.Text = "Nu există produse finite cu rețetă.";
+            else
+                productCombo.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            status.Text = ex.Message;
+        }
+
+        var save = new Button
+        {
+            Content = "Salvează",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = Brand.Brush(Brand.Gold),
+            Foreground = Brushes.White,
+            Padding = new Avalonia.Thickness(16, 10),
+            CornerRadius = new Avalonia.CornerRadius(8)
+        };
+        save.Click += (_, _) => Dispatcher.UIThread.Post(() => _ = SaveProductionNote(warehouseCombo, productCombo, qtyBox, status));
+        page.Children.Add(save);
+    }
+
+    private async Task SaveProductionNote(ComboBox warehouseCombo, ComboBox productCombo, TextBox qtyBox, TextBlock status)
+    {
+        status.Text = "";
+        status.Foreground = Brushes.Firebrick;
+        try
+        {
+            if (warehouseCombo.SelectedItem is not NamedPick warehouse)
+            {
+                status.Text = "Alegeți gestiunea.";
+                return;
+            }
+            if (productCombo.SelectedItem is not NamedPick product)
+            {
+                status.Text = "Alegeți produsul finit.";
+                return;
+            }
+            var qtyText = (qtyBox.Text ?? "").Trim().Replace(',', '.');
+            if (!decimal.TryParse(qtyText, NumberStyles.Number, CultureInfo.InvariantCulture, out var qty) || qty <= 0)
+            {
+                status.Text = "Introduceți o cantitate mai mare decât zero.";
+                return;
+            }
+
+            var company = Company();
+            await _session.Rpc("post_production_voucher", new
+            {
+                p_company_id = company.ToString(),
+                p_data_bon = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                p_warehouse_id = warehouse.Id.ToString(),
+                p_product_id = product.Id.ToString(),
+                p_cantitate = qty,
+                p_observatii = (string?)null
+            });
+            await ShowProductionNotes();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.Message;
+            if (message.Contains("PRODUCTION_INSUFFICIENT_STOCK", StringComparison.OrdinalIgnoreCase))
+                message = "Stoc insuficient în gestiune pentru materiile din rețetă.";
+            else if (message.Contains("PRODUCTION_RECIPE_EMPTY", StringComparison.OrdinalIgnoreCase))
+                message = "Produsul nu are rețetă de producție.";
+            else if (message.Contains("PRODUCTION_PRODUCT_NOT_ALLOWED", StringComparison.OrdinalIgnoreCase))
+                message = "Alegeți un produs finit cu rețetă.";
+            status.Text = message;
+        }
+    }
+
+    private static string NestedText(JsonElement row, string objectName, string field)
+    {
+        if (!row.TryGetProperty(objectName, out var nested) || nested.ValueKind != JsonValueKind.Object)
+            return "";
+        return TextOf(nested, field);
+    }
+
+    private sealed record NamedPick(Guid Id, string Label)
+    {
+        public override string ToString() => Label;
     }
 
     private async Task ShowLocations()

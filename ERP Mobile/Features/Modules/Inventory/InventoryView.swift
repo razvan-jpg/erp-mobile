@@ -11,6 +11,7 @@ struct InventoryView: View {
 
     private enum Section: CaseIterable, Identifiable {
         case stocks
+        case reorder
         case movements
         case physicalInventory
 
@@ -19,6 +20,7 @@ struct InventoryView: View {
         var title: String {
             switch self {
             case .stocks: return L10n.tr("module.inventory.tab_stocks")
+            case .reorder: return L10n.tr("module.inventory.tab_reorder")
             case .movements: return L10n.tr("module.inventory.tab_movements")
             case .physicalInventory: return L10n.tr("module.inventory.tab_physical_inventory")
             }
@@ -27,6 +29,7 @@ struct InventoryView: View {
         var icon: String {
             switch self {
             case .stocks: return "shippingbox.fill"
+            case .reorder: return "cart.badge.plus"
             case .movements: return "arrow.left.arrow.right"
             case .physicalInventory: return "list.clipboard"
             }
@@ -69,7 +72,7 @@ struct InventoryView: View {
         .navigationTitle(module.name)
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }
@@ -79,6 +82,8 @@ struct InventoryView: View {
         switch selectedSection {
         case .stocks:
             StockListView(canEdit: access.canEdit)
+        case .reorder:
+            StockReorderListView()
         case .movements:
             StockMovementsListView()
         case .physicalInventory:

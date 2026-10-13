@@ -291,6 +291,7 @@ struct CompanyParametrizareView: View {
                         }
                     }
                     .buttonStyle(AppButtonStyles.bordered)
+                    .appControlHint(L10n.tr("common.anaf"))
                     .disabled(isFetchingAnaf || Validators.normalizedCUI(cui) == nil)
                 }
             }

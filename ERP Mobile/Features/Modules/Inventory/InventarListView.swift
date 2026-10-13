@@ -4,17 +4,21 @@ struct InventarListView: View {
     let access: ModuleAccessRights
 
     @EnvironmentObject private var companyManager: CompanyManager
+    @EnvironmentObject private var session: SessionManager
     @State private var inventories: [PhysicalInventory] = []
     @State private var reports: [InventoryDifferenceReport] = []
     @State private var warehouses: [CompanyWarehouse] = []
+    @State private var zeroWarehouseId: UUID?
     @State private var listMode: InventoryListMode = .inventories
     @State private var selectedReport: InventoryDifferenceReport?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var successMessage: String?
     @State private var showCreate = false
     @State private var selectedInventory: PhysicalInventoryContext?
     @State private var inventoryToDelete: PhysicalInventory?
     @State private var showDeleteConfirm = false
+    @State private var showZeroStockConfirm = false
     @State private var searchText = ""
 
     private var filteredInventories: [PhysicalInventory] {
@@ -27,6 +31,14 @@ struct InventarListView: View {
         }
     }
 
+    private var activeWarehouses: [CompanyWarehouse] {
+        warehouses.filter(\.isActive)
+    }
+
+    private var selectedZeroWarehouseName: String {
+        activeWarehouses.first { $0.id == zeroWarehouseId }?.denumire ?? "—"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Picker(L10n.tr("inventory.physical_list_mode"), selection: $listMode) {
@@ -36,8 +48,38 @@ struct InventarListView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
             .padding(.top, 8)
+
+            if session.isSuperAdmin, listMode == .inventories {
+                superadminZeroStockBar
+            }
+
             listContent
         }
+    }
+
+    private var superadminZeroStockBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker(L10n.tr("inventory.field_warehouse"), selection: $zeroWarehouseId) {
+                Text(L10n.tr("common.select")).tag(Optional<UUID>.none)
+                ForEach(activeWarehouses) { warehouse in
+                    Text(warehouse.denumire).tag(Optional(warehouse.id))
+                }
+            }
+            Button {
+                showZeroStockConfirm = true
+            } label: {
+                Text(L10n.tr("inventory.zero_stock_button"))
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .disabled(zeroWarehouseId == nil || isLoading)
+        }
+        .padding(.horizontal)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
     }
 
     @ViewBuilder
@@ -74,11 +116,7 @@ struct InventarListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -89,12 +127,29 @@ struct InventarListView: View {
                     .frame(maxWidth: .infinity)
                     .padding(8)
                     .appBarBackground()
+            } else if let successMessage {
+                Text(successMessage)
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .frame(maxWidth: .infinity)
+                    .padding(8)
+                    .appBarBackground()
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
         .appTask { await loadInventories() }
         .appRefreshable {
             await loadInventories()
+        }
+        .alert(isPresented: $showZeroStockConfirm) {
+            Alert(
+                title: Text(L10n.tr("inventory.zero_stock_title")),
+                message: Text(L10n.tr("inventory.zero_stock_confirm", selectedZeroWarehouseName)),
+                primaryButton: .destructive(Text(L10n.tr("inventory.zero_stock_button"))) {
+                    Task { await zeroSelectedWarehouseStock() }
+                },
+                secondaryButton: .cancel()
+            )
         }
         .fullScreenCover(isPresented: $showCreate) {
             PhysicalInventoryCreateView(access: access) {
@@ -189,6 +244,20 @@ struct InventarListView: View {
         do {
             try await PhysicalInventoryService.deleteInventory(id: inventory.id)
             await loadInventories()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func zeroSelectedWarehouseStock() async {
+        guard session.isSuperAdmin, let warehouseId = zeroWarehouseId else { return }
+        isLoading = true
+        errorMessage = nil
+        successMessage = nil
+        do {
+            let count = try await InventoryService.zeroWarehouseStock(warehouseId: warehouseId)
+            successMessage = L10n.tr("inventory.zero_stock_done", count, selectedZeroWarehouseName)
         } catch {
             errorMessage = error.localizedDescription
         }

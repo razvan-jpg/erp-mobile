@@ -52,7 +52,7 @@ struct PendingSyncView: View {
                                 syncEngine.discardItem(id: item.id)
                                 reload()
                             } label: {
-                                Label(L10n.tr("offline.pending.discard"), systemImage: "trash")
+                                Label(L10n.tr("offline.pending.discard"), systemImage: "trash").appHoverTip(L10n.tr("offline.pending.discard"))
                             }
                         }
                     }
@@ -63,13 +63,13 @@ struct PendingSyncView: View {
                         syncEngine.retryAllFailed()
                         reload()
                     } label: {
-                        Label(L10n.tr("offline.pending.retry"), systemImage: "arrow.clockwise")
+                        Label(L10n.tr("offline.pending.retry"), systemImage: "arrow.clockwise").appHoverTip(L10n.tr("offline.pending.retry"))
                     }
                     Button {
                         syncEngine.scheduleSync(reason: "manual")
                         reload()
                     } label: {
-                        Label(L10n.tr("offline.pending.sync_now"), systemImage: "icloud.and.arrow.up")
+                        Label(L10n.tr("offline.pending.sync_now"), systemImage: "icloud.and.arrow.up").appHoverTip(L10n.tr("offline.pending.sync_now"))
                     }
                 }
             }

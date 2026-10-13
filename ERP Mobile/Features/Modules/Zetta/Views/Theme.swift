@@ -62,7 +62,7 @@ struct CompactSecondaryButtonStyle: ButtonStyle {
 }
 
 extension Decimal {
-    var moneyString: String {
+    nonisolated var moneyString: String {
         let n = NSDecimalNumber(decimal: self)
         let f = NumberFormatter()
         f.locale = Locale(identifier: "ro_RO")

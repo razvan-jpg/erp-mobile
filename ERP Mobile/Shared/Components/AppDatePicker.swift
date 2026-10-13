@@ -39,7 +39,7 @@ struct AppDatePicker: View {
             labelContent
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(L10n.tr("date.picker_accessibility"))
+        .appControlHint(L10n.tr("date.picker_accessibility"))
         .popover(isPresented: $isCalendarPresented, arrowEdge: .bottom) {
             calendarContent
         }

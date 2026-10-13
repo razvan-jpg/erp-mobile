@@ -145,11 +145,7 @@ struct ClientPaymentsListView: View {
         }
         .floatingBottomTrailing {
             if access.canCreate {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .appSymbolRenderingMode(.hierarchical)
-                }
+                FloatingAddIconButton { showCreate = true }
             }
         }
         .appSafeAreaInsetBottom {
@@ -248,23 +244,23 @@ private struct ClientPaymentRowView: View {
                     Image(systemName: "trash")
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.tr("common.delete"))
+                .appControlHint(L10n.tr("common.delete"))
             }
         }
         .contextMenu {
             Button(action: onEdit) {
-                Label(L10n.tr("common.edit"), systemImage: "pencil")
+                Label(L10n.tr("common.edit"), systemImage: "pencil").appHoverTip(L10n.tr("common.edit"))
             }
             if canDelete {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
         .appSwipeActions(edge: .trailing, allowsFullSwipe: false) {
             if canDelete {
                 Button(action: onDelete) {
-                    Label(L10n.tr("common.delete"), systemImage: "trash")
+                    Label(L10n.tr("common.delete"), systemImage: "trash").appHoverTip(L10n.tr("common.delete"))
                 }
             }
         }
@@ -415,7 +411,7 @@ struct ClientPaymentFormView: View {
                                 Text(client.denumire).tag(Optional(client.id))
                             }
                         }
-                        .onChange(of: selectedClientId) { newValue in
+                        .onChange(of: selectedClientId) { _, newValue in
                             selectedInvoiceIds = []
                             sumaManuallyEdited = false
                             if let newValue {
@@ -431,7 +427,7 @@ struct ClientPaymentFormView: View {
 
                 Section(header: Text(L10n.tr("client_collections.section_invoice_optional"))) {
                     Toggle(L10n.tr("client_collections.link_invoice"), isOn: $linkToInvoice)
-                        .onChange(of: linkToInvoice) { enabled in
+                        .onChange(of: linkToInvoice) { _, enabled in
                             if !enabled {
                                 selectedInvoiceIds = []
                                 sumaManuallyEdited = false
@@ -452,7 +448,7 @@ struct ClientPaymentFormView: View {
                             isApplyingAutoSuma: $isApplyingAutoSuma,
                             onSelectionChanged: refreshAutoReference
                         )
-                        .onChange(of: selectedInvoiceIds) { _ in
+                        .onChange(of: selectedInvoiceIds) { _, _ in
                             refreshAutoReference()
                         }
                     }
@@ -493,7 +489,7 @@ struct ClientPaymentFormView: View {
                         keyboardType: .decimalPad,
                         placeholder: SupplierFormatting.amountPlaceholder
                     )
-                    .onChange(of: suma) { _ in
+                    .onChange(of: suma) { _, _ in
                         if !isApplyingAutoSuma {
                             sumaManuallyEdited = true
                         }

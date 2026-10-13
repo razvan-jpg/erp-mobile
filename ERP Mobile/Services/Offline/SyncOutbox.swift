@@ -26,6 +26,7 @@ enum SyncOperationType: String, Codable, Sendable, CaseIterable {
     case physicalInventoryCreate
     case physicalInventoryUpsertLine
     case physicalInventoryFinalize
+    case physicalInventoryReopen
     case physicalInventoryDelete
     case physicalInventoryDeleteLine
     case clientInvoiceCreate

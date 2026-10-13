@@ -26,7 +26,7 @@ struct ZReportEditor: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.custom("Avenir Next", size: 15).weight(.semibold))
                     .foregroundStyle(Color.accentInk)
-                    .onChange(of: report.firma) { newValue in
+                    .onChange(of: report.firma) { _, newValue in
                         let normalized = Conturi.normalizedFirmaName(newValue)
                         if normalized != newValue {
                             report.firma = normalized
@@ -59,7 +59,7 @@ struct ZReportEditor: View {
                 }
                 .toggleStyle(.switch)
                 .tint(Color.accentWarm)
-                .onChange(of: report.isNightShift) { isNight in
+                .onChange(of: report.isNightShift) { _, isNight in
                     let cal = Calendar.current
                     let delta = isNight ? -1 : 1
                     if let next = cal.date(byAdding: .day, value: delta, to: cal.startOfDay(for: report.date)) {
@@ -235,11 +235,11 @@ private struct EditableMoneyField: View {
                 #endif
                 .focused($isFocused)
                 .onAppear { refreshDisplay() }
-                .onChange(of: value) { _ in
+                .onChange(of: value) { _, _ in
                     guard !isFocused else { return }
                     refreshDisplay()
                 }
-                .onChange(of: isFocused) { focused in
+                .onChange(of: isFocused) { _, focused in
                     if focused {
                         refreshForEditing()
                     } else {
@@ -247,7 +247,7 @@ private struct EditableMoneyField: View {
                         refreshDisplay()
                     }
                 }
-                .onChange(of: text) { newValue in
+                .onChange(of: text) { _, newValue in
                     guard isFocused else { return }
                     commit(from: newValue)
                 }

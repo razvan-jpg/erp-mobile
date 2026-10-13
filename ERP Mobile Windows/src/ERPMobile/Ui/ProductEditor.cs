@@ -20,7 +20,11 @@ public sealed class ProductEditor : Window
         ("materie_prima", "Materie primă"),
         ("produs_finit", "Produs finit"),
         ("ambalaj", "Ambalaj"),
-        ("materiale_consumabile", "Materiale consumabile")
+        ("materiale_consumabile", "Materiale consumabile"),
+        ("materiale_curatenie", "Materiale curățenie"),
+        ("birotica", "Birotică"),
+        ("servicii", "Servicii"),
+        ("garantie", "Garanție")
     ];
     private static readonly (string Code, string Label)[] PurchaseUnits =
     [
@@ -63,8 +67,13 @@ public sealed class ProductEditor : Window
     private readonly TextBlock _factorLabel = new() { Foreground = Brand.Brush(Brand.Muted), FontSize = 12 };
     private readonly TextBox _factor = new() { Text = "1" };
     private readonly StackPanel _factorRow = new() { Spacing = 4 };
+    private readonly TextBox _minStock = new() { Text = "0", Watermark = "0 = fără prag" };
+    private readonly TextBox _optimalStock = new() { Text = "0", Watermark = "0 = nesetat" };
+    private readonly StackPanel _minStockRow = new() { Spacing = 4 };
+    private readonly StackPanel _optimalStockRow = new() { Spacing = 4 };
     private readonly ComboBox _vat = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBox _price = new();
+    private readonly TextBox _onlinePrice = new();
     private readonly CheckBox _inCatalog = new() { Content = "Folosit în catalog" };
     private readonly CheckBox _inStockSheet = new() { Content = "Folosit în Foaie stoc" };
     private readonly CheckBox _hasRecipe = new() { Content = "Are rețetă" };
@@ -158,11 +167,22 @@ public sealed class ProductEditor : Window
         _page.Children.Add(_factorRow);
         _page.Children.Add(Hint("Furnizorii facturează des pe bax, cutie sau ladă. Completați UM achiziție și factorul, de ex. 1 bax = 24 Buc. NIR-ul și stocul rămân în UM de vânzare/consum."));
 
+        AddHeading("Stoc minim și optim");
+        _minStockRow.Children.Add(new TextBlock { Text = "Stoc minim (UM articol)", FontSize = 12, Foreground = Brand.Brush(Brand.Muted) });
+        _minStockRow.Children.Add(_minStock);
+        _page.Children.Add(_minStockRow);
+        _optimalStockRow.Children.Add(new TextBlock { Text = "Stoc optim (UM articol)", FontSize = 12, Foreground = Brand.Brush(Brand.Muted) });
+        _optimalStockRow.Children.Add(_optimalStock);
+        _page.Children.Add(_optimalStockRow);
+        _page.Children.Add(Hint("Când stocul scade sub minim (inclusiv stoc negativ), articolul apare la Necesar comandă. Cantitatea de comandat este stocul optim minus stocul real. Birotica nu intră automat. 0 = fără prag. Nu se aplică la produs finit."));
+        _category.SelectionChanged += (_, _) => RefreshMinStockVisibility();
+
         AddHeading("Prețuri vânzare");
         foreach (var rate in new[] { "0", "11", "21" })
             _vat.Items.Add(new FieldChoice(rate, rate + "%"));
         AddField("Cotă TVA", _vat);
-        AddField("Preț vânzare (inclusiv TVA)", _price);
+        AddField("Preț vânzare In Store (inclusiv TVA)", _price);
+        AddField("Preț vânzare On Line (inclusiv TVA)", _onlinePrice);
         _page.Children.Add(Hint("Prețul afișat pe raft include TVA."));
         _page.Children.Add(Hint("Alegeți cota TVA: 0%, 11% (ex. produse alimentare) sau 21%."));
 
@@ -214,8 +234,12 @@ public sealed class ProductEditor : Window
             Select(_category, Text(row, "tip"), Categories[0].Code);
             SelectUnit(_stockUnit, Text(row, "unitate_masura"), "Buc.");
             SelectPurchase(Text(row, "unitate_achizitie"));
+            _minStock.Text = Amount(row, "cantitate_minima", "0");
+            _optimalStock.Text = Amount(row, "cantitate_optima", "0");
+            RefreshMinStockVisibility();
             _factor.Text = Amount(row, "factor_conversie", "1");
             _price.Text = Amount(row, "pret_vanzare", "0");
+            _onlinePrice.Text = Amount(row, "pret_vanzare_online", Amount(row, "pret_vanzare", "0"));
             _inCatalog.IsChecked = Bool(row, "in_catalog");
             _inStockSheet.IsChecked = Bool(row, "in_stock_sheet");
             _hasRecipe.IsChecked = Bool(row, "has_recipe");
@@ -446,7 +470,8 @@ public sealed class ProductEditor : Window
             _status.Foreground = Brushes.Firebrick;
             return;
         }
-        if (!TryAmount(_price.Text, out var price) || price < 0)
+        if (!TryAmount(_price.Text, out var price) || price < 0
+            || !TryAmount(_onlinePrice.Text, out var onlinePrice) || onlinePrice < 0)
         {
             _status.Text = "Prețul de vânzare nu este valid.";
             _status.Foreground = Brushes.Firebrick;
@@ -471,22 +496,49 @@ public sealed class ProductEditor : Window
         var vat = _vatPayer ? NormalizeVat(SelectedCode(_vat)) : "0";
         if (!decimal.TryParse(vat, NumberStyles.Number, CultureInfo.InvariantCulture, out var vatNumber))
             vatNumber = 0;
+        var code = (_code.Text ?? "").Trim();
+        if (code.Length == 0)
+        {
+            _status.Text = "Codul articolului este obligatoriu și trebuie să fie unic.";
+            _status.Foreground = Brushes.Firebrick;
+            return;
+        }
+        var minStock = 0m;
+        var optimalStock = 0m;
+        if (tip != "produs_finit")
+        {
+            if (!TryAmount(_minStock.Text, out minStock) || minStock < 0)
+            {
+                _status.Text = "Stocul minim nu este valid.";
+                _status.Foreground = Brushes.Firebrick;
+                return;
+            }
+            if (!TryAmount(_optimalStock.Text, out optimalStock) || optimalStock < 0)
+            {
+                _status.Text = "Stocul optim nu este valid.";
+                _status.Foreground = Brushes.Firebrick;
+                return;
+            }
+        }
         try
         {
             await _session.UpdateRow("products", _productId, new Dictionary<string, object?>
             {
                 ["denumire"] = name,
-                ["cod"] = EmptyToNull(_code.Text),
+                ["cod"] = code,
                 ["cod_bare"] = EmptyToNull(_barcode.Text),
                 ["unitate_masura"] = stock,
                 ["unitate_achizitie"] = EmptyToNull(purchase),
                 ["factor_conversie"] = factor,
                 ["tip"] = tip,
+                ["cantitate_minima"] = tip == "produs_finit" ? 0m : minStock,
+                ["cantitate_optima"] = tip == "produs_finit" ? 0m : optimalStock,
                 ["in_catalog"] = inCatalog,
                 ["in_stock_sheet"] = _inStockSheet.IsChecked == true,
                 ["has_recipe"] = _hasRecipe.IsChecked == true,
                 ["cota_tva"] = vatNumber,
-                ["pret_vanzare"] = price
+                ["pret_vanzare"] = price,
+                ["pret_vanzare_online"] = onlinePrice
             });
             await SaveGroups();
             _saved = true;
@@ -547,6 +599,13 @@ public sealed class ProductEditor : Window
         var purchaseLabel = purchase.Length == 0 ? "UM achiziție" : purchase;
         var stockLabel = stock.Length == 0 ? "Buc." : stock;
         _factorLabel.Text = "Câte " + stockLabel + " în 1 " + purchaseLabel;
+    }
+
+    private void RefreshMinStockVisibility()
+    {
+        var showStockLevels = SelectedCode(_category) != "produs_finit";
+        _minStockRow.IsVisible = showStockLevels;
+        _optimalStockRow.IsVisible = showStockLevels;
     }
 
     private string PurchaseValue()

@@ -51,6 +51,7 @@ enum CMProductGroupService {
         let companyId: UUID
         let name: String
         let pretVanzare: Decimal
+        let pretVanzareOnline: Decimal
         let isActive: Bool
         let sortOrder: Int
         let cod: String
@@ -60,6 +61,7 @@ enum CMProductGroupService {
             case name, cod
             case companyId = "company_id"
             case pretVanzare = "pret_vanzare"
+            case pretVanzareOnline = "pret_vanzare_online"
             case isActive = "is_active"
             case sortOrder = "sort_order"
             case permiteSecundareMultiple = "permite_secundare_multiple"
@@ -69,12 +71,14 @@ enum CMProductGroupService {
     private struct MenuPatch: Encodable {
         let name: String
         let pretVanzare: Decimal
+        let pretVanzareOnline: Decimal
         let isActive: Bool
         let permiteSecundareMultiple: Bool
 
         enum CodingKeys: String, CodingKey {
             case name
             case pretVanzare = "pret_vanzare"
+            case pretVanzareOnline = "pret_vanzare_online"
             case isActive = "is_active"
             case permiteSecundareMultiple = "permite_secundare_multiple"
         }
@@ -560,9 +564,11 @@ enum CMProductGroupService {
         companyId: UUID,
         name: String,
         pretVanzare: Decimal,
+        pretVanzareOnline: Decimal? = nil,
         productIds: [UUID],
         permiteSecundareMultiple: Bool = false
     ) async throws -> CMMenu {
+        let onlinePrice = pretVanzareOnline ?? pretVanzare
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw CMCatalogError.emptyMenuName }
         guard !productIds.isEmpty else { throw CMCatalogError.emptyMenuProducts }
@@ -574,6 +580,7 @@ enum CMProductGroupService {
             companyId: companyId,
             name: trimmed,
             pretVanzare: pretVanzare,
+            pretVanzareOnline: onlinePrice,
             cod: code,
             permiteSecundareMultiple: permiteSecundareMultiple
         )
@@ -588,6 +595,7 @@ enum CMProductGroupService {
                 companyId: companyId,
                 name: trimmed,
                 pretVanzare: pretVanzare,
+                pretVanzareOnline: onlinePrice,
                 productIds: productIds,
                 permiteSecundareMultiple: permiteSecundareMultiple
             ),
@@ -599,6 +607,7 @@ enum CMProductGroupService {
                         companyId: companyId,
                         name: trimmed,
                         pretVanzare: pretVanzare,
+                        pretVanzareOnline: onlinePrice,
                         isActive: true,
                         sortOrder: 0,
                         cod: code,
@@ -638,10 +647,12 @@ enum CMProductGroupService {
         companyId: UUID,
         name: String,
         pretVanzare: Decimal,
+        pretVanzareOnline: Decimal? = nil,
         isActive: Bool,
         productIds: [UUID],
         permiteSecundareMultiple: Bool = false
     ) async throws -> CMMenu {
+        let onlinePrice = pretVanzareOnline ?? pretVanzare
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw CMCatalogError.emptyMenuName }
         guard !productIds.isEmpty else { throw CMCatalogError.emptyMenuProducts }
@@ -651,6 +662,7 @@ enum CMProductGroupService {
             companyId: companyId,
             name: trimmed,
             pretVanzare: pretVanzare,
+            pretVanzareOnline: onlinePrice,
             permiteSecundareMultiple: permiteSecundareMultiple
         )
         return try await OfflineAwareGateway.run(
@@ -664,6 +676,7 @@ enum CMProductGroupService {
                 companyId: companyId,
                 name: trimmed,
                 pretVanzare: pretVanzare,
+                pretVanzareOnline: onlinePrice,
                 isActive: isActive,
                 productIds: productIds,
                 permiteSecundareMultiple: permiteSecundareMultiple
@@ -675,6 +688,7 @@ enum CMProductGroupService {
                     .update(MenuPatch(
                         name: trimmed,
                         pretVanzare: pretVanzare,
+                        pretVanzareOnline: onlinePrice,
                         isActive: isActive,
                         permiteSecundareMultiple: permiteSecundareMultiple
                     ))

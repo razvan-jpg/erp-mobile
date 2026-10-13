@@ -171,7 +171,7 @@ private struct InvoiceLineInsert: Encodable {
 enum SupplierService {
     private static let client = SupabaseManager.client
 
-    private static func dateString(_ date: Date) -> String {
+    nonisolated private static func dateString(_ date: Date) -> String {
         SupabaseDecoding.dateOnlyString(from: date)
     }
 

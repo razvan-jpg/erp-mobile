@@ -104,7 +104,7 @@ struct SalesFiscalReceiptsListView: View {
                     Button {
                         emailPDF(receipt)
                     } label: {
-                        Label(L10n.tr("module.sales.cash_sale.action_email"), systemImage: "envelope")
+                        Label(L10n.tr("module.sales.cash_sale.action_email"), systemImage: "envelope").appHoverTip(L10n.tr("module.sales.cash_sale.action_email"))
                     }
                     if clientAccess.canCreate {
                         Button {
@@ -118,13 +118,14 @@ struct SalesFiscalReceiptsListView: View {
                                 sourceFiscalReceiptId: receipt.id
                             )
                         } label: {
-                            Label(L10n.tr("module.sales.cash_sale.action_create_invoice"), systemImage: "doc.badge.plus")
+                            Label(L10n.tr("module.sales.cash_sale.action_create_invoice"), systemImage: "doc.badge.plus").appHoverTip(L10n.tr("module.sales.cash_sale.action_create_invoice"))
                         }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3)
                 }
+                .appControlHint(L10n.tr("common.more_actions"))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(numberLabel(receipt, sequence: sequence))

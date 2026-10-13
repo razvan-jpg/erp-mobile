@@ -115,7 +115,7 @@ struct CRMRootView: View {
         .navigationTitle(L10n.tr("tab.crm"))
         .navigationBarTitleDisplayMode(.inline)
         .appTask { await loadAccess() }
-        .onChange(of: companyManager.currentCompany?.id) { _ in
+        .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task { await loadAccess() }
         }
     }

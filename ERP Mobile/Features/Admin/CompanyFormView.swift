@@ -143,13 +143,13 @@ struct CompanyFormView: View {
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
             .onAppear { populateFields() }
-            .onChange(of: cui) { _ in
+            .onChange(of: cui) { _, _ in
                 anafSuccessMessage = nil
             }
-            .onChange(of: adminNume) { newValue in
+            .onChange(of: adminNume) { _, newValue in
                 applyNameFormat(newValue, to: .nume)
             }
-            .onChange(of: adminPrenume) { newValue in
+            .onChange(of: adminPrenume) { _, newValue in
                 applyNameFormat(newValue, to: .prenume)
             }
             .alert("Verificați formularul", isPresented: $showValidationAlert) {

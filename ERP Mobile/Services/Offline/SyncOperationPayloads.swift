@@ -278,18 +278,20 @@ enum SyncPayloads {
         let companyId: UUID
         let name: String
         let pretVanzare: Decimal
+        let pretVanzareOnline: Decimal
         let productIds: [UUID]
         let permiteSecundareMultiple: Bool
 
         enum CodingKeys: String, CodingKey {
-            case id, companyId, name, pretVanzare, productIds, permiteSecundareMultiple
+            case id, companyId, name, pretVanzare, pretVanzareOnline, productIds, permiteSecundareMultiple
         }
 
-        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
+        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, pretVanzareOnline: Decimal? = nil, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
             self.id = id
             self.companyId = companyId
             self.name = name
             self.pretVanzare = pretVanzare
+            self.pretVanzareOnline = pretVanzareOnline ?? pretVanzare
             self.productIds = productIds
             self.permiteSecundareMultiple = permiteSecundareMultiple
         }
@@ -300,6 +302,7 @@ enum SyncPayloads {
             companyId = try container.decode(UUID.self, forKey: .companyId)
             name = try container.decode(String.self, forKey: .name)
             pretVanzare = try container.decode(Decimal.self, forKey: .pretVanzare)
+            pretVanzareOnline = try container.decodeIfPresent(Decimal.self, forKey: .pretVanzareOnline) ?? pretVanzare
             productIds = try container.decode([UUID].self, forKey: .productIds)
             permiteSecundareMultiple = try container.decodeIfPresent(Bool.self, forKey: .permiteSecundareMultiple) ?? false
         }
@@ -310,19 +313,21 @@ enum SyncPayloads {
         let companyId: UUID
         let name: String
         let pretVanzare: Decimal
+        let pretVanzareOnline: Decimal
         let isActive: Bool
         let productIds: [UUID]
         let permiteSecundareMultiple: Bool
 
         enum CodingKeys: String, CodingKey {
-            case id, companyId, name, pretVanzare, isActive, productIds, permiteSecundareMultiple
+            case id, companyId, name, pretVanzare, pretVanzareOnline, isActive, productIds, permiteSecundareMultiple
         }
 
-        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, isActive: Bool, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
+        init(id: UUID, companyId: UUID, name: String, pretVanzare: Decimal, pretVanzareOnline: Decimal? = nil, isActive: Bool, productIds: [UUID], permiteSecundareMultiple: Bool = false) {
             self.id = id
             self.companyId = companyId
             self.name = name
             self.pretVanzare = pretVanzare
+            self.pretVanzareOnline = pretVanzareOnline ?? pretVanzare
             self.isActive = isActive
             self.productIds = productIds
             self.permiteSecundareMultiple = permiteSecundareMultiple
@@ -334,6 +339,7 @@ enum SyncPayloads {
             companyId = try container.decode(UUID.self, forKey: .companyId)
             name = try container.decode(String.self, forKey: .name)
             pretVanzare = try container.decode(Decimal.self, forKey: .pretVanzare)
+            pretVanzareOnline = try container.decodeIfPresent(Decimal.self, forKey: .pretVanzareOnline) ?? pretVanzare
             isActive = try container.decode(Bool.self, forKey: .isActive)
             productIds = try container.decode([UUID].self, forKey: .productIds)
             permiteSecundareMultiple = try container.decodeIfPresent(Bool.self, forKey: .permiteSecundareMultiple) ?? false

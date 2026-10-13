@@ -29,6 +29,7 @@ public sealed class DocumentSeriesView : UserControl
             HorizontalAlignment = HorizontalAlignment.Right
         };
         add.Click += (_, _) => _ = Edit(null);
+        ToolTip.SetTip(add, "Adaugă serie document");
         DockPanel.SetDock(add, Dock.Right);
         bar.Children.Add(add);
         bar.Children.Add(new TextBlock
