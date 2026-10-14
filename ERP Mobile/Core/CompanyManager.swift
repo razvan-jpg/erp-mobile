@@ -66,6 +66,7 @@ final class CompanyManager: ObservableObject {
         errorMessage = nil
         do {
             try await CompanyService.setSelectedCompany(id: company.id)
+            await StockQuantityFormat.shared.load(for: company)
             currentCompany = company
             profile?.selectedCompanyId = company.id
             SyncEngine.shared.setActiveCompany(company.id)
@@ -119,6 +120,7 @@ final class CompanyManager: ObservableObject {
         }
 
         if switchableCompanies.isEmpty {
+            StockQuantityFormat.shared.apply(2)
             currentCompany = nil
             if profile.isSuperAdmin {
                 try await CompanyService.setSelectedCompany(id: nil)
@@ -128,6 +130,7 @@ final class CompanyManager: ObservableObject {
 
         if let selectedId = profile.selectedCompanyId,
            let selected = switchableCompanies.first(where: { $0.id == selectedId }) {
+            await StockQuantityFormat.shared.load(for: selected)
             currentCompany = selected
             SyncEngine.shared.setActiveCompany(selected.id)
             return
@@ -135,12 +138,14 @@ final class CompanyManager: ObservableObject {
 
         if switchableCompanies.count == 1, let only = switchableCompanies.first {
             try await CompanyService.setSelectedCompany(id: only.id)
+            await StockQuantityFormat.shared.load(for: only)
             currentCompany = only
             self.profile?.selectedCompanyId = only.id
             SyncEngine.shared.setActiveCompany(only.id)
             return
         }
 
+        StockQuantityFormat.shared.apply(2)
         currentCompany = nil
         SyncEngine.shared.setActiveCompany(nil)
     }

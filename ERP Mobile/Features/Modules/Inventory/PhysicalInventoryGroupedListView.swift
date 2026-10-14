@@ -38,7 +38,7 @@ struct PhysicalInventoryGroupedListView: View {
                                                     .font(.caption)
                                                     .foregroundColor(AppColors.secondary)
                                             }
-                                            Text("\(L10n.tr("inventory.physical_book_stock")): \(SupplierFormatting.amountString(line.stocScriptic)) \(line.unitateMasura)")
+                                            Text("\(L10n.tr("inventory.physical_book_stock")): \(SupplierFormatting.stockQuantityString(line.stocScriptic)) \(line.unitateMasura)")
                                                 .font(.caption)
                                                 .foregroundColor(AppColors.secondary)
                                             Spacer(minLength: 0)
@@ -82,7 +82,7 @@ struct PhysicalInventoryGroupedListView: View {
 
     private func countedLabel(for line: PhysicalInventoryLine) -> String {
         if let counted = line.cantitateNumarata {
-            return "\(L10n.tr("inventory.physical_counted_stock")): \(SupplierFormatting.amountString(counted))"
+            return "\(L10n.tr("inventory.physical_counted_stock")): \(SupplierFormatting.stockQuantityString(counted))"
         }
         return L10n.tr("inventory.physical_not_counted")
     }

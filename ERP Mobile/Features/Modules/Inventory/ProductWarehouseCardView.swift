@@ -14,6 +14,7 @@ struct ProductWarehouseCardView: View {
     @State private var selectedVatRate: Decimal = 0
     @State private var pretVanzareText = ""
     @State private var pretVanzareOnlineText = ""
+    @State private var pretAchizitieText = ""
     @State private var isLoading = false
     @State private var isSavingProductOptions = false
     @State private var errorMessage: String?
@@ -121,6 +122,7 @@ struct ProductWarehouseCardView: View {
             selectedVatRate: $selectedVatRate,
             pretVanzareText: $pretVanzareText,
             pretVanzareOnlineText: $pretVanzareOnlineText,
+            pretAchizitieText: $pretAchizitieText,
             isSaving: isSavingProductOptions,
             onSave: { Task { await savePricing() } }
         )
@@ -243,6 +245,7 @@ struct ProductWarehouseCardView: View {
             selectedVatRate = ProductVATRates.normalizedRate(product.cotaTva, isVatPayer: isVatPayer)
             pretVanzareText = product.pretVanzareInputText
             pretVanzareOnlineText = product.pretVanzareOnlineInputText
+            pretAchizitieText = product.pretAchizitieInputText
         } catch {
             ledgerEntries = []
             weightedAverageCost = nil
@@ -258,11 +261,22 @@ struct ProductWarehouseCardView: View {
             errorMessage = ProductCreateError.invalidSalePrice.localizedDescription
             return
         }
+        let purchaseText = pretAchizitieText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pretAchizitie: Decimal?
+        if purchaseText.isEmpty {
+            pretAchizitie = nil
+        } else if let parsed = ProductService.parseSalePrice(purchaseText) {
+            pretAchizitie = parsed
+        } else {
+            errorMessage = L10n.tr("module.products.error_invalid_purchase_price")
+            return
+        }
 
         let vatRate = ProductVATRates.normalizedRate(selectedVatRate, isVatPayer: isVatPayer)
         let previousVat = selectedVatRate
         let previousPrice = pretVanzareText
         let previousOnline = pretVanzareOnlineText
+        let previousPurchase = pretAchizitieText
         isSavingProductOptions = true
         defer { isSavingProductOptions = false }
 
@@ -272,16 +286,20 @@ struct ProductWarehouseCardView: View {
                 cotaTva: vatRate,
                 pretVanzare: pretVanzare,
                 pretVanzareOnline: pretVanzareOnline,
+                pretAchizitie: pretAchizitie,
+                updatesPurchasePrice: true,
                 isVatPayer: isVatPayer
             )
             selectedVatRate = ProductVATRates.normalizedRate(product.cotaTva, isVatPayer: isVatPayer)
             pretVanzareText = product.pretVanzareInputText
             pretVanzareOnlineText = product.pretVanzareOnlineInputText
+            pretAchizitieText = product.pretAchizitieInputText
             errorMessage = nil
         } catch {
             selectedVatRate = previousVat
             pretVanzareText = previousPrice
             pretVanzareOnlineText = previousOnline
+            pretAchizitieText = previousPurchase
             errorMessage = error.localizedDescription
         }
     }

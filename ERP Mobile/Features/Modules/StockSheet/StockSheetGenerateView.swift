@@ -20,6 +20,12 @@ struct StockSheetGenerateView: View {
     @State private var exportExcludedActivities: [UIActivity.ActivityType]?
     @State private var pdfAttachmentURL: URL?
     @State private var exportErrorMessage: String?
+    @State private var locations: [CompanyWorkLocation] = []
+    @State private var warehouses: [CompanyWarehouse] = []
+    @State private var selectedLocationId: UUID?
+    @State private var asOf = Date()
+    @State private var showSavePicker = false
+    @State private var saveURL: URL?
 
     private var filteredRows: [StockSheetListRow] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -56,18 +62,32 @@ struct StockSheetGenerateView: View {
                     systemImage: "lock.fill",
                     description: Text(L10n.tr("module.no_access"))
                 )
-            } else if filteredRows.isEmpty && !isLoading {
-                AppEmptyStateView(
-                    L10n.tr("stock_sheet.empty"),
-                    systemImage: "list.bullet.rectangle",
-                    description: Text(L10n.tr("stock_sheet.empty_hint"))
-                )
             } else {
                 List {
                     Section {
+                        Picker(L10n.tr("stock_sheet.filter_location"), selection: $selectedLocationId) {
+                            Text(L10n.tr("stock_sheet.filter_location_all")).tag(Optional<UUID>.none)
+                            ForEach(locations) { location in
+                                Text(location.denumire).tag(Optional(location.id))
+                            }
+                        }
+                        DatePicker(
+                            L10n.tr("stock_sheet.filter_date"),
+                            selection: $asOf,
+                            displayedComponents: .date
+                        )
+                    }
+                    Section {
+                        if filteredRows.isEmpty && !isLoading {
+                            Text(L10n.tr("stock_sheet.empty"))
+                                .foregroundColor(AppColors.secondary)
+                            Text(L10n.tr("stock_sheet.empty_hint"))
+                                .font(.caption)
+                                .foregroundColor(AppColors.tertiary)
+                        }
                         ForEach(filteredRows) { row in
                             Button {
-                                selectedRow = StockSheetDetailContext(row: row)
+                                selectedRow = detailContext(for: row)
                             } label: {
                                 StockSheetListRowView(row: row)
                             }
@@ -114,14 +134,25 @@ struct StockSheetGenerateView: View {
         }
         .appTask {
             await loadAccess()
+            await loadFilters()
             await loadRows()
         }
-        .appRefreshable { await loadRows() }
+        .appRefreshable {
+            await loadFilters()
+            await loadRows()
+        }
         .onChange(of: companyManager.currentCompany?.id) { _, _ in
             Task {
                 await loadAccess()
+                await loadFilters()
                 await loadRows()
             }
+        }
+        .onChange(of: selectedLocationId) { _, _ in
+            Task { await loadRows() }
+        }
+        .onChange(of: asOf) { _, _ in
+            Task { await loadRows() }
         }
         .fullScreenCover(item: $selectedRow) { context in
             StockSheetDetailView(context: context)
@@ -132,6 +163,13 @@ struct StockSheetGenerateView: View {
                 excludedActivityTypes: exportExcludedActivities,
                 onFinish: { showExportShare = false }
             )
+        }
+        .sheet(isPresented: $showSavePicker, onDismiss: { saveURL = nil }) {
+            if let saveURL {
+                LocalSaveDocumentPicker(sourceURL: saveURL) {
+                    showSavePicker = false
+                }
+            }
         }
         .sheet(isPresented: $showPrintSheet) {
             if let pdfAttachmentURL,
@@ -192,16 +230,66 @@ struct StockSheetGenerateView: View {
         isLoadingAccess = false
     }
 
+    private var selectedWarehouseIds: [UUID] {
+        guard let selectedLocationId else { return [] }
+        return warehouses
+            .filter { $0.isActive && $0.workLocationId == selectedLocationId }
+            .map(\.id)
+    }
+
+    private var selectedLocationName: String {
+        guard let selectedLocationId else { return L10n.tr("stock_sheet.filter_location_all") }
+        return locations.first { $0.id == selectedLocationId }?.denumire
+            ?? L10n.tr("stock_sheet.filter_location_all")
+    }
+
+    private func detailContext(for row: StockSheetListRow) -> StockSheetDetailContext {
+        StockSheetDetailContext(
+            row: row,
+            locationName: selectedLocationName,
+            asOf: asOf,
+            warehouseIds: selectedWarehouseIds
+        )
+    }
+
+    private func loadFilters() async {
+        guard let companyId = companyManager.currentCompany?.id, access.canView else {
+            locations = []
+            warehouses = []
+            return
+        }
+        do {
+            locations = try await WorkLocationService.fetchWorkLocations(companyId: companyId)
+                .filter(\.isActive)
+                .sorted { $0.denumire.localizedCaseInsensitiveCompare($1.denumire) == .orderedAscending }
+            warehouses = try await WarehouseService.fetchWarehouses(companyId: companyId)
+        } catch {
+            locations = []
+            warehouses = []
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func loadRows() async {
         guard let companyId = companyManager.currentCompany?.id, access.canView else {
             rows = []
             isLoading = false
             return
         }
+        if selectedLocationId != nil && selectedWarehouseIds.isEmpty {
+            rows = []
+            isLoading = false
+            errorMessage = L10n.tr("stock_sheet.no_warehouses")
+            return
+        }
         isLoading = true
         errorMessage = nil
         do {
-            rows = try await StockSheetService.fetchListRows(companyId: companyId)
+            rows = try await StockSheetService.fetchListRows(
+                companyId: companyId,
+                warehouseIds: selectedWarehouseIds,
+                asOf: asOf
+            )
         } catch {
             rows = []
             errorMessage = error.localizedDescription
@@ -211,7 +299,7 @@ struct StockSheetGenerateView: View {
 
     private func handleBarcodeScan(_ code: String) {
         if let row = rows.first(where: { BarcodeMatching.exactMatch(productBarcode: $0.product.codBare, scanned: code) }) {
-            selectedRow = StockSheetDetailContext(row: row)
+            selectedRow = detailContext(for: row)
         }
     }
 
@@ -240,9 +328,15 @@ struct StockSheetGenerateView: View {
 #endif
             case .exportPDF:
                 let url = try StockSheetPDFBuilder.writeTemporaryListingPDF(from: snapshot)
-                exportShareItems = [url]
-                exportExcludedActivities = nil
-                showExportShare = true
+#if targetEnvironment(macCatalyst)
+                let suggested = url.deletingPathExtension().lastPathComponent + ".pdf"
+                if !DocumentExportSupport.saveOnMac(from: url, suggestedName: suggested) {
+                    exportErrorMessage = L10n.tr("inventory.reorder_save_failed")
+                }
+#else
+                saveURL = url
+                showSavePicker = true
+#endif
             case .exportXLS:
                 let url = try StockSheetXLSBuilder.writeTemporaryListingXLS(from: snapshot)
                 exportShareItems = [url]
@@ -282,7 +376,7 @@ private struct StockSheetListRowView: View {
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(SupplierFormatting.amountString(row.cantitate)) \(row.unit)")
+                Text("\(SupplierFormatting.stockQuantityString(row.cantitate)) \(row.unit)")
                     .font(.subheadline.bold())
                     .foregroundColor(row.cantitate < 0 ? .red : .primary)
                 Text(SupplierFormatting.currency(row.valoare))

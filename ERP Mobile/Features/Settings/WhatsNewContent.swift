@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 13 octombrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · October 13, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 14 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 14, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.285",
+            targetVersionLabel: "1.0.317",
             romanianItems: [
                 "BINA Smart Business: stabilizare lista Rapoarte Z in perioada si descarcare batch PDF-uri in romana (validare finala).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP si Generic HTTP (pe langa BINA).",
@@ -41,6 +41,294 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.316", "14.10.2026",
+                ro: [
+                    "Bonurile de producție și de transfer se filtrează după locație și dată, ca foile de stoc. Click-ul le deschide la vizualizare. La modificare sunteți avertizat: salvarea recalculează foile de stoc de la bonul afectat până astăzi.",
+                ],
+                en: [
+                    "Production notes and transfer notes filter by location and date, like the stock sheets. A click opens them for viewing. Editing warns you: saving recalculates the stock sheets from the affected note through today.",
+                ]
+            ),
+            release(
+                "1.0.315", "14.10.2026",
+                ro: [
+                    "La fiecare Raport Z se salvează foaia de stoc a punctului de lucru și a turei. Lista din Foaie stoc arată data, tura, numărul Z și seria. Stocul final care nu bate cu gestiunea este scris cu roșu.",
+                ],
+                en: [
+                    "Each Z report saves the stock sheet for that work location and shift. The Stock sheet list shows the date, shift, Z number, and series. A closing stock that does not match the warehouse is shown in red.",
+                ]
+            ),
+            release(
+                "1.0.314", "14.10.2026",
+                ro: [
+                    "La Raport Z, ecranul de vânzare se blochează până se închide tura. Se listează Raport X, apoi Raport Z. Produsele finite vândute primesc bon de producție: stocul lor revine la 0, iar materiile prime scad conform rețetei. Încasările din josul ecranului revin la 0.",
+                ],
+                en: [
+                    "On the Z report, the sales screen stays blocked until the shift closes. The X report prints, then the Z report. Finished goods sold during the shift get a production note: their stock returns to 0, and raw materials decrease according to the recipe. The takings at the bottom return to 0.",
+                ]
+            ),
+            release(
+                "1.0.313", "14.10.2026",
+                ro: [
+                    "După Emite bon, când casa listează bonul, gestiunea scade cantitățile vândute. Pe fișa produsului apare ieșire prin BF, cu numărul bonului.",
+                ],
+                en: [
+                    "After Issue receipt, once the cash register prints the receipt, the warehouse decreases the quantities sold. The product sheet shows an exit via fiscal receipt, with the receipt number.",
+                ]
+            ),
+            release(
+                "1.0.312", "14.10.2026",
+                ro: [
+                    "Un produs cu preț On line 0 nu se vinde online. Nu apare în catalog când bonul este pe On line și nu are profit On line.",
+                ],
+                en: [
+                    "A product with an online price of 0 is not sold online. It does not appear in the catalog when the receipt is On line, and it has no online profit.",
+                ]
+            ),
+            release(
+                "1.0.311", "14.10.2026",
+                ro: [
+                    "Pe tile-urile din Articole, Profit In Store/bucată și Profit On line/bucată arată și procentul față de prețul de achiziție.",
+                ],
+                en: [
+                    "On Articles tiles, in-store profit per unit and online profit per unit also show the percentage of the purchase price.",
+                ]
+            ),
+            release(
+                "1.0.310", "14.10.2026",
+                ro: [
+                    "NECTARIE: la SOS SAMURAI (84), SOS USTUROI (81) și SOS TZATZIKI (1462) prețul de producție este pentru 0,025 kg, ca la celelalte sosuri. Rețetele care îi folosesc s-au recalculat.",
+                ],
+                en: [
+                    "NECTARIE: for SOS SAMURAI (84), SOS USTUROI (81) and SOS TZATZIKI (1462) the production price is for 0.025 kg, as for the other sauces. Recipes that use them were recalculated.",
+                ]
+            ),
+            release(
+                "1.0.309", "14.10.2026",
+                ro: [
+                    "Pe meniuri apar prețul de achiziție și cele două profituri, ca la articolele din catalog. Prețul de achiziție este suma costurilor produsului principal și ale produsului secundar obligatoriu.",
+                ],
+                en: [
+                    "Menus show the purchase price and the two profits, as catalog articles do. The purchase price is the cost of the main product plus the required secondary product.",
+                ]
+            ),
+            release(
+                "1.0.308", "14.10.2026",
+                ro: [
+                    "Lista de articole nu se mai reîncarcă când derulezi peste capătul de sus sau de jos. Produsele rămân pe ecran.",
+                ],
+                en: [
+                    "The articles list no longer reloads when you scroll past the top or the bottom. The products stay on screen.",
+                ]
+            ),
+            release(
+                "1.0.307", "14.10.2026",
+                ro: [
+                    "Pe tile-urile din Articole, profitul pe bucată apare doar la produsele din catalog. Vezi Profit In Store/bucată și Profit On line/bucată. La On line se scade 30% din prețul de vânzare, apoi prețul de achiziție.",
+                ],
+                en: [
+                    "On Articles tiles, profit per unit appears only for catalog products. You see in-store profit per unit and online profit per unit. Online profit subtracts 30% of the sale price, then the purchase price.",
+                ]
+            ),
+            release(
+                "1.0.306", "14.10.2026",
+                ro: [
+                    "Pe fișa articolului apare prețul de achiziție fără TVA. Îl poți modifica. La fiecare factură furnizor și la fiecare NIR se actualizează singur, pe unitatea articolului.",
+                ],
+                en: [
+                    "The article sheet shows the purchase price without VAT. You can edit it. Every supplier invoice and every goods receipt updates it, per the article unit.",
+                ]
+            ),
+            release(
+                "1.0.305", "14.10.2026",
+                ro: [
+                    "Profitul de pe tile folosește prețul de achiziție pe bucată sau pe kilogram. Berea, Granini și cartofii albi nu mai iau prețul pe cutie sau pe sac din factură. Rețetele care îi folosesc se recalculează.",
+                ],
+                en: [
+                    "Tile profit uses the purchase price per piece or per kilogram. Beer, Granini, and white potatoes no longer take the case or sack price from the invoice. Recipes that use them are recalculated.",
+                ]
+            ),
+            release(
+                "1.0.304", "14.10.2026",
+                ro: [
+                    "Costul rețetei se calculează și dacă unei materii prime îi lipsește prețul de achiziție. Se recalculează când prețul apare sau se schimbă. Pe tile-ul din Articole apare un avertisment dacă rețeta nu are toate prețurile.",
+                ],
+                en: [
+                    "Recipe cost is calculated even when a raw material has no purchase price. It recalculates when that price appears or changes. The Articles tile shows a warning when the recipe is missing prices.",
+                ]
+            ),
+            release(
+                "1.0.303", "14.10.2026",
+                ro: [
+                    "Foaie stoc se deschide direct pe listă. Tile-urile din modul au fost scoase.",
+                ],
+                en: [
+                    "Stock form opens straight on the list. The tiles inside the module were removed.",
+                ]
+            ),
+            release(
+                "1.0.302", "14.10.2026",
+                ro: [
+                    "Modulul de pe Acasă se numește Foaie stoc.",
+                ],
+                en: [
+                    "The Home module is named Stock form.",
+                ]
+            ),
+            release(
+                "1.0.301", "14.10.2026",
+                ro: [
+                    "Pe Fișa stoc, primul tile este Foaie stoc. Lista foilor se filtrează după locație și dată. Din foaie puteți tipări sau salva PDF-ul, inclusiv formularul gol.",
+                ],
+                en: [
+                    "On Stock sheet, the first tile is Stock form. The list filters by location and date. From a form you can print or save the PDF, including a blank form.",
+                ]
+            ),
+            release(
+                "1.0.300", "14.10.2026",
+                ro: [
+                    "La Necesar comandă puteți filtra după categorii și grupe, ca la Articole. De exemplu doar marfă, sau doar băuturi. Lista, totalul și PDF-ul respectă filtrul.",
+                ],
+                en: [
+                    "On Reorder needed you can filter by categories and groups, as in Articles. For example only merchandise, or only drinks. The list, the total, and the PDF follow the filter.",
+                ]
+            ),
+            release(
+                "1.0.299", "14.10.2026",
+                ro: [
+                    "La Necesar comandă, lista și PDF-ul arată cod, denumire, UM, stoc curent, de comandat, ultimul preț de cumpărare cu TVA și totalul liniei. Jos este totalul comenzii în lei.",
+                ],
+                en: [
+                    "On Reorder needed, the list and the PDF show code, name, unit, current stock, quantity to order, the latest purchase price including VAT, and the line total. The order total in lei is at the bottom.",
+                ]
+            ),
+            release(
+                "1.0.298", "14.10.2026",
+                ro: [
+                    "La meniurile din POS, discountul de 100% pleacă la casă cu aceeași cotă ca produsul. La doză, cota este A.",
+                ],
+                en: [
+                    "On POS menus, the 100% discount is sent to the cash register with the same VAT rate as the product. A can is rate A.",
+                ]
+            ),
+            release(
+                "1.0.297", "14.10.2026",
+                ro: [
+                    "Prețul tuturor rețetelor este recalculat din ultima achiziție. La un produs finit folosit în altă rețetă, prețul este costul lui de producție.",
+                ],
+                en: [
+                    "Every recipe price is recalculated from the latest purchase. When a finished good is used in another recipe, its price is its production cost.",
+                ]
+            ),
+            release(
+                "1.0.296", "14.10.2026",
+                ro: [
+                    "NECTARIE: ceapa prăjită (411271), 0,015 kg, este în rețetele produselor finite din Farfurii & Box, Sandwich & Chifle și Shaorma.",
+                ],
+                en: [
+                    "NECTARIE: fried onion (411271), 0.015 kg, is in the recipes of finished goods in Farfurii & Box, Sandwich & Chifle, and Shaorma.",
+                ]
+            ),
+            release(
+                "1.0.295", "14.10.2026",
+                ro: [
+                    "La Emite bon, sertarul se deschide și la Numerar + card, la fel ca la Numerar.",
+                ],
+                en: [
+                    "On Issue receipt, the drawer also opens for cash + card, the same as for cash.",
+                ]
+            ),
+            release(
+                "1.0.294", "14.10.2026",
+                ro: [
+                    "La Emite bon, dacă încasarea este Numerar, casa de marcat deschide și sertarul. La celelalte încasări sertarul rămâne închis.",
+                ],
+                en: [
+                    "On Issue receipt, if the payment is cash, the cash register also opens the drawer. For other payments the drawer stays closed.",
+                ]
+            ),
+            release(
+                "1.0.293", "14.10.2026",
+                ro: [
+                    "La casă, AQUA PLATĂ și AQUA MINERALĂ 0,5 L se trimit cu cota B. Limonadele clasică, lime, mandarin și melon se trimit cu cota A.",
+                ],
+                en: [
+                    "At the register, still and sparkling water 0.5 L are sent with VAT rate B. Classic, lime, mandarin, and melon lemonades are sent with VAT rate A.",
+                ]
+            ),
+            release(
+                "1.0.292", "14.10.2026",
+                ro: [
+                    "Taxa ambalaj și Taxa ambalaj mică se trimit pe bon cu cota A (21%), nu cu B.",
+                ],
+                en: [
+                    "Packaging tax and small packaging tax are sent on the receipt with VAT rate A (21%), not B.",
+                ]
+            ),
+            release(
+                "1.0.291", "14.10.2026",
+                ro: [
+                    "Zecimalele din Setări se aplică și la rețete, nu doar la stocuri. Prețurile rămân cu 2 zecimale.",
+                ],
+                en: [
+                    "The decimals chosen in Settings also apply to recipes, not only to stock. Prices stay at 2 decimal places.",
+                ]
+            ),
+            release(
+                "1.0.290", "14.10.2026",
+                ro: [
+                    "În Setări poți alege 2, 3 sau 4 zecimale doar pentru cantitățile de stoc. La Nectarie sunt 4.",
+                ],
+                en: [
+                    "In Settings you can choose 2, 3, or 4 decimal places for stock quantities only. Nectarie uses 4.",
+                ]
+            ),
+            release(
+                "1.0.289", "14.10.2026",
+                ro: [
+                    "NECTARIE: fișa 103921 se numește PORTOCALE. PORTOCALE 3-5 P și PORTOCALE SUC rămân aliasuri și se leagă tot acolo.",
+                ],
+                en: [
+                    "NECTARIE: sheet 103921 is named PORTOCALE. PORTOCALE 3-5 P and PORTOCALE SUC stay aliases and still link there.",
+                ]
+            ),
+            release(
+                "1.0.288", "14.10.2026",
+                ro: [
+                    "NECTARIE: portocalele pentru suc (cod 103572) sunt pe fișa PORTOCALE 3-5 P (cod 103921). Stocul și recepțiile sunt împreună.",
+                ],
+                en: [
+                    "NECTARIE: juice oranges (code 103572) are on the PORTOCALE 3-5 P sheet (code 103921). Stock and receipts are together.",
+                ]
+            ),
+            release(
+                "1.0.287", "13.10.2026",
+                ro: [
+                    "La Copiază rețetă, lista rămâne deschisă și arată doar produsele finite.",
+                ],
+                en: [
+                    "Copy recipe stays open and lists only finished products.",
+                ]
+            ),
+            release(
+                "1.0.286", "13.10.2026",
+                ro: [
+                    "La rețetă, Copiază rețetă aduce liniile de la alt produs. Apoi le poți modifica.",
+                ],
+                en: [
+                    "On a recipe, Copy recipe brings the lines from another product. You can edit them afterwards.",
+                ]
+            ),
+            release(
+                "1.0.285", "13.10.2026",
+                ro: [
+                    "Cantitățile din rețetă se scriu și se afișează cu 3 zecimale.",
+                ],
+                en: [
+                    "Recipe quantities are entered and shown with 3 decimal places.",
+                ]
+            ),
             release(
                 "1.0.284", "13.10.2026",
                 ro: [

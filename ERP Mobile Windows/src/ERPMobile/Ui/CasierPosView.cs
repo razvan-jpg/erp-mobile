@@ -45,7 +45,25 @@ public sealed class CasierPosView : UserControl
     private readonly Button _glovoButton;
     private readonly Button _boltButton;
     private readonly Button _woltButton;
-    private readonly TextBlock _takings;
+    private readonly TextBlock _takings = new();
+    private readonly Border _shiftBlock = new()
+    {
+        Background = new SolidColorBrush(Color.FromArgb(170, 0, 0, 0)),
+        IsVisible = false,
+        IsHitTestVisible = true,
+        Child = new TextBlock
+        {
+            Text = "Așteptați pentru închiderea turei !!!",
+            FontSize = 28,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Avalonia.Thickness(32)
+        }
+    };
     private readonly StackPanel _cash;
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 6 };
     private readonly Button _cashButton;
@@ -557,7 +575,10 @@ public sealed class CasierPosView : UserControl
             root.Children.Add(left);
         }
         root.Children.Add(receipt);
-        Content = root;
+        var shell = new Grid();
+        shell.Children.Add(root);
+        shell.Children.Add(_shiftBlock);
+        Content = shell;
     }
 
     private async Task LoadGroups()
@@ -677,10 +698,11 @@ public sealed class CasierPosView : UserControl
 
     private void PaintMenus(bool rebuild = false)
     {
-        if (!rebuild && _tilesAreMenus && TryRetint(_catalogMenus.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
+        var visible = _catalogMenus.Where(item => !Active.OnlineSale || item.OnlinePrice > 0).ToList();
+        if (!rebuild && _tilesAreMenus && TryRetint(visible.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
             return;
         _tiles.Children.Clear();
-        foreach (var item in _catalogMenus)
+        foreach (var item in visible)
         {
             var menu = item;
             var price = Active.OnlineSale ? menu.OnlinePrice : menu.StorePrice;
@@ -1040,10 +1062,11 @@ public sealed class CasierPosView : UserControl
     {
         if (!_catalogIsProducts)
             return;
-        if (!rebuild && _tilesAreProducts && TryRetint(_catalogProducts.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
+        var visible = _catalogProducts.Where(item => !Active.OnlineSale || item.OnlinePrice > 0).ToList();
+        if (!rebuild && _tilesAreProducts && TryRetint(visible.Select(item => (item.StorePrice, item.OnlinePrice)).ToList()))
             return;
         _tiles.Children.Clear();
-        foreach (var product in _catalogProducts)
+        foreach (var product in visible)
         {
             var item = product;
             var price = Active.OnlineSale ? item.OnlinePrice : item.StorePrice;
@@ -1280,7 +1303,7 @@ public sealed class CasierPosView : UserControl
             Action? remove = row.MenuBlock == null || row.MenuHeader ? () => RemoveLine(row.Id) : null;
             _lines.Children.Add(ReceiptLine(ShownQty(row.Quantity), row.Name, amount, letter, addon: false, remove));
             if (row.DiscountAmount > 0 || row.ShowsDiscount)
-                _lines.Children.Add(ReceiptLine("", "Discount 100%", Money(-row.DiscountAmount), "", addon: true));
+                _lines.Children.Add(ReceiptLine("", "Discount 100%", Money(-row.DiscountAmount), VatMark(row.VatRate, row.MenuBlock != null), addon: true));
             foreach (var addon in row.Addons)
             {
                 if (IsSgr(addon.Name))
@@ -2000,6 +2023,35 @@ public sealed class CasierPosView : UserControl
         return await done.Task;
     }
 
+    private async Task DischargeStock(string receiptNumber)
+    {
+        var totals = new Dictionary<Guid, decimal>();
+        void Add(Guid? id, decimal quantity)
+        {
+            if (id == null || quantity <= 0)
+                return;
+            totals[id.Value] = totals.TryGetValue(id.Value, out var sum) ? sum + quantity : quantity;
+        }
+        foreach (var line in Active.Lines)
+        {
+            if (line.MenuHeader)
+                continue;
+            Add(line.ProductId ?? line.Id, line.Quantity);
+            foreach (var addon in line.Addons)
+                Add(addon.ProductId, addon.PerUnit * line.Quantity);
+        }
+        if (totals.Count == 0)
+            return;
+        var canal = Active.OnlineSale ? "online" : "in_store";
+        var items = totals.Select(pair => new { product_id = pair.Key.ToString(), cantitate = pair.Value, canal }).ToArray();
+        await _session.Rpc("pos_discharge_fiscal_receipt", new
+        {
+            p_work_location_id = _locationId.ToString(),
+            p_receipt_number = receiptNumber,
+            p_items = items
+        });
+    }
+
     private async Task EmitFiscal(string channel, string payment)
     {
         if (_fiscalBusy)
@@ -2091,6 +2143,18 @@ public sealed class CasierPosView : UserControl
                     : "";
                 await Tell(charged + FiscalNet.Failure(printed, "Bonul nu s-a tipărit. Nu a fost salvat."));
                 return;
+            }
+            if (channel is "cash" or "split")
+                await FiscalNetStation.SendAsync(FiscalNet.FileName("ds", false), FiscalNet.OpenDrawer(), TimeSpan.FromSeconds(20));
+
+            var stockNote = "";
+            try
+            {
+                await DischargeStock(printed.Number);
+            }
+            catch (Exception ex)
+            {
+                stockNote = "\n" + ex.Message;
             }
 
             var note = "Bon fiscal nr. " + printed.Number;
@@ -2192,7 +2256,7 @@ public sealed class CasierPosView : UserControl
             ClearSoldTicket();
             var saved = invoiceName == null ? "" : "\nAu fost salvate două fișiere:\n" + bonName + "\n" + invoiceName;
             var auth = printed.Authorization.Length > 0 ? "\nAutorizare " + printed.Authorization : "";
-            await Tell(note + auth + saved + invoiceNote + recap);
+            await Tell(note + auth + saved + invoiceNote + stockNote + recap);
         }
         finally
         {
@@ -2558,39 +2622,44 @@ public sealed class CasierPosView : UserControl
 
     private async Task CloseZ()
     {
+        if (_fiscalBusy || _shiftBlock.IsVisible)
+            return;
+        if (!FiscalNetStation.IsReady)
+        {
+            await Tell("Raportul Z se tipărește la imprimanta fiscală. Încă nu este legată. Apăsați „FP-700” și alegeți folderul Bonuri.");
+            return;
+        }
+        _fiscalBusy = true;
+        _shiftBlock.IsVisible = true;
         try
         {
-            if (FiscalNetStation.IsReady)
+            var reportX = await FiscalNetStation.SendAsync(FiscalNet.FileName("x", false), FiscalNet.Report("X"), TimeSpan.FromSeconds(90));
+            if (reportX.BonOk != 1)
             {
-                if (_fiscalBusy)
-                    return;
-                _fiscalBusy = true;
-                FiscalNet.Reply reply;
-                try
-                {
-                    reply = await FiscalNetStation.SendAsync(FiscalNet.FileName("z", false), FiscalNet.Report("Z"), TimeSpan.FromSeconds(90));
-                }
-                finally
-                {
-                    _fiscalBusy = false;
-                }
-                if (reply.BonOk != 1)
-                {
-                    await Tell(FiscalNet.Failure(reply, "Raportul Z nu s-a tipărit. Încasările au rămas deschise."));
-                    return;
-                }
-                await _session.Rpc("pos_close_takings_z", new { p_work_location_id = _locationId });
-                await LoadTakings();
-                await Tell("Raportul Z a fost tipărit. Încasările au fost închise.");
+                await Tell(FiscalNet.Failure(reportX, "Raportul X nu s-a tipărit. Tura a rămas deschisă."));
                 return;
             }
+            var reportZ = await FiscalNetStation.SendAsync(FiscalNet.FileName("z", false), FiscalNet.Report("Z"), TimeSpan.FromSeconds(90));
+            if (reportZ.BonOk != 1)
+            {
+                await Tell(FiscalNet.Failure(reportZ, "Raportul Z nu s-a tipărit. Încasările au rămas deschise."));
+                return;
+            }
+            await _session.Rpc("pos_close_shift_production", new { p_work_location_id = _locationId.ToString() });
+            await _session.Rpc("pos_create_z_stock_sheet", new { p_work_location_id = _locationId.ToString(), p_z_number = reportZ.Number });
             await _session.Rpc("pos_close_takings_z", new { p_work_location_id = _locationId });
             await LoadTakings();
-            await Tell("Imprimanta nu este legată, raportul Z nu s-a tipărit. Încasările de până acum au fost închise.");
+            _shiftBlock.IsVisible = false;
+            await Tell("Ziua a fost închisă cu succes.");
         }
         catch (Exception ex)
         {
             await Tell(ex.Message);
+        }
+        finally
+        {
+            _fiscalBusy = false;
+            _shiftBlock.IsVisible = false;
         }
     }
 
@@ -2676,7 +2745,7 @@ public sealed class CasierPosView : UserControl
             var amount = Ron(line.UnitPrice * line.Quantity);
             rows.Add((LineLabel(line.Quantity, line.Name), MarkedAmount(amount, line.VatRate, onMenu)));
             if (line.DiscountAmount > 0 || line.ShowsDiscount)
-                rows.Add(("Discount 100%", Ron(-line.DiscountAmount)));
+                rows.Add(("Discount 100%", MarkedAmount(Ron(-line.DiscountAmount), line.VatRate, onMenu)));
             foreach (var addon in line.Addons)
             {
                 if (IsSgr(addon.Name))

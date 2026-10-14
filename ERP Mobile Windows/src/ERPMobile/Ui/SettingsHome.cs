@@ -34,6 +34,7 @@ public sealed class SettingsHome : UserControl
         {
             page.Children.Add(Row("Sync offline", "Documente salvate fără internet și stare sync.", () => Show(new SyncSettings(_session, this))));
             page.Children.Add(Row("Setări Zetta", "Case de marcat, conturi casă și cote TVA pentru raportul Z.", () => Show(new ZettaSettingsScreen(_session, this))));
+            page.Children.Add(Row("Zecimale stoc", "2, 3 sau 4 zecimale pentru stocuri și rețete.", () => Show(new StockDecimalsPage(_session))));
             page.Children.Add(Row("e-Factura (SPV)", "Invitație pe email către contabil. Data de valabilitate se citește din SPV.", () => Show(new EFacturaSettingsScreen(_session))));
         }
         page.Children.Add(Row("Adaugă scurtătură pe Desktop", "Creează scurtătura ERP Mobile pe Desktop.", CreateShortcut));

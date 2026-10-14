@@ -156,6 +156,8 @@ private struct StockRowView: View {
     let row: ProductStockRow
     let onOpenCard: () -> Void
 
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Button(action: onOpenCard) {
@@ -197,6 +199,6 @@ private struct StockRowView: View {
 
     private var quantityLabel: String {
         let unit = row.product?.unitateMasura ?? "buc"
-        return "\(SupplierFormatting.amountString(row.cantitate)) \(unit)"
+        return "\(stockDecimals.string(row.cantitate)) \(unit)"
     }
 }

@@ -234,7 +234,7 @@ enum StockTransferPDFBuilder {
                 line.product?.denumire ?? L10n.tr("inventory.unknown_product"),
                 line.product?.cod ?? "—",
                 line.unitateMasura,
-                SupplierFormatting.amountString(line.cantitate)
+                SupplierFormatting.stockQuantityString(line.cantitate)
             ]
             let rowHeight = estimatedRowHeight(values: values, columnWidths: columnWidths, font: bodyFont)
             ensureSpace(for: rowHeight)

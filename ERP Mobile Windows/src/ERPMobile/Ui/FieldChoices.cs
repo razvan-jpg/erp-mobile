@@ -208,6 +208,8 @@ public static class FieldChoices
             return Pairs("custom", "Personalizata", "menus", "Meniuri", "ungrouped", "Negrupate");
         if (table == "stock_movements" && field == "tip")
             return Pairs("intrare", "Intrare", "iesire", "Ieșire");
+        if (table == "stock_movements" && field == "sursa")
+            return Pairs("fiscal_receipt", "Ieșire prin BF");
         if (table == "company_cash_register_entries" && field == "kind")
             return Pairs(
                 "incasare_client", "Chitanță încasare client",

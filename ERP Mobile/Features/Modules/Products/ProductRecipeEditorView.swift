@@ -3,6 +3,7 @@ import SwiftUI
 enum ProductRecipeEditorSheet: Identifiable {
     case add(existingIngredientIds: Set<UUID>)
     case edit(line: ProductRecipeLine, occupiedIngredientIds: Set<UUID>)
+    case copy(replacesExisting: Bool)
 
     var id: String {
         switch self {
@@ -10,6 +11,8 @@ enum ProductRecipeEditorSheet: Identifiable {
             return "add"
         case .edit(let line, _):
             return line.id.uuidString
+        case .copy:
+            return "copy"
         }
     }
 }
@@ -20,8 +23,10 @@ struct ProductRecipeEditorView: View {
     var reloadToken: UUID = UUID()
     var onAddLine: ((Set<UUID>) -> Void)?
     var onEditLine: ((ProductRecipeLine, Set<UUID>) -> Void)?
+    var onCopyRecipe: ((Bool) -> Void)?
     var onRecipeChanged: (() -> Void)?
 
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
     @State private var lines: [ProductRecipeLine] = []
     @State private var isLoading = true
     @State private var isRefreshingPrices = false
@@ -80,6 +85,13 @@ struct ProductRecipeEditorView: View {
                         Label(L10n.tr("products.recipe_add_line"), systemImage: "plus.circle").appHoverTip(L10n.tr("products.recipe_add_line"))
                     }
 
+                    Button {
+                        onCopyRecipe?(!lines.isEmpty)
+                    } label: {
+                        Label(L10n.tr("products.recipe_copy"), systemImage: "doc.on.doc").appHoverTip(L10n.tr("products.recipe_copy"))
+                    }
+                    .disabled(isDeleting || isRefreshingPrices)
+
                     if !lines.isEmpty {
                         Button {
                             Task { await refreshLocalPrices() }
@@ -124,7 +136,7 @@ struct ProductRecipeEditorView: View {
             HStack(spacing: 12) {
                 recipeMetric(
                     title: L10n.tr("products.recipe_column_quantity"),
-                    value: SupplierFormatting.amountString(line.cantitate)
+                    value: stockDecimals.string(line.cantitate)
                 )
                 recipeMetric(
                     title: L10n.tr("products.recipe_field_unit"),

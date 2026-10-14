@@ -419,7 +419,7 @@ struct NIREditorView: View {
         let stockUnitOverride = draft.stockUnit.trimmingCharacters(in: .whitespacesAndNewlines)
         let parsedStock = SupplierFormatting.parseAmount(
             draft.stockQuantityText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         )
         let parsedFactor = SupplierFormatting.parseAmount(
             draft.factorText,
@@ -475,7 +475,7 @@ struct NIREditorView: View {
         Binding(
             get: {
                 conversionDraftByLineId[line.id]?.stockQuantityText
-                    ?? SupplierFormatting.amountString(reception(for: line).stockQuantity)
+                    ?? SupplierFormatting.stockQuantityString(reception(for: line).stockQuantity)
             },
             set: { setStockQuantity($0, for: line) }
         )
@@ -509,7 +509,7 @@ struct NIREditorView: View {
         )
         conversionDraftByLineId[line.id] = NIRConversionDraft(
             factorText: text,
-            stockQuantityText: SupplierFormatting.amountString(updated.stockQuantity),
+            stockQuantityText: SupplierFormatting.stockQuantityString(updated.stockQuantity),
             stockUnit: updated.stockUnit
         )
         refreshPricingAfterConversion(for: line)
@@ -520,7 +520,7 @@ struct NIREditorView: View {
         let current = reception(for: line)
         let parsed = SupplierFormatting.parseAmount(
             text,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         )
         let updated = StockUnitConversion.reception(
             invoiceLine: line,
@@ -542,7 +542,7 @@ struct NIREditorView: View {
         let current = reception(for: line)
         conversionDraftByLineId[line.id] = NIRConversionDraft(
             factorText: SupplierFormatting.amountString(current.factor),
-            stockQuantityText: SupplierFormatting.amountString(current.stockQuantity),
+            stockQuantityText: SupplierFormatting.stockQuantityString(current.stockQuantity),
             stockUnit: unit
         )
         refreshPricingAfterConversion(for: line)
@@ -579,7 +579,7 @@ struct NIREditorView: View {
         )
         conversionDraftByLineId[line.id] = NIRConversionDraft(
             factorText: SupplierFormatting.amountString(reception.factor),
-            stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
+            stockQuantityText: SupplierFormatting.stockQuantityString(reception.stockQuantity),
             stockUnit: reception.stockUnit
         )
         refreshPricingAfterConversion(for: line)
@@ -599,7 +599,7 @@ struct NIREditorView: View {
         }
         conversionDraftByLineId[line.id] = NIRConversionDraft(
             factorText: SupplierFormatting.amountString(reception.factor),
-            stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
+            stockQuantityText: SupplierFormatting.stockQuantityString(reception.stockQuantity),
             stockUnit: reception.stockUnit
         )
     }
@@ -768,7 +768,7 @@ struct NIREditorView: View {
                 }
                 drafts[line.id] = NIRConversionDraft(
                     factorText: SupplierFormatting.amountString(reception.factor),
-                    stockQuantityText: SupplierFormatting.amountString(reception.stockQuantity),
+                    stockQuantityText: SupplierFormatting.stockQuantityString(reception.stockQuantity),
                     stockUnit: reception.stockUnit
                 )
                 pricing[line.id] = state

@@ -62,7 +62,7 @@ struct StockSheetTableView: View {
             blankIfZero(entry.valoareIntrare, currency: true),
             blankIfZero(entry.cantitateIesire),
             blankIfZero(entry.valoareIesire, currency: true),
-            SupplierFormatting.amountString(entry.stocCantitate),
+            SupplierFormatting.stockQuantityString(entry.stocCantitate),
             SupplierFormatting.currency(entry.stocValoare)
         ]
     }

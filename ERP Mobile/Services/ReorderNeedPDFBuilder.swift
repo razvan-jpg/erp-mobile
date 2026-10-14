@@ -3,7 +3,7 @@ import UIKit
 enum ReorderNeedPDFBuilder {
     private static let pageSize = CGSize(width: 595, height: 842)
     private static let margin: CGFloat = 36
-    private static let fractions: [CGFloat] = [0.12, 0.30, 0.08, 0.12, 0.12, 0.12, 0.14]
+    private static let fractions: [CGFloat] = [0.10, 0.28, 0.07, 0.12, 0.13, 0.14, 0.16]
 
     static func makePDF(
         companyName: String,
@@ -55,9 +55,9 @@ enum ReorderNeedPDFBuilder {
             L10n.tr("inventory.reorder_pdf_name"),
             L10n.tr("inventory.reorder_pdf_unit"),
             L10n.tr("inventory.reorder_current"),
-            L10n.tr("inventory.reorder_minimum"),
-            L10n.tr("inventory.reorder_optimal"),
-            L10n.tr("inventory.reorder_needed")
+            L10n.tr("inventory.reorder_needed"),
+            L10n.tr("inventory.reorder_price"),
+            L10n.tr("inventory.reorder_line_total")
         ]
         var pageCount = 0
         var currentPage = 0
@@ -102,13 +102,28 @@ enum ReorderNeedPDFBuilder {
                     row.cod ?? "",
                     row.denumire,
                     row.unitateMasura,
-                    SupplierFormatting.amountString(row.cantitateCurenta),
-                    SupplierFormatting.amountString(row.cantitateMinima),
-                    SupplierFormatting.amountString(row.cantitateOptima),
-                    SupplierFormatting.amountString(row.cantitateNecesara)
+                    SupplierFormatting.stockQuantityString(row.cantitateCurenta),
+                    SupplierFormatting.stockQuantityString(row.cantitateNecesara),
+                    row.pretCuTva.map { SupplierFormatting.amountString($0) } ?? "—",
+                    row.pretCuTva.map { SupplierFormatting.amountString(SupplierFormatting.roundAmount($0 * row.cantitateNecesara)) } ?? "—"
                 ]
                 y = drawRow(values, at: y, contentWidth: contentWidth, font: bodyFont, bold: false)
             }
+            let orderTotal = rows.reduce(Decimal.zero) { partial, row in
+                guard let price = row.pretCuTva else { return partial }
+                return partial + SupplierFormatting.roundAmount(price * row.cantitateNecesara)
+            }
+            if y > bottom - 24 {
+                beginPage()
+                y = margin
+            }
+            y = drawRow(
+                ["", L10n.tr("inventory.reorder_order_total_label"), "", "", "", "", SupplierFormatting.amountString(orderTotal) + " lei"],
+                at: y + 6,
+                contentWidth: contentWidth,
+                font: headerFont,
+                bold: true
+            )
             if let totalPages {
                 drawFooter(page: currentPage, total: totalPages, pageWidth: pageRect.width, pageHeight: pageRect.height)
             }

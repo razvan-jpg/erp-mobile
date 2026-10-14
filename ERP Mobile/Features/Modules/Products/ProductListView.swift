@@ -48,11 +48,13 @@ struct ProductListView: View {
     @State private var locationStockByProductId: [UUID: [ProductLocationStock]] = [:]
     @State private var productionCostByProductId: [UUID: Decimal] = [:]
     @State private var purchasePriceByProductId: [UUID: Decimal] = [:]
+    @State private var incompleteRecipePriceIds: Set<UUID> = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var searchText = ""
     @State private var catalogGroups: [CMProductGroup] = []
     @State private var menus: [CMMenu] = []
+    @State private var menuLines: [CMMenuLine] = []
     @State private var menuImages: [UUID: String] = [:]
     @State private var groupIdsByProduct: [UUID: Set<UUID>] = [:]
     @State private var selectedGroupIds: Set<UUID> = []
@@ -302,7 +304,12 @@ struct ProductListView: View {
                         ScrollView {
                             LazyVGrid(columns: tileColumns, spacing: 8) {
                                 ForEach(filteredMenus) { menu in
-                                    ArticleMenuTile(menu: menu, imageUrl: menuImages[menu.id], canDelete: canDelete || canEdit) {
+                                    ArticleMenuTile(
+                                        menu: menu,
+                                        imageUrl: menuImages[menu.id],
+                                        purchaseCost: menuPurchaseCost(menu.id),
+                                        canDelete: canDelete || canEdit
+                                    ) {
                                         selectedMenu = menu
                                     } onDelete: {
                                         menuPendingDelete = menu
@@ -330,7 +337,8 @@ struct ProductListView: View {
                                     locationStocks: locationStockByProductId[product.id] ?? [],
                                     productionCost: productionCostByProductId[product.id],
                                     purchasePrice: purchasePriceByProductId[product.id],
-                                    showsExtendedMetrics: true
+                                    showsExtendedMetrics: true,
+                                    recipePricesIncomplete: incompleteRecipePriceIds.contains(product.id)
                                 ) {
                                     selectedProduct = product
                                 }
@@ -345,7 +353,8 @@ struct ProductListView: View {
                         ProductRowView(
                             product: product,
                             stockQuantity: stockByProductId[product.id] ?? 0,
-                            locationStocks: locationStockByProductId[product.id] ?? []
+                            locationStocks: locationStockByProductId[product.id] ?? [],
+                            recipePricesIncomplete: incompleteRecipePriceIds.contains(product.id)
                         ) {
                             selectedProduct = product
                         }
@@ -380,9 +389,9 @@ struct ProductListView: View {
             }
         }
         .appTask { await loadProducts() }
-        .appRefreshable {
+        .modifier(ProductListPullRefresh(enabled: usesTileLayout) {
             await loadProducts()
-        }
+        })
         .sheet(item: $selectedMenu) { menu in
             CMMenuEditorView(menu: menu, canEdit: canEdit) {
                 Task { await loadProducts() }
@@ -469,12 +478,14 @@ struct ProductListView: View {
             products = []
             catalogGroups = []
             menus = []
+            menuLines = []
             menuImages = [:]
             groupIdsByProduct = [:]
             stockByProductId = [:]
             locationStockByProductId = [:]
             productionCostByProductId = [:]
             purchasePriceByProductId = [:]
+            incompleteRecipePriceIds = []
             return
         }
         isLoading = true
@@ -497,6 +508,7 @@ struct ProductListView: View {
                         $0.name.compare($1.name, options: .caseInsensitive, locale: Locale(identifier: "ro")) == .orderedAscending
                     }
                     menus = try await CMProductGroupService.fetchMenus(companyId: companyId)
+                    menuLines = (try? await CMProductGroupService.fetchCompanyMenuLines(companyId: companyId)) ?? []
                     menuImages = (try? await CMProductGroupService.fetchMainProductImages(menuIds: menus.map(\.id))) ?? [:]
                     groupIdsByProduct = try await CMProductGroupService.fetchProductGroupIds(companyId: companyId)
                     selectedGroupIds = Set(selectedGroupIds.filter { id in
@@ -505,12 +517,14 @@ struct ProductListView: View {
                 } catch {
                     catalogGroups = []
                     menus = []
+            menuLines = []
             menuImages = [:]
                     groupIdsByProduct = [:]
                 }
             } else {
                 catalogGroups = []
                 menus = []
+            menuLines = []
             menuImages = [:]
                 groupIdsByProduct = [:]
                 selectedGroupIds = []
@@ -524,25 +538,56 @@ struct ProductListView: View {
                 )
                 productionCostByProductId = try await ProductRecipeService.fetchProductionCosts(companyId: companyId)
                 purchasePriceByProductId = try await ProductRecipeService.fetchLatestPurchasePrices(companyId: companyId)
+                incompleteRecipePriceIds = try await ProductRecipeService.fetchProductIdsMissingRecipePrice(companyId: companyId)
             } else {
                 stockByProductId = [:]
                 locationStockByProductId = [:]
                 productionCostByProductId = [:]
                 purchasePriceByProductId = [:]
+                incompleteRecipePriceIds = []
             }
+        } catch is CancellationError {
+            // Gestul anulat la capătul listei nu golește articolele.
         } catch {
             products = []
             catalogGroups = []
             menus = []
+            menuLines = []
             menuImages = [:]
             groupIdsByProduct = [:]
             stockByProductId = [:]
             locationStockByProductId = [:]
             productionCostByProductId = [:]
             purchasePriceByProductId = [:]
+            incompleteRecipePriceIds = []
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    private func menuPurchaseCost(_ menuId: UUID) -> Decimal? {
+        let included = menuLines.filter { $0.menuId == menuId && ($0.role == "main" || $0.isRequired) }
+        guard !included.isEmpty else { return nil }
+        let productsById = Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0) })
+        var sum = Decimal.zero
+        var priced = false
+        for line in included {
+            guard let product = productsById[line.productId], let unit = menuComponentCost(product) else { continue }
+            sum += SupplierFormatting.roundAmount(line.cantitate * unit)
+            priced = true
+        }
+        return priced ? sum : nil
+    }
+
+    private func menuComponentCost(_ product: Product) -> Decimal? {
+        switch product.tip {
+        case .produsFinit:
+            return productionCostByProductId[product.id]
+        case .marfa:
+            return product.pretAchizitie ?? purchasePriceByProductId[product.id]
+        default:
+            return product.pretAchizitie
+        }
     }
 
     private static func matchesCode(_ code: String?, query: String) -> Bool {
@@ -559,11 +604,28 @@ struct ProductListView: View {
     }
 }
 
+private struct ProductListPullRefresh: ViewModifier {
+    let enabled: Bool
+    let action: () async -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if enabled {
+            content.appRefreshable(action)
+        } else {
+            content
+        }
+    }
+}
+
 private struct ProductRowView: View {
     let product: Product
     var stockQuantity: Decimal = 0
     var locationStocks: [ProductLocationStock] = []
+    var recipePricesIncomplete: Bool = false
     let onTap: () -> Void
+
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
 
     var body: some View {
         Button(action: onTap) {
@@ -572,6 +634,12 @@ private struct ProductRowView: View {
                     .font(.headline)
                     .foregroundColor(AppColors.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                if recipePricesIncomplete {
+                    Text(L10n.tr("module.products.tile_recipe_price_warning"))
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.orange)
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(product.pretVanzare)))
@@ -598,7 +666,7 @@ private struct ProductRowView: View {
                                 L10n.tr(
                                     "module.products.tile_stock_location",
                                     line.locationName,
-                                    SupplierFormatting.amountString(line.quantity),
+                                    stockDecimals.string(line.quantity),
                                     product.unitateMasura
                                 )
                             )
@@ -610,7 +678,7 @@ private struct ProductRowView: View {
                     Text(
                         L10n.tr(
                             "module.products.tile_stock",
-                            SupplierFormatting.amountString(stockQuantity),
+                            stockDecimals.string(stockQuantity),
                             product.unitateMasura
                         )
                     )
@@ -621,7 +689,7 @@ private struct ProductRowView: View {
                 Text(
                     L10n.tr(
                         "module.products.tile_min_stock",
-                        SupplierFormatting.amountString(product.cantitateMinima),
+                        stockDecimals.string(product.cantitateMinima),
                         product.unitateMasura
                     )
                 )
@@ -631,7 +699,7 @@ private struct ProductRowView: View {
                 Text(
                     L10n.tr(
                         "module.products.tile_optimal_stock",
-                        SupplierFormatting.amountString(product.cantitateOptima),
+                        stockDecimals.string(product.cantitateOptima),
                         product.unitateMasura
                     )
                 )
@@ -672,6 +740,7 @@ private struct ProductRowView: View {
 private struct ArticleMenuTile: View {
     let menu: CMMenu
     var imageUrl: String?
+    var purchaseCost: Decimal?
     var canDelete = false
     let onTap: () -> Void
     var onDelete: () -> Void = {}
@@ -695,10 +764,21 @@ private struct ArticleMenuTile: View {
                     }
                     Text(L10n.tr("module.products.tile_sale_price", SupplierFormatting.amountString(menu.pretVanzare)))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.secondary)
+                        .foregroundColor(.blue)
                     Text(L10n.tr("module.products.tile_sale_price_online", SupplierFormatting.amountString(menu.pretVanzareOnline)))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.secondary)
+                        .foregroundColor(.blue)
+                    Text(L10n.tr("module.products.tile_purchase_price", amountText(purchaseCost)))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.orange)
+                    Text(L10n.tr("module.products.tile_profit_store", amountText(storeProfit), percentText(storeProfit, purchaseCost)))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(profitColor(storeProfit))
+                    if menu.pretVanzareOnline > 0 {
+                        Text(L10n.tr("module.products.tile_profit_online", amountText(onlineProfit), percentText(onlineProfit, purchaseCost)))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(profitColor(onlineProfit))
+                    }
                     if !menu.isActive {
                         Text("Inactiv")
                             .font(.caption)
@@ -724,5 +804,37 @@ private struct ArticleMenuTile: View {
                 .appControlHint("Șterge meniul")
             }
         }
+    }
+
+    private var storeProfit: Decimal? {
+        guard let purchaseCost else { return nil }
+        return SupplierFormatting.roundAmount(menu.pretVanzare - purchaseCost)
+    }
+
+    private var onlineProfit: Decimal? {
+        guard let purchaseCost else { return nil }
+        let commission = SupplierFormatting.roundAmount(menu.pretVanzareOnline * Decimal(3) / Decimal(10))
+        return SupplierFormatting.roundAmount(menu.pretVanzareOnline - commission - purchaseCost)
+    }
+
+    private func amountText(_ value: Decimal?) -> String {
+        guard let value else { return L10n.tr("module.products.tile_value_missing") }
+        return SupplierFormatting.amountString(value)
+    }
+
+    private func percentText(_ profit: Decimal?, _ cost: Decimal?) -> String {
+        guard let profit, let cost, cost > 0 else {
+            return L10n.tr("module.products.tile_value_missing")
+        }
+        return InventoryFormatting.vatPercent(
+            SupplierFormatting.roundAmount((profit / cost) * Decimal(100))
+        )
+    }
+
+    private func profitColor(_ profit: Decimal?) -> Color {
+        guard let profit else { return AppColors.secondary }
+        if profit > 0 { return .green }
+        if profit < 0 { return .red }
+        return AppColors.secondary
     }
 }

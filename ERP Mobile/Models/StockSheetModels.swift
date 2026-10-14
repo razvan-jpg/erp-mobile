@@ -39,6 +39,8 @@ struct StockSheetSnapshot: Sendable {
     let pretMediu: Decimal?
     let valoare: Decimal
     let generatedAt: Date
+    let locationName: String
+    let asOf: Date
 }
 
 struct StockSheetListingSnapshot: Sendable {
@@ -53,6 +55,9 @@ struct StockSheetListingSnapshot: Sendable {
 
 struct StockSheetDetailContext: Identifiable, Hashable {
     let row: StockSheetListRow
+    let locationName: String
+    let asOf: Date
+    let warehouseIds: [UUID]
     var id: UUID { row.id }
 }
 
@@ -90,6 +95,101 @@ struct InitialStockDraftLine: Identifiable, Hashable, Sendable {
 struct InitialStockDraftSnapshot: Sendable {
     let lines: [InitialStockDraftLine]
     let transactionDate: Date?
+}
+
+struct ZStockSheetRow: Identifiable, Decodable, Hashable, Sendable {
+    let id: UUID
+    let workLocationId: UUID
+    let series: String
+    let numar: Int
+    let sheetDate: String
+    let shiftNo: Int
+    let zNumber: String
+    let glovo: Decimal
+    let bolt: Decimal
+    let wolt: Decimal
+    let totalVanzare: Decimal
+    let plataCard: Decimal
+    let plataModerna: Decimal
+    let numerar: Decimal
+    let baniPredati: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case workLocationId = "work_location_id"
+        case series
+        case numar
+        case sheetDate = "sheet_date"
+        case shiftNo = "shift_no"
+        case zNumber = "z_number"
+        case glovo
+        case bolt
+        case wolt
+        case totalVanzare = "total_vanzare"
+        case plataCard = "plata_card"
+        case plataModerna = "plata_moderna"
+        case numerar
+        case baniPredati = "bani_predati"
+    }
+
+    var title: String {
+        let parts = sheetDate.split(separator: "-")
+        let shown = parts.count == 3 ? "\(parts[2]).\(parts[1]).\(parts[0])" : sheetDate
+        let z = zNumber.isEmpty ? "—" : zNumber
+        return "\(shown) · Tura \(shiftNo) (Z \(z))"
+    }
+
+    var documentNumber: String { "\(series) \(numar)" }
+}
+
+struct ZStockSheetLine: Identifiable, Decodable, Hashable, Sendable {
+    let id: UUID
+    let category: String
+    let nrCrt: Int
+    let denumire: String
+    let unitateMasura: String
+    let openingQty: Decimal
+    let inflowQty: Decimal
+    let transferOutQty: Decimal
+    let recipeOutQty: Decimal
+    let saleStoreQty: Decimal
+    let saleOnlineQty: Decimal
+    let priceStore: Decimal
+    let priceOnline: Decimal
+    let valueStore: Decimal
+    let valueOnline: Decimal
+    let profit: Decimal
+    let closingQty: Decimal
+    let mismatch: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case category
+        case nrCrt = "nr_crt"
+        case denumire
+        case unitateMasura = "unitate_masura"
+        case openingQty = "opening_qty"
+        case inflowQty = "inflow_qty"
+        case transferOutQty = "transfer_out_qty"
+        case recipeOutQty = "recipe_out_qty"
+        case saleStoreQty = "sale_store_qty"
+        case saleOnlineQty = "sale_online_qty"
+        case priceStore = "price_store"
+        case priceOnline = "price_online"
+        case valueStore = "value_store"
+        case valueOnline = "value_online"
+        case profit
+        case closingQty = "closing_qty"
+        case mismatch
+    }
+
+    var categoryTitle: String {
+        switch category {
+        case "finite": return "Produse finite (Shaorma, Farfurii & Box, Sandwich & Chifle, Meniuri)"
+        case "drinks": return "Băuturi"
+        default: return "Materii prime și ambalaje"
+        }
+    }
 }
 
 struct InitialStockLinePayload: Encodable, Sendable {

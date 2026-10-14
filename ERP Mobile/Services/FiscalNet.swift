@@ -86,9 +86,9 @@ enum FiscalNet {
             let group = (1...5).contains(line.vatGroup) ? line.vatGroup : 1
             commands.append("S^\(sanitize(line.name, max: 42))^\(price)^\(qty)^buc^\(group)^1")
             if line.fullDiscount {
-                commands.append("DV^\(item.1)")
+                commands.append("DV^\(item.1)^\(group)")
             } else if cutByLine[index] > 0 {
-                commands.append("DV^\(cutByLine[index])")
+                commands.append("DV^\(cutByLine[index])^\(group)")
             }
             let note = sanitize(line.note ?? "", max: 42)
             if !note.isEmpty {
@@ -138,6 +138,11 @@ enum FiscalNet {
 
     static func report(_ kind: String) -> [String] {
         ["\(kind)^"]
+    }
+
+    /// Deschidere sertar. Se trimite după un bon încasat numerar sau numerar + card.
+    static func openDrawer() -> [String] {
+        ["DS^"]
     }
 
     static func nonFiscal(_ lines: [String], documentUrl: String) -> [String] {

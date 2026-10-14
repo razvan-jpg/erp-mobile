@@ -46,6 +46,8 @@ struct StockReorderRow: Identifiable, Hashable, Sendable {
     let cantitateOptima: Decimal
     /// Cantitatea de comandat. Pleacă din stoc optim − stoc real și poate fi modificată în listă.
     var cantitateNecesara: Decimal
+    /// Ultimul preț de cumpărare, cu TVA, pe UM de stoc.
+    var pretCuTva: Decimal? = nil
 }
 
 
@@ -111,6 +113,7 @@ enum StockMovementSource: String, Codable, Sendable {
     case physicalInventory = "physical_inventory"
     case initialStock = "initial_stock"
     case stockTransfer = "stock_transfer"
+    case fiscalReceipt = "fiscal_receipt"
 
     var label: String {
         switch self {
@@ -122,6 +125,7 @@ enum StockMovementSource: String, Codable, Sendable {
         case .physicalInventory: return L10n.tr("inventory.source_physical_inventory")
         case .initialStock: return L10n.tr("inventory.source_initial_stock")
         case .stockTransfer: return L10n.tr("inventory.source_stock_transfer")
+        case .fiscalReceipt: return L10n.tr("inventory.source_fiscal_receipt")
         }
     }
 }
@@ -230,7 +234,7 @@ struct ProductWarehouseLedgerEntry: Identifiable, Hashable, Sendable {
     let stocFinal: Decimal
 
     var cantitateDisplay: String {
-        let amount = SupplierFormatting.amountString(abs(cantitate))
+        let amount = SupplierFormatting.stockQuantityString(abs(cantitate))
         return cantitate >= 0 ? "+\(amount)" : "−\(amount)"
     }
 
@@ -239,7 +243,7 @@ struct ProductWarehouseLedgerEntry: Identifiable, Hashable, Sendable {
     }
 
     var stocFinalDisplay: String {
-        SupplierFormatting.amountString(stocFinal)
+        SupplierFormatting.stockQuantityString(stocFinal)
     }
 }
 

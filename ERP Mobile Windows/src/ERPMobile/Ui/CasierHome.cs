@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -13,6 +14,12 @@ public sealed class CasierHome : UserControl
     private readonly AppSession _session;
     private readonly Action<Guid, string> _enterPos;
     private readonly Border _host = new();
+    private Guid? _transferLocation;
+    private DateTime _transferDate = DateTime.Today;
+    private Guid? _productionLocation;
+    private DateTime _productionDate = DateTime.Today;
+    private readonly List<NamedPick> _locations = new();
+    private readonly Dictionary<Guid, Guid?> _warehouseLocation = new();
 
     public CasierHome(AppSession session, Action<Guid, string> enterPos)
     {
@@ -43,30 +50,45 @@ public sealed class CasierHome : UserControl
 
     private async Task ShowTransfers()
     {
-        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 640 };
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 720 };
         page.Children.Add(Back("← Producție", ShowProduction));
         page.Children.Add(Title("Bon transfer"));
+        var location = new ComboBox { MinWidth = 220 };
+        var date = new CalendarDatePicker { SelectedDate = _transferDate, Width = 160 };
+        var armTransfer = AddFilters(page, location, date, () =>
+        {
+            _transferLocation = location.SelectedIndex <= 0 ? null : (location.SelectedItem as NamedPick)?.Id;
+            _transferDate = date.SelectedDate ?? DateTime.Today;
+            Dispatcher.UIThread.Post(() => _ = ShowTransfers());
+        });
         _host.Child = new ScrollViewer { Content = page };
         try
         {
+            await LoadPlaces();
+            BindLocations(location, _transferLocation);
+            armTransfer();
             var company = Company();
-            var rows = await _session.SelectRows("stock_transfers", $"company_id=eq.{company}&select=id,numar,data_bon&order=data_bon.desc");
-            if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
+            var rows = await _session.SelectRows(
+                "stock_transfers",
+                $"company_id=eq.{company}&select=id,numar,data_bon,source_warehouse_id,destination_warehouse_id&order=data_bon.desc");
+            var day = _transferDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var count = 0;
+            if (rows.ValueKind == JsonValueKind.Array)
             {
-                page.Children.Add(Muted("Nu există bonuri de transfer."));
-                return;
-            }
-            foreach (var row in rows.EnumerateArray())
-            {
-                var number = TextOf(row, "numar");
-                var date = TextOf(row, "data_bon");
-                page.Children.Add(new TextBlock
+                foreach (var row in rows.EnumerateArray())
                 {
-                    Text = string.IsNullOrWhiteSpace(number) ? date : "Nr. " + number + "  ·  " + date,
-                    Foreground = Brand.Brush(Brand.Navy),
-                    FontSize = 15
-                });
+                    if (TextOf(row, "data_bon") != day || !MatchesLocation(row, "source_warehouse_id", "destination_warehouse_id"))
+                        continue;
+                    count++;
+                    var id = row.GetProperty("id").GetGuid();
+                    var number = TextOf(row, "numar");
+                    page.Children.Add(ActionButton(
+                        "Nr. " + number + "  ·  " + day,
+                        () => Dispatcher.UIThread.Post(() => _ = ShowTransferDetail(id))));
+                }
             }
+            if (count == 0)
+                page.Children.Add(Muted("Nu există bonuri de transfer pentru filtrul ales."));
         }
         catch (Exception ex)
         {
@@ -79,36 +101,48 @@ public sealed class CasierHome : UserControl
         var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 640 };
         page.Children.Add(Back("← Producție", ShowProduction));
         page.Children.Add(Title("Bon producție"));
-        page.Children.Add(ActionButton("Bon producție nou", () => Dispatcher.UIThread.Post(() => _ = ShowCreateProductionNote())));
+        page.Children.Add(ActionButton("Bon producție nou", () => Dispatcher.UIThread.Post(() => _ = ShowCreateProductionNote(null))));
+        var location = new ComboBox { MinWidth = 220 };
+        var date = new CalendarDatePicker { SelectedDate = _productionDate, Width = 160 };
+        var armProduction = AddFilters(page, location, date, () =>
+        {
+            _productionLocation = location.SelectedIndex <= 0 ? null : (location.SelectedItem as NamedPick)?.Id;
+            _productionDate = date.SelectedDate ?? DateTime.Today;
+            Dispatcher.UIThread.Post(() => _ = ShowProductionNotes());
+        });
         _host.Child = new ScrollViewer { Content = page };
         try
         {
+            await LoadPlaces();
+            BindLocations(location, _productionLocation);
+            armProduction();
             var company = Company();
             var rows = await _session.SelectRows(
                 "production_vouchers",
-                $"company_id=eq.{company}&select=id,numar,data_bon,cantitate,unitate_masura,product:products(denumire),warehouse:company_warehouses(denumire)&order=data_bon.desc");
-            if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
+                $"company_id=eq.{company}&select=id,numar,data_bon,cantitate,unitate_masura,warehouse_id,product:products(denumire),warehouse:company_warehouses(denumire)&order=data_bon.desc");
+            var day = _productionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var count = 0;
+            if (rows.ValueKind == JsonValueKind.Array)
             {
-                page.Children.Add(Muted("Nu există bonuri de producție. Creați unul: gestiune, produs finit și cantitate."));
-                return;
-            }
-            foreach (var row in rows.EnumerateArray())
-            {
-                var number = TextOf(row, "numar");
-                var date = TextOf(row, "data_bon");
-                var qty = TextOf(row, "cantitate");
-                var unit = TextOf(row, "unitate_masura");
-                var product = NestedText(row, "product", "denumire");
-                var warehouse = NestedText(row, "warehouse", "denumire");
-                page.Children.Add(new TextBlock
+                foreach (var row in rows.EnumerateArray())
                 {
-                    Text = "BP " + number + "  ·  " + date + "  ·  " + product + "  ·  " + qty + " " + unit
-                        + (string.IsNullOrWhiteSpace(warehouse) ? "" : "  ·  " + warehouse),
-                    Foreground = Brand.Brush(Brand.Navy),
-                    FontSize = 15,
-                    TextWrapping = TextWrapping.Wrap
-                });
+                    if (TextOf(row, "data_bon") != day || !MatchesLocation(row, "warehouse_id"))
+                        continue;
+                    count++;
+                    var id = row.GetProperty("id").GetGuid();
+                    var number = TextOf(row, "numar");
+                    var qty = TextOf(row, "cantitate");
+                    var unit = TextOf(row, "unitate_masura");
+                    var product = NestedText(row, "product", "denumire");
+                    var warehouse = NestedText(row, "warehouse", "denumire");
+                    page.Children.Add(ActionButton(
+                        "BP " + number + "  ·  " + product + "  ·  " + qty + " " + unit
+                            + (string.IsNullOrWhiteSpace(warehouse) ? "" : "  ·  " + warehouse),
+                        () => Dispatcher.UIThread.Post(() => _ = ShowProductionDetail(id))));
+                }
             }
+            if (count == 0)
+                page.Children.Add(Muted("Nu există bonuri de producție pentru filtrul ales."));
         }
         catch (Exception ex)
         {
@@ -116,18 +150,21 @@ public sealed class CasierHome : UserControl
         }
     }
 
-    private async Task ShowCreateProductionNote()
+    private async Task ShowCreateProductionNote(Guid? existingId)
     {
         var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 520 };
         page.Children.Add(Back("← Bonuri producție", () => Dispatcher.UIThread.Post(() => _ = ShowProductionNotes())));
-        page.Children.Add(Title("Bon producție nou"));
+        page.Children.Add(Title(existingId == null ? "Bon producție nou" : "Modifică bonul de producție"));
         _host.Child = new ScrollViewer { Content = page };
 
         var warehouseCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         var productCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         var qtyBox = new TextBox { Watermark = "Cantitate" };
+        var date = new CalendarDatePicker { SelectedDate = DateTime.Today, Width = 160 };
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Firebrick };
 
+        page.Children.Add(Muted("Data"));
+        page.Children.Add(date);
         page.Children.Add(Muted("Gestiune"));
         page.Children.Add(warehouseCombo);
         page.Children.Add(Muted("Produs finit (cu rețetă)"));
@@ -176,6 +213,22 @@ public sealed class CasierHome : UserControl
                 status.Text = "Nu există produse finite cu rețetă.";
             else
                 productCombo.SelectedIndex = 0;
+
+            if (existingId != null)
+            {
+                var current = await _session.SelectRows(
+                    "production_vouchers",
+                    $"id=eq.{existingId}&select=data_bon,cantitate,warehouse_id,product_id,observatii");
+                if (current.ValueKind == JsonValueKind.Array && current.GetArrayLength() > 0)
+                {
+                    var row = current[0];
+                    if (DateTime.TryParse(TextOf(row, "data_bon"), out var parsed))
+                        date.SelectedDate = parsed;
+                    qtyBox.Text = TextOf(row, "cantitate");
+                    SelectPick(warehouseCombo, warehouseItems, GuidOf(row, "warehouse_id"));
+                    SelectPick(productCombo, productItems, GuidOf(row, "product_id"));
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -191,11 +244,11 @@ public sealed class CasierHome : UserControl
             Padding = new Avalonia.Thickness(16, 10),
             CornerRadius = new Avalonia.CornerRadius(8)
         };
-        save.Click += (_, _) => Dispatcher.UIThread.Post(() => _ = SaveProductionNote(warehouseCombo, productCombo, qtyBox, status));
+        save.Click += (_, _) => Dispatcher.UIThread.Post(() => _ = SaveProductionNote(existingId, date, warehouseCombo, productCombo, qtyBox, status));
         page.Children.Add(save);
     }
 
-    private async Task SaveProductionNote(ComboBox warehouseCombo, ComboBox productCombo, TextBox qtyBox, TextBlock status)
+    private async Task SaveProductionNote(Guid? existingId, CalendarDatePicker date, ComboBox warehouseCombo, ComboBox productCombo, TextBox qtyBox, TextBlock status)
     {
         status.Text = "";
         status.Foreground = Brushes.Firebrick;
@@ -219,15 +272,31 @@ public sealed class CasierHome : UserControl
             }
 
             var company = Company();
-            await _session.Rpc("post_production_voucher", new
+            var day = (date.SelectedDate ?? DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (existingId == null)
             {
-                p_company_id = company.ToString(),
-                p_data_bon = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                p_warehouse_id = warehouse.Id.ToString(),
-                p_product_id = product.Id.ToString(),
-                p_cantitate = qty,
-                p_observatii = (string?)null
-            });
+                await _session.Rpc("post_production_voucher", new
+                {
+                    p_company_id = company.ToString(),
+                    p_data_bon = day,
+                    p_warehouse_id = warehouse.Id.ToString(),
+                    p_product_id = product.Id.ToString(),
+                    p_cantitate = qty,
+                    p_observatii = (string?)null
+                });
+            }
+            else
+            {
+                await _session.Rpc("update_production_voucher", new
+                {
+                    p_voucher_id = existingId.ToString(),
+                    p_data_bon = day,
+                    p_warehouse_id = warehouse.Id.ToString(),
+                    p_product_id = product.Id.ToString(),
+                    p_cantitate = qty,
+                    p_observatii = (string?)null
+                });
+            }
             await ShowProductionNotes();
         }
         catch (Exception ex)
@@ -240,6 +309,358 @@ public sealed class CasierHome : UserControl
             else if (message.Contains("PRODUCTION_PRODUCT_NOT_ALLOWED", StringComparison.OrdinalIgnoreCase))
                 message = "Alegeți un produs finit cu rețetă.";
             status.Text = message;
+        }
+    }
+
+    private async Task ShowProductionDetail(Guid id)
+    {
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 720 };
+        page.Children.Add(Back("← Bonuri producție", () => Dispatcher.UIThread.Post(() => _ = ShowProductionNotes())));
+        page.Children.Add(Title("Bon producție"));
+        var edit = new Button
+        {
+            Content = "Modifică",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = Brand.Brush(Brand.Gold),
+            Foreground = Brushes.White,
+            Padding = new Avalonia.Thickness(16, 10)
+        };
+        edit.Click += async (_, _) =>
+        {
+            if (await ConfirmSheetRecalc())
+                await ShowCreateProductionNote(id);
+        };
+        page.Children.Add(edit);
+        _host.Child = new ScrollViewer { Content = page };
+        try
+        {
+            var rows = await _session.SelectRows(
+                "production_vouchers",
+                $"id=eq.{id}&select=numar,data_bon,cantitate,unitate_masura,observatii,product:products(denumire),warehouse:company_warehouses(denumire)");
+            if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
+            {
+                page.Children.Add(Muted("Bonul nu mai există."));
+                return;
+            }
+            var row = rows[0];
+            page.Children.Add(Muted("Nr. " + TextOf(row, "numar") + "  ·  " + TextOf(row, "data_bon")));
+            page.Children.Add(Muted(NestedText(row, "product", "denumire") + "  ·  " + TextOf(row, "cantitate") + " " + TextOf(row, "unitate_masura")));
+            page.Children.Add(Muted("Gestiune: " + NestedText(row, "warehouse", "denumire")));
+            if (!string.IsNullOrWhiteSpace(TextOf(row, "observatii")))
+                page.Children.Add(Muted(TextOf(row, "observatii")));
+            var lines = await _session.SelectRows(
+                "production_voucher_lines",
+                $"voucher_id=eq.{id}&select=cantitate,unitate_masura,product:products(denumire)&order=numar_linie.asc");
+            page.Children.Add(Title("Consum"));
+            if (lines.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var line in lines.EnumerateArray())
+                    page.Children.Add(Muted(NestedText(line, "product", "denumire") + "  ·  " + TextOf(line, "cantitate") + " " + TextOf(line, "unitate_masura")));
+            }
+        }
+        catch (Exception ex)
+        {
+            page.Children.Add(new TextBlock { Text = ex.Message, Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap });
+        }
+    }
+
+    private async Task ShowTransferDetail(Guid id)
+    {
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 720 };
+        page.Children.Add(Back("← Bonuri transfer", () => Dispatcher.UIThread.Post(() => _ = ShowTransfers())));
+        page.Children.Add(Title("Bon transfer"));
+        var edit = new Button
+        {
+            Content = "Modifică",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = Brand.Brush(Brand.Gold),
+            Foreground = Brushes.White,
+            Padding = new Avalonia.Thickness(16, 10)
+        };
+        edit.Click += async (_, _) =>
+        {
+            if (await ConfirmSheetRecalc())
+                await ShowTransferEdit(id);
+        };
+        page.Children.Add(edit);
+        _host.Child = new ScrollViewer { Content = page };
+        try
+        {
+            var rows = await _session.SelectRows(
+                "stock_transfers",
+                $"id=eq.{id}&select=numar,data_bon,observatii,source:company_warehouses!stock_transfers_source_warehouse_id_fkey(denumire),destination:company_warehouses!stock_transfers_destination_warehouse_id_fkey(denumire)");
+            if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
+            {
+                page.Children.Add(Muted("Bonul nu mai există."));
+                return;
+            }
+            var row = rows[0];
+            page.Children.Add(Muted("Nr. " + TextOf(row, "numar") + "  ·  " + TextOf(row, "data_bon")));
+            page.Children.Add(Muted(NestedText(row, "source", "denumire") + " → " + NestedText(row, "destination", "denumire")));
+            if (!string.IsNullOrWhiteSpace(TextOf(row, "observatii")))
+                page.Children.Add(Muted(TextOf(row, "observatii")));
+            var lines = await _session.SelectRows(
+                "stock_transfer_lines",
+                $"transfer_id=eq.{id}&select=cantitate,unitate_masura,product:products(denumire)&order=numar_linie.asc");
+            if (lines.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var line in lines.EnumerateArray())
+                    page.Children.Add(Muted(NestedText(line, "product", "denumire") + "  ·  " + TextOf(line, "cantitate") + " " + TextOf(line, "unitate_masura")));
+            }
+        }
+        catch (Exception ex)
+        {
+            page.Children.Add(new TextBlock { Text = ex.Message, Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap });
+        }
+    }
+
+    private async Task ShowTransferEdit(Guid id)
+    {
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10, MaxWidth = 640 };
+        page.Children.Add(Back("← Bon transfer", () => Dispatcher.UIThread.Post(() => _ = ShowTransferDetail(id))));
+        page.Children.Add(Title("Modifică bonul de transfer"));
+        var date = new CalendarDatePicker { SelectedDate = DateTime.Today, Width = 160 };
+        var source = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
+        var destination = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
+        var notes = new TextBox { Watermark = "Observații" };
+        var linesPanel = new StackPanel { Spacing = 8 };
+        var status = new TextBlock { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap };
+        var drafts = new List<(ComboBox Product, TextBox Qty)>();
+        page.Children.Add(Muted("Data"));
+        page.Children.Add(date);
+        page.Children.Add(Muted("Din gestiunea"));
+        page.Children.Add(source);
+        page.Children.Add(Muted("În gestiunea"));
+        page.Children.Add(destination);
+        page.Children.Add(notes);
+        page.Children.Add(linesPanel);
+        page.Children.Add(status);
+        _host.Child = new ScrollViewer { Content = page };
+        try
+        {
+            var company = Company();
+            var warehouses = await _session.SelectRows("company_warehouses", $"company_id=eq.{company}&is_active=eq.true&select=id,denumire&order=denumire.asc");
+            var products = await _session.SelectRows("products", $"company_id=eq.{company}&is_active=eq.true&select=id,denumire,tip&order=denumire.asc");
+            var warehouseItems = new List<NamedPick>();
+            if (warehouses.ValueKind == JsonValueKind.Array)
+                foreach (var row in warehouses.EnumerateArray())
+                    warehouseItems.Add(new NamedPick(row.GetProperty("id").GetGuid(), TextOf(row, "denumire")));
+            source.ItemsSource = warehouseItems;
+            destination.ItemsSource = warehouseItems.ToList();
+            var productItems = new List<NamedPick>();
+            if (products.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in products.EnumerateArray())
+                {
+                    var tip = TextOf(row, "tip");
+                    if (tip is "materie_prima" or "marfa" or "ambalaj" or "materiale_consumabile" or "materiale_curatenie" or "birotica")
+                        productItems.Add(new NamedPick(row.GetProperty("id").GetGuid(), TextOf(row, "denumire")));
+                }
+            }
+            var header = await _session.SelectRows("stock_transfers", $"id=eq.{id}&select=data_bon,observatii,source_warehouse_id,destination_warehouse_id");
+            if (header.ValueKind == JsonValueKind.Array && header.GetArrayLength() > 0)
+            {
+                var row = header[0];
+                if (DateTime.TryParse(TextOf(row, "data_bon"), out var parsed))
+                    date.SelectedDate = parsed;
+                notes.Text = TextOf(row, "observatii");
+                SelectPick(source, warehouseItems, GuidOf(row, "source_warehouse_id"));
+                SelectPick(destination, warehouseItems, GuidOf(row, "destination_warehouse_id"));
+            }
+            var lines = await _session.SelectRows("stock_transfer_lines", $"transfer_id=eq.{id}&select=product_id,cantitate&order=numar_linie.asc");
+            void AddLine(Guid? productId, string qty)
+            {
+                var product = new ComboBox { ItemsSource = productItems, HorizontalAlignment = HorizontalAlignment.Stretch };
+                var qtyBox = new TextBox { Text = qty, Watermark = "Cantitate" };
+                if (productId != null)
+                    SelectPick(product, productItems, productId);
+                drafts.Add((product, qtyBox));
+                var rowPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                rowPanel.Children.Add(product);
+                rowPanel.Children.Add(qtyBox);
+                linesPanel.Children.Add(rowPanel);
+            }
+            if (lines.ValueKind == JsonValueKind.Array)
+                foreach (var line in lines.EnumerateArray())
+                    AddLine(GuidOf(line, "product_id"), TextOf(line, "cantitate"));
+            if (drafts.Count == 0)
+                AddLine(null, "");
+            var add = new Button { Content = "Adaugă linie", HorizontalAlignment = HorizontalAlignment.Left };
+            add.Click += (_, _) => AddLine(null, "");
+            page.Children.Add(add);
+            var save = new Button
+            {
+                Content = "Salvează",
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Background = Brand.Brush(Brand.Gold),
+                Foreground = Brushes.White,
+                Padding = new Avalonia.Thickness(16, 10)
+            };
+            save.Click += async (_, _) =>
+            {
+                try
+                {
+                    if (source.SelectedItem is not NamedPick from || destination.SelectedItem is not NamedPick to)
+                    {
+                        status.Text = "Alegeți gestiunile.";
+                        return;
+                    }
+                    var payload = new List<object>();
+                    foreach (var draft in drafts)
+                    {
+                        if (draft.Product.SelectedItem is not NamedPick product)
+                            continue;
+                        var text = (draft.Qty.Text ?? "").Trim().Replace(',', '.');
+                        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var qty) || qty <= 0)
+                            continue;
+                        payload.Add(new { product_id = product.Id.ToString(), cantitate = qty });
+                    }
+                    if (payload.Count == 0)
+                    {
+                        status.Text = "Păstrați cel puțin o linie cu cantitate.";
+                        return;
+                    }
+                    await _session.Rpc("update_stock_transfer", new
+                    {
+                        p_transfer_id = id.ToString(),
+                        p_data_bon = (date.SelectedDate ?? DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        p_source_warehouse_id = from.Id.ToString(),
+                        p_destination_warehouse_id = to.Id.ToString(),
+                        p_observatii = notes.Text,
+                        p_lines = payload
+                    });
+                    await ShowTransfers();
+                }
+                catch (Exception ex)
+                {
+                    status.Text = ex.Message;
+                }
+            };
+            page.Children.Add(save);
+        }
+        catch (Exception ex)
+        {
+            status.Text = ex.Message;
+        }
+    }
+
+    private async Task<bool> ConfirmSheetRecalc()
+    {
+        var done = new TaskCompletionSource<bool>();
+        var window = new Window
+        {
+            Title = "Atenție",
+            Width = 520,
+            Height = 260,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false
+        };
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 16 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Modificarea acestui bon recalculează toate foile de stoc de la foaia afectată de bon până astăzi. Dacă stocurile nu se recalculează, ele se alterează și nu mai sunt afișate corect.",
+            TextWrapping = TextWrapping.Wrap
+        });
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var no = new Button { Content = "Renunță", Padding = new Avalonia.Thickness(12, 8) };
+        var yes = new Button { Content = "Continuă", Background = Brand.Brush(Brand.Gold), Foreground = Brushes.White, Padding = new Avalonia.Thickness(12, 8) };
+        no.Click += (_, _) => { done.TrySetResult(false); window.Close(); };
+        yes.Click += (_, _) => { done.TrySetResult(true); window.Close(); };
+        window.Closed += (_, _) => done.TrySetResult(false);
+        buttons.Children.Add(no);
+        buttons.Children.Add(yes);
+        panel.Children.Add(buttons);
+        window.Content = panel;
+        if (TopLevel.GetTopLevel(this) is Window parent)
+            await window.ShowDialog(parent);
+        else
+            window.Show();
+        return await done.Task;
+    }
+
+    private async Task LoadPlaces()
+    {
+        if (_locations.Count > 0)
+            return;
+        var company = Company();
+        var locations = await _session.SelectRows("company_work_locations", $"company_id=eq.{company}&is_active=eq.true&select=id,denumire&order=denumire.asc");
+        var warehouses = await _session.SelectRows("company_warehouses", $"company_id=eq.{company}&select=id,work_location_id");
+        _locations.Add(new NamedPick(Guid.Empty, "Toate locațiile"));
+        if (locations.ValueKind == JsonValueKind.Array)
+            foreach (var row in locations.EnumerateArray())
+                _locations.Add(new NamedPick(row.GetProperty("id").GetGuid(), TextOf(row, "denumire")));
+        if (warehouses.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var row in warehouses.EnumerateArray())
+            {
+                Guid? location = GuidOf(row, "work_location_id");
+                _warehouseLocation[row.GetProperty("id").GetGuid()] = location;
+            }
+        }
+    }
+
+    private void BindLocations(ComboBox box, Guid? selected)
+    {
+        box.ItemsSource = _locations.ToList();
+        box.SelectedIndex = 0;
+        if (selected == null)
+            return;
+        for (var i = 0; i < _locations.Count; i++)
+        {
+            if (_locations[i].Id == selected)
+            {
+                box.SelectedIndex = i;
+                return;
+            }
+        }
+    }
+
+    private Action AddFilters(StackPanel page, ComboBox location, CalendarDatePicker date, Action changed)
+    {
+        var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        bar.Children.Add(new TextBlock { Text = "Locație", VerticalAlignment = VerticalAlignment.Center, Foreground = Brand.Brush(Brand.Navy) });
+        bar.Children.Add(location);
+        bar.Children.Add(new TextBlock { Text = "Data", VerticalAlignment = VerticalAlignment.Center, Foreground = Brand.Brush(Brand.Navy) });
+        bar.Children.Add(date);
+        var armed = false;
+        location.SelectionChanged += (_, _) => { if (armed) changed(); };
+        date.SelectedDateChanged += (_, _) => { if (armed) changed(); };
+        page.Children.Add(bar);
+        return () => armed = true;
+    }
+
+    private bool MatchesLocation(JsonElement row, params string[] warehouseFields)
+    {
+        var selected = warehouseFields.Contains("source_warehouse_id") ? _transferLocation : _productionLocation;
+        if (selected == null || selected == Guid.Empty)
+            return true;
+        foreach (var field in warehouseFields)
+        {
+            var id = GuidOf(row, field);
+            if (id != null && _warehouseLocation.TryGetValue(id.Value, out var location) && location == selected)
+                return true;
+        }
+        return false;
+    }
+
+    private static Guid? GuidOf(JsonElement row, string name)
+    {
+        if (!row.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null)
+            return null;
+        return value.TryGetGuid(out var id) ? id : null;
+    }
+
+    private static void SelectPick(ComboBox box, List<NamedPick> items, Guid? id)
+    {
+        if (id == null)
+            return;
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].Id == id)
+            {
+                box.SelectedIndex = i;
+                return;
+            }
         }
     }
 

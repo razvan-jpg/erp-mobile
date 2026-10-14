@@ -9,19 +9,32 @@ struct ProductionVoucherListView: View {
     @State private var errorMessage: String?
     @State private var showCreate = false
     @State private var voucherToShow: ProductionVoucher?
+    @State private var voucherToEdit: ProductionVoucher?
     @State private var voucherToDelete: ProductionVoucher?
+    @State private var locations: [CompanyWorkLocation] = []
+    @State private var warehouses: [CompanyWarehouse] = []
+    @State private var selectedLocationId: UUID?
+    @State private var asOf = Date()
+
+    private var filteredVouchers: [ProductionVoucher] {
+        vouchers.filter { voucher in
+            Calendar.current.isDate(voucher.dataBon, inSameDayAs: asOf)
+                && matchesLocation(voucher.warehouseId)
+        }
+    }
 
     var body: some View {
         Group {
-            if vouchers.isEmpty && !isLoading {
-                AppEmptyStateView(
-                    L10n.tr("cashier.production_list_empty"),
-                    systemImage: "gearshape.2",
-                    description: Text(errorMessage ?? L10n.tr("cashier.production_list_empty_hint"))
-                )
-            } else {
-                List {
-                    ForEach(vouchers) { voucher in
+            List {
+                filterSection
+                Section {
+                    if filteredVouchers.isEmpty && !isLoading {
+                        Text(vouchers.isEmpty
+                             ? L10n.tr("cashier.production_list_empty")
+                             : "Nu există bonuri de producție pentru filtrul ales.")
+                            .foregroundColor(AppColors.secondary)
+                    }
+                    ForEach(filteredVouchers) { voucher in
                         HStack(alignment: .center, spacing: 12) {
                             Button {
                                 voucherToShow = voucher
@@ -105,8 +118,17 @@ struct ProductionVoucherListView: View {
             .environmentObject(companyManager)
         }
         .fullScreenCover(item: $voucherToShow) { voucher in
-            ProductionVoucherDetailView(voucher: voucher)
-                .environmentObject(companyManager)
+            ProductionVoucherDetailView(voucher: voucher) {
+                voucherToShow = nil
+                voucherToEdit = voucher
+            }
+            .environmentObject(companyManager)
+        }
+        .fullScreenCover(item: $voucherToEdit) { voucher in
+            ProductionVoucherCreateView(existing: voucher) {
+                await load()
+            }
+            .environmentObject(companyManager)
         }
         .alert(
             L10n.tr("cashier.production_delete_title"),
@@ -123,6 +145,23 @@ struct ProductionVoucherListView: View {
         } message: { voucher in
             Text(L10n.tr("cashier.production_delete_confirm", voucher.numar))
         }
+    }
+
+    private var filterSection: some View {
+        Section {
+            Picker(L10n.tr("stock_sheet.filter_location"), selection: $selectedLocationId) {
+                Text(L10n.tr("stock_sheet.filter_location_all")).tag(Optional<UUID>.none)
+                ForEach(locations) { location in
+                    Text(location.denumire).tag(Optional(location.id))
+                }
+            }
+            DatePicker(L10n.tr("stock_sheet.filter_date"), selection: $asOf, displayedComponents: .date)
+        }
+    }
+
+    private func matchesLocation(_ warehouseId: UUID) -> Bool {
+        guard let selectedLocationId else { return true }
+        return warehouses.first { $0.id == warehouseId }?.workLocationId == selectedLocationId
     }
 
     private func productLabel(_ voucher: ProductionVoucher) -> String {
@@ -145,7 +184,12 @@ struct ProductionVoucherListView: View {
             didLoadOnce = true
         }
         do {
-            vouchers = try await ProductionVoucherService.fetchVouchers(companyId: companyId)
+            async let loadedVouchers = ProductionVoucherService.fetchVouchers(companyId: companyId)
+            async let loadedLocations = WorkLocationService.fetchWorkLocations(companyId: companyId)
+            async let loadedWarehouses = WarehouseService.fetchWarehouses(companyId: companyId)
+            vouchers = try await loadedVouchers
+            locations = try await loadedLocations
+            warehouses = try await loadedWarehouses
         } catch {
             vouchers = []
             errorMessage = error.localizedDescription
@@ -165,6 +209,7 @@ struct ProductionVoucherListView: View {
 }
 
 struct ProductionVoucherCreateView: View {
+    var existing: ProductionVoucher? = nil
     let onSaved: () async -> Void
 
     @Environment(\.presentationMode) private var presentationMode
@@ -232,7 +277,7 @@ struct ProductionVoucherCreateView: View {
                     }
                 }
             }
-            .navigationTitle(L10n.tr("cashier.production_create_title"))
+            .navigationTitle(existing == nil ? L10n.tr("cashier.production_create_title") : L10n.tr("cashier.production_number", existing?.numar ?? ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -259,7 +304,13 @@ struct ProductionVoucherCreateView: View {
             let (nextWarehouses, nextProducts) = try await (loadedWarehouses, loadedProducts)
             warehouses = nextWarehouses
             products = nextProducts
-            if warehouseId == nil {
+            if let existing {
+                dataBon = existing.dataBon
+                warehouseId = existing.warehouseId
+                productId = existing.productId
+                quantityText = SupplierFormatting.amountString(existing.cantitate)
+                observatii = existing.observatii ?? ""
+            } else if warehouseId == nil {
                 warehouseId = nextWarehouses.first(where: \.isActive)?.id
             }
         } catch {
@@ -286,14 +337,25 @@ struct ProductionVoucherCreateView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            _ = try await ProductionVoucherService.postVoucher(
-                companyId: companyId,
-                dataBon: dataBon,
-                warehouseId: warehouseId,
-                productId: productId,
-                cantitate: qty,
-                observatii: observatii
-            )
+            if let existing {
+                try await ProductionVoucherService.updateVoucher(
+                    id: existing.id,
+                    dataBon: dataBon,
+                    warehouseId: warehouseId,
+                    productId: productId,
+                    cantitate: qty,
+                    observatii: observatii
+                )
+            } else {
+                _ = try await ProductionVoucherService.postVoucher(
+                    companyId: companyId,
+                    dataBon: dataBon,
+                    warehouseId: warehouseId,
+                    productId: productId,
+                    cantitate: qty,
+                    observatii: observatii
+                )
+            }
             await onSaved()
             presentationMode.wrappedValue.dismiss()
         } catch {
@@ -304,11 +366,13 @@ struct ProductionVoucherCreateView: View {
 
 struct ProductionVoucherDetailView: View {
     let voucher: ProductionVoucher
+    var onEdit: () -> Void = {}
 
     @Environment(\.presentationMode) private var presentationMode
     @State private var lines: [ProductionVoucherLine] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showEditWarning = false
 
     var body: some View {
         NavigationView {
@@ -362,6 +426,17 @@ struct ProductionVoucherDetailView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.tr("common.done")) { presentationMode.wrappedValue.dismiss() }
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.tr("common.edit")) { showEditWarning = true }
+                }
+            }
+            .alert(L10n.tr("inventory.edit_recalc_title"), isPresented: $showEditWarning) {
+                Button(L10n.tr("inventory.edit_recalc_continue")) {
+                    onEdit()
+                }
+                Button(L10n.tr("common.cancel"), role: .cancel) {}
+            } message: {
+                Text(L10n.tr("inventory.edit_recalc_message"))
             }
             .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
             .appTask { await loadLines() }

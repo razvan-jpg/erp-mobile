@@ -233,10 +233,15 @@ public sealed class RegisterView : UserControl
                     for (var i = 0; i < spec.Columns.Length && i < 10; i++)
                     {
                         var field = spec.Columns[i].Field;
-                        item.Set(i, Money(field, FieldChoices.Display(spec.Table, field, Show(row, field))));
+                        item.Set(i, Money(spec.Table, field, FieldChoices.Display(spec.Table, field, Show(row, field))));
                     }
                     _all.Add(item);
                 }
+            }
+            if (spec.Table == "products")
+            {
+                await MarkIncompleteRecipes();
+                await MarkCatalogProfits();
             }
             await LoadGroups();
             _search.Watermark = spec.Table == "products" ? "Caută denumire sau cod" : "Caută...";
@@ -367,6 +372,7 @@ public sealed class RegisterView : UserControl
                         _menuIds.Add(item.Id);
                     _menuRows.Add(item);
                 }
+                await AnnotateMenuProfits(menuRows);
             }
             _groupOptions.Sort((left, right) => string.Compare(left.Name, right.Name, CultureInfo.GetCultureInfo("ro-RO"), CompareOptions.IgnoreCase));
             var members = await _session.SelectRows(
@@ -469,6 +475,145 @@ public sealed class RegisterView : UserControl
         _groupButton.Flyout = new Flyout { Content = panel };
     }
 
+    private async Task MarkIncompleteRecipes()
+    {
+        if (_session.CurrentCompany == null)
+            return;
+        var nameIndex = -1;
+        for (var i = 0; i < Current.Columns.Length; i++)
+        {
+            if (Current.Columns[i].Field == "denumire")
+                nameIndex = i;
+        }
+        if (nameIndex < 0)
+            return;
+        var missing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var from = 0;
+        while (true)
+        {
+            var page = await _session.SelectRows(
+                "product_recipe_lines",
+                "company_id=eq." + _session.CurrentCompany.Id + "&pret_achizitie=is.null&select=product_id",
+                from,
+                from + 999);
+            if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                break;
+            foreach (var row in page.EnumerateArray())
+            {
+                if (row.TryGetProperty("product_id", out var id) && id.ValueKind == JsonValueKind.String && id.GetString() is string value)
+                    missing.Add(value);
+            }
+            if (page.GetArrayLength() < 1000)
+                break;
+            from += 1000;
+        }
+        foreach (var item in _all)
+        {
+            if (item.Id != null && missing.Contains(item.Id))
+                item.Set(nameIndex, item.Cell(nameIndex) + " · Lipsesc prețuri în rețetă");
+        }
+    }
+
+    private async Task MarkCatalogProfits()
+    {
+        if (_session.CurrentCompany == null)
+            return;
+        var nameIndex = -1;
+        for (var i = 0; i < Current.Columns.Length; i++)
+        {
+            if (Current.Columns[i].Field == "denumire")
+                nameIndex = i;
+        }
+        if (nameIndex < 0)
+            return;
+
+        var catalog = new Dictionary<string, (string Tip, decimal Store, decimal Online, decimal? Purchase)>(StringComparer.OrdinalIgnoreCase);
+        var from = 0;
+        while (true)
+        {
+            var page = await _session.SelectRows(
+                "products",
+                "company_id=eq." + _session.CurrentCompany.Id + "&in_catalog=eq.true&select=id,tip,pret_vanzare,pret_vanzare_online,pret_achizitie",
+                from,
+                from + 999);
+            if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                break;
+            foreach (var row in page.EnumerateArray())
+            {
+                if (TextId(row, "id") is not string id
+                    || !TryListedAmount(RawNumber(row, "pret_vanzare"), out var store)
+                    || !TryListedAmount(RawNumber(row, "pret_vanzare_online"), out var online))
+                    continue;
+                decimal? purchase = TryListedAmount(RawNumber(row, "pret_achizitie"), out var purchasePrice) ? purchasePrice : null;
+                catalog[id] = (Show(row, "tip"), store, online, purchase);
+            }
+            if (page.GetArrayLength() < 1000)
+                break;
+            from += 1000;
+        }
+
+        var production = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var hasRecipe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        from = 0;
+        while (true)
+        {
+            var page = await _session.SelectRows(
+                "product_recipe_lines",
+                "company_id=eq." + _session.CurrentCompany.Id + "&select=product_id,cantitate,pret_achizitie",
+                from,
+                from + 999);
+            if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                break;
+            foreach (var row in page.EnumerateArray())
+            {
+                if (TextId(row, "product_id") is not string id)
+                    continue;
+                hasRecipe.Add(id);
+                if (!TryListedAmount(RawNumber(row, "cantitate"), out var qty) || !TryListedAmount(RawNumber(row, "pret_achizitie"), out var price))
+                    continue;
+                var line = decimal.Round(qty * price, 2, MidpointRounding.AwayFromZero);
+                production[id] = production.TryGetValue(id, out var sum) ? sum + line : line;
+            }
+            if (page.GetArrayLength() < 1000)
+                break;
+            from += 1000;
+        }
+
+        foreach (var item in _all)
+        {
+            if (item.Id == null || !catalog.TryGetValue(item.Id, out var product))
+                continue;
+            decimal? cost = product.Tip == "produs_finit"
+                ? (hasRecipe.Contains(item.Id) ? production.GetValueOrDefault(item.Id) : null)
+                : product.Purchase;
+            var storeProfit = cost is decimal storeCost
+                ? ProfitWithPercent(product.Store - storeCost, storeCost)
+                : "—";
+            var onlineProfit = cost is decimal onlineCost
+                ? ProfitWithPercent(product.Online - decimal.Round(product.Online * 0.30m, 2, MidpointRounding.AwayFromZero) - onlineCost, onlineCost)
+                : "—";
+            var suffix = " · Profit In Store/bucată = " + storeProfit;
+            if (product.Online > 0)
+                suffix += " · Profit On line/bucată = " + onlineProfit;
+            item.Set(nameIndex, item.Cell(nameIndex) + suffix);
+        }
+    }
+
+    private static string ProfitText(decimal value) =>
+        decimal.Round(value, 2, MidpointRounding.AwayFromZero).ToString("0.00", CultureInfo.GetCultureInfo("ro-RO"));
+
+    private static string ProfitWithPercent(decimal profit, decimal cost)
+    {
+        var amount = ProfitText(profit);
+        if (cost <= 0)
+            return amount + " / —";
+        var percent = decimal.Round(profit / cost * 100m, 2, MidpointRounding.AwayFromZero);
+        var percentText = percent.ToString("0.00", CultureInfo.GetCultureInfo("ro-RO"));
+        if (percentText.EndsWith(",00", StringComparison.Ordinal))
+            percentText = percentText.Substring(0, percentText.Length - 3);
+        return amount + " / " + percentText + "%";
+    }
+
     private void UpdateGroupTitle()
     {
         var names = _groupOptions.Where(option => option.Id != null && _selectedGroupIds.Contains(option.Id)).Select(option => option.Name).ToList();
@@ -509,6 +654,164 @@ public sealed class RegisterView : UserControl
             item.Set(i, text);
         }
         return item;
+    }
+
+    private async Task AnnotateMenuProfits(JsonElement menuRows)
+    {
+        if (_session.CurrentCompany == null || menuRows.ValueKind != JsonValueKind.Array)
+            return;
+        var nameIndex = -1;
+        for (var i = 0; i < Current.Columns.Length; i++)
+        {
+            if (Current.Columns[i].Field == "denumire")
+                nameIndex = i;
+        }
+        if (nameIndex < 0)
+            return;
+
+        try
+        {
+            var company = _session.CurrentCompany.Id;
+            var lines = new List<(string MenuId, string ProductId, decimal Qty, bool Include)>();
+            var from = 0;
+            while (true)
+            {
+                var page = await _session.SelectRows(
+                    "cm_menu_lines",
+                    "company_id=eq." + company + "&select=menu_id,product_id,cantitate,role,is_required",
+                    from,
+                    from + 999);
+                if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                    break;
+                foreach (var row in page.EnumerateArray())
+                {
+                    if (TextId(row, "menu_id") is not string menuId || TextId(row, "product_id") is not string productId)
+                        continue;
+                    var qty = TryListedAmount(RawNumber(row, "cantitate"), out var parsedQty) && parsedQty > 0 ? parsedQty : 1m;
+                    var role = Show(row, "role");
+                    var required = row.TryGetProperty("is_required", out var flag) && flag.ValueKind == JsonValueKind.True;
+                    lines.Add((menuId, productId, qty, role == "main" || required));
+                }
+                if (page.GetArrayLength() < 1000)
+                    break;
+                from += 1000;
+            }
+
+            var products = new Dictionary<string, (string Tip, decimal? Purchase)>(StringComparer.OrdinalIgnoreCase);
+            from = 0;
+            while (true)
+            {
+                var page = await _session.SelectRows(
+                    "products",
+                    "company_id=eq." + company + "&select=id,tip,pret_achizitie",
+                    from,
+                    from + 999);
+                if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                    break;
+                foreach (var row in page.EnumerateArray())
+                {
+                    if (TextId(row, "id") is not string id)
+                        continue;
+                    decimal? purchase = TryListedAmount(RawNumber(row, "pret_achizitie"), out var price) ? price : null;
+                    products[id] = (Show(row, "tip"), purchase);
+                }
+                if (page.GetArrayLength() < 1000)
+                    break;
+                from += 1000;
+            }
+
+            var production = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var hasRecipe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            from = 0;
+            while (true)
+            {
+                var page = await _session.SelectRows(
+                    "product_recipe_lines",
+                    "company_id=eq." + company + "&select=product_id,cantitate,pret_achizitie",
+                    from,
+                    from + 999);
+                if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                    break;
+                foreach (var row in page.EnumerateArray())
+                {
+                    if (TextId(row, "product_id") is not string id)
+                        continue;
+                    hasRecipe.Add(id);
+                    if (!TryListedAmount(RawNumber(row, "cantitate"), out var qty) || !TryListedAmount(RawNumber(row, "pret_achizitie"), out var price))
+                        continue;
+                    var lineCost = decimal.Round(qty * price, 2, MidpointRounding.AwayFromZero);
+                    production[id] = production.TryGetValue(id, out var sum) ? sum + lineCost : lineCost;
+                }
+                if (page.GetArrayLength() < 1000)
+                    break;
+                from += 1000;
+            }
+
+            var invoicePrice = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var needed = lines
+                .Where(line => line.Include)
+                .Select(line => line.ProductId)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(id => products.TryGetValue(id, out var product) && product.Tip != "produs_finit" && product.Purchase == null)
+                .ToList();
+            foreach (var productId in needed)
+            {
+                var page = await _session.SelectRows(
+                    "supplier_invoice_lines",
+                    "company_id=eq." + company
+                    + "&product_id=eq." + productId
+                    + "&select=pret_unitar,supplier_invoices!inner(data_factura)&order=supplier_invoices.data_factura.desc&limit=1");
+                if (page.ValueKind != JsonValueKind.Array || page.GetArrayLength() == 0)
+                    continue;
+                if (TryListedAmount(RawNumber(page[0], "pret_unitar"), out var price))
+                    invoicePrice[productId] = price;
+            }
+
+            var prices = new Dictionary<string, (decimal Store, decimal Online)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in menuRows.EnumerateArray())
+            {
+                if (TextId(row, "id") is not string id)
+                    continue;
+                if (!TryListedAmount(RawNumber(row, "pret_vanzare"), out var store))
+                    continue;
+                var online = TryListedAmount(RawNumber(row, "pret_vanzare_online"), out var onlinePrice) ? onlinePrice : store;
+                prices[id] = (store, online);
+            }
+
+            foreach (var item in _menuRows)
+            {
+                if (item.Id == null || !prices.TryGetValue(item.Id, out var sale))
+                    continue;
+                decimal? cost = null;
+                foreach (var line in lines)
+                {
+                    if (!string.Equals(line.MenuId, item.Id, StringComparison.OrdinalIgnoreCase) || !line.Include)
+                        continue;
+                    if (!products.TryGetValue(line.ProductId, out var product))
+                        continue;
+                    decimal? unit = product.Tip == "produs_finit"
+                        ? (hasRecipe.Contains(line.ProductId) ? production.GetValueOrDefault(line.ProductId) : null)
+                        : product.Purchase ?? (invoicePrice.TryGetValue(line.ProductId, out var latest) ? latest : null);
+                    if (unit is not decimal unitCost)
+                        continue;
+                    cost = (cost ?? 0m) + decimal.Round(line.Qty * unitCost, 2, MidpointRounding.AwayFromZero);
+                }
+                var purchaseText = cost is decimal purchase ? ProfitText(purchase) : "—";
+                var storeText = cost is decimal storeCost ? ProfitWithPercent(sale.Store - storeCost, storeCost) : "—";
+                var onlineText = cost is decimal onlineCost
+                    ? ProfitWithPercent(sale.Online - decimal.Round(sale.Online * 0.30m, 2, MidpointRounding.AwayFromZero) - onlineCost, onlineCost)
+                    : "—";
+                var text = item.Cell(nameIndex)
+                    + " · Preț achiziție = " + purchaseText
+                    + " · Profit In Store/bucată = " + storeText;
+                if (sale.Online > 0)
+                    text += " · Profit On line/bucată = " + onlineText;
+                item.Set(nameIndex, text);
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static string RawNumber(JsonElement row, string field)
@@ -861,14 +1164,32 @@ public sealed class RegisterView : UserControl
         return payload;
     }
 
-    private static string Money(string field, string raw)
+    private static string Money(string field, string raw) => Money("", field, raw);
+
+    private static string Money(string table, string field, string raw)
     {
-        if (field is not ("pret_vanzare" or "pret_vanzare_online" or "cantitate_minima"))
+        if (!TryListedAmount(raw, out var amount))
             return raw;
-        if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
-            || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.GetCultureInfo("ro-RO"), out amount))
+        if (IsStockQuantityField(table, field))
+            return StockFormat.Text(amount);
+        if (field is "pret_vanzare" or "pret_vanzare_online")
             return amount.ToString("0.00", CultureInfo.GetCultureInfo("ro-RO"));
         return raw;
+    }
+
+    private static bool IsStockQuantityField(string table, string field)
+    {
+        if (field is "cantitate_minima" or "cantitate_optima")
+            return true;
+        if (field != "cantitate")
+            return false;
+        return table is "product_stocks" or "stock_movements" or "warehouse_product_stocks";
+    }
+
+    private static bool TryListedAmount(string raw, out decimal amount)
+    {
+        return decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out amount)
+            || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.GetCultureInfo("ro-RO"), out amount);
     }
 
     private static string Show(JsonElement row, string field)

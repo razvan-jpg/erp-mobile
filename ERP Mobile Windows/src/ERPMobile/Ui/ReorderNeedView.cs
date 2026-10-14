@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -18,7 +19,22 @@ public sealed class ReorderNeedView : UserControl
     private readonly ComboBox _warehouse = new() { MinWidth = 220 };
     private readonly DataGrid _grid = new() { AutoGenerateColumns = false, IsReadOnly = false, CanUserSortColumns = false };
     private readonly TextBlock _status = new() { Foreground = Brand.Brush(Brand.Muted), TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _orderTotal = new()
+    {
+        FontSize = 16,
+        FontWeight = FontWeight.SemiBold,
+        Foreground = Brand.Brush(Brand.Navy),
+        HorizontalAlignment = HorizontalAlignment.Right,
+        Margin = new Avalonia.Thickness(20, 8, 20, 12)
+    };
     private readonly List<NeedLine> _lines = new();
+    private readonly HashSet<string> _selectedCategories = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _selectedGroupIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<GroupOption> _groupOptions = new();
+    private readonly Dictionary<Guid, HashSet<string>> _groupsByProduct = new();
+    private readonly Button _groupButton = new() { Content = "Toate grupele", MinWidth = 160 };
+    private readonly Button _categoryButton = new() { Content = "Toate categoriile", MinWidth = 160 };
+    private readonly List<CheckBox> _groupChecks = new();
     private bool _loading;
 
     public ReorderNeedView(AppSession session)
@@ -27,6 +43,8 @@ public sealed class ReorderNeedView : UserControl
         var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(20, 12, 20, 0) };
         bar.Children.Add(new TextBlock { Text = "Gestiune", VerticalAlignment = VerticalAlignment.Center, Foreground = Brand.Brush(Brand.Navy) });
         bar.Children.Add(_warehouse);
+        bar.Children.Add(_groupButton);
+        bar.Children.Add(_categoryButton);
         var print = new Button { Content = "Tipărește", Padding = new Avalonia.Thickness(12, 6) };
         var export = new Button { Content = "Export PDF", Padding = new Avalonia.Thickness(12, 6), Background = Brand.Brush(Brand.Gold), Foreground = Brushes.White };
         print.Click += async (_, _) => await Print();
@@ -45,9 +63,7 @@ public sealed class ReorderNeedView : UserControl
         AddColumn("Cod", nameof(NeedLine.Code), 90, true);
         AddColumn("Denumire", nameof(NeedLine.Name), 240, true);
         AddColumn("UM", nameof(NeedLine.Unit), 60, true);
-        AddColumn("Stoc real", nameof(NeedLine.CurrentText), 90, true);
-        AddColumn("Stoc minim", nameof(NeedLine.MinimumText), 90, true);
-        AddColumn("Stoc optim", nameof(NeedLine.OptimalText), 90, true);
+        AddColumn("Stoc curent", nameof(NeedLine.CurrentText), 100, true);
         _grid.Columns.Add(new DataGridTemplateColumn
         {
             Header = EditableHeader("De comandat"),
@@ -70,11 +86,17 @@ public sealed class ReorderNeedView : UserControl
                     FontWeight = FontWeight.SemiBold
                 };
                 ToolTip.SetTip(box, "Se poate modifica");
-                box.TextChanged += (_, _) => line.OrderText = box.Text ?? "";
+                box.TextChanged += (_, _) =>
+                {
+                    line.OrderText = box.Text ?? "";
+                    UpdateOrderTotal();
+                };
                 box.LostFocus += (_, _) => box.Text = line.OrderText;
                 return box;
             })
         });
+        AddColumn("Preț", nameof(NeedLine.PriceText), 90, true);
+        AddColumn("Total", nameof(NeedLine.LineTotalText), 100, true);
         _grid.Columns.Add(new DataGridTemplateColumn
         {
             Header = " ",
@@ -94,6 +116,7 @@ public sealed class ReorderNeedView : UserControl
                         return;
                     _lines.Remove(line);
                     Rebind();
+                    UpdateOrderTotal();
                 };
                 return button;
             })
@@ -102,11 +125,14 @@ public sealed class ReorderNeedView : UserControl
         var root = new DockPanel();
         DockPanel.SetDock(bar, Dock.Top);
         DockPanel.SetDock(_status, Dock.Top);
+        DockPanel.SetDock(_orderTotal, Dock.Bottom);
         _status.Margin = new Avalonia.Thickness(20, 8, 20, 8);
         root.Children.Add(bar);
         root.Children.Add(_status);
+        root.Children.Add(_orderTotal);
         root.Children.Add(_grid);
         Content = root;
+        BuildCategoryFlyout();
         _ = Load();
     }
 
@@ -184,8 +210,11 @@ public sealed class ReorderNeedView : UserControl
                 var order = Math.Max(0, optimal - current);
                 _lines.Add(new NeedLine(productId, Text(row, "cod"), Text(row, "denumire"), Text(row, "unitate_masura"), kind, current, minimum, optimal, order));
             }
+            await ApplyPrices(company, _lines);
+            await LoadGroups(company);
             SortLines();
             Rebind();
+            UpdateOrderTotal();
             _status.Text = _lines.Count == 0
                 ? "Nu există articole cu stocul sub minim. Puteți adăuga articole, inclusiv birotică."
                 : "Lista e pe categorii. De comandat se poate modifica. " + _lines.Count + " articole.";
@@ -227,12 +256,6 @@ public sealed class ReorderNeedView : UserControl
             var rank = left.CategoryRank.CompareTo(right.CategoryRank);
             return rank != 0 ? rank : string.Compare(left.Name, right.Name, StringComparison.CurrentCultureIgnoreCase);
         });
-    }
-
-    private void Rebind()
-    {
-        _grid.ItemsSource = null;
-        _grid.ItemsSource = _lines;
     }
 
     private async Task ShowAdd()
@@ -311,6 +334,7 @@ public sealed class ReorderNeedView : UserControl
                     var optimal = Number(row, "cantitate_optima");
                     hits.Add(new NeedLine(productId, Text(row, "cod"), Text(row, "denumire"), Text(row, "unitate_masura"), Text(row, "tip"), current, Number(row, "cantitate_minima"), optimal, Math.Max(0, optimal - current)));
                 }
+                await ApplyPrices(company, hits);
                 hits.Sort((left, right) =>
                 {
                     var rank = left.CategoryRank.CompareTo(right.CategoryRank);
@@ -332,6 +356,7 @@ public sealed class ReorderNeedView : UserControl
                 _lines.Add(line);
                 SortLines();
                 Rebind();
+                UpdateOrderTotal();
                 _status.Text = "Articol adăugat. Cantitatea de comandat se poate modifica.";
                 _status.Foreground = Brand.Brush(Brand.Muted);
             }
@@ -397,7 +422,234 @@ public sealed class ReorderNeedView : UserControl
     private byte[] Pdf()
     {
         var warehouse = (_warehouse.SelectedItem as WarehouseChoice)?.Name ?? "Toate gestiunile";
-        return ReorderNeedPdf.Make(_session.CurrentCompany?.Denumire ?? "Societate", warehouse, _lines);
+        return ReorderNeedPdf.Make(_session.CurrentCompany?.Denumire ?? "Societate", warehouse, VisibleLines());
+    }
+
+    private void UpdateOrderTotal()
+    {
+        decimal sum = 0;
+        var priced = false;
+        foreach (var line in VisibleLines())
+        {
+            if (line.GrossPrice == null)
+                continue;
+            priced = true;
+            sum += line.LineTotal;
+        }
+        _orderTotal.Text = VisibleLines().Count == 0
+            ? ""
+            : "Total comandă: " + (priced ? sum.ToString("N2", CultureInfo.GetCultureInfo("ro-RO")) : "—") + " lei";
+    }
+
+    private List<NeedLine> VisibleLines() => _lines.Where(Matches).ToList();
+
+    private bool Matches(NeedLine line)
+    {
+        if (_selectedCategories.Count > 0 && !_selectedCategories.Contains(line.Kind))
+            return false;
+        if (_selectedGroupIds.Count == 0)
+            return true;
+        return _groupsByProduct.TryGetValue(line.ProductId, out var groups) && groups.Overlaps(_selectedGroupIds);
+    }
+
+    private void Rebind()
+    {
+        _grid.ItemsSource = null;
+        _grid.ItemsSource = VisibleLines();
+    }
+
+    private async Task LoadGroups(Guid company)
+    {
+        _groupOptions.Clear();
+        _groupsByProduct.Clear();
+        var groups = await _session.SelectRows(
+            "cm_product_groups",
+            $"company_id=eq.{company}&kind=eq.custom&select=id,name&order=name.asc");
+        if (groups.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var row in groups.EnumerateArray())
+            {
+                if (!row.TryGetProperty("id", out var id) || !id.TryGetGuid(out var groupId))
+                    continue;
+                _groupOptions.Add(new GroupOption(groupId, Text(row, "name")));
+            }
+        }
+        var members = await Pages("cm_product_group_members", $"company_id=eq.{company}&select=product_id,group_id");
+        foreach (var row in members)
+        {
+            if (!row.TryGetProperty("product_id", out var product) || !product.TryGetGuid(out var productId))
+                continue;
+            if (!row.TryGetProperty("group_id", out var group) || !group.TryGetGuid(out var groupId))
+                continue;
+            if (!_groupsByProduct.TryGetValue(productId, out var set))
+            {
+                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _groupsByProduct[productId] = set;
+            }
+            set.Add(groupId.ToString());
+        }
+        _selectedGroupIds.RemoveWhere(id => _groupOptions.All(option => option.Id.ToString() != id));
+        RebuildGroupFlyout();
+        UpdateGroupTitle();
+    }
+
+    private void BuildCategoryFlyout()
+    {
+        var panel = new StackPanel { Spacing = 6, Margin = new Avalonia.Thickness(12) };
+        var all = new Button { Content = "Toate categoriile", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var boxes = new List<CheckBox>();
+        all.Click += (_, _) =>
+        {
+            _selectedCategories.Clear();
+            foreach (var box in boxes)
+                box.IsChecked = false;
+            UpdateCategoryTitle();
+            Rebind();
+            UpdateOrderTotal();
+        };
+        panel.Children.Add(all);
+        foreach (var choice in FieldChoices.Options("products", "tip") ?? Array.Empty<FieldChoice>())
+        {
+            if (choice.Code == "produs_finit")
+                continue;
+            var code = choice.Code;
+            var box = new CheckBox { Content = choice.Label, IsChecked = _selectedCategories.Contains(code) };
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (box.IsChecked == true)
+                    _selectedCategories.Add(code);
+                else
+                    _selectedCategories.Remove(code);
+                UpdateCategoryTitle();
+                Rebind();
+                UpdateOrderTotal();
+            };
+            boxes.Add(box);
+            panel.Children.Add(box);
+        }
+        _categoryButton.Flyout = new Flyout { Content = panel };
+    }
+
+    private void RebuildGroupFlyout()
+    {
+        var panel = new StackPanel { Spacing = 6, Margin = new Avalonia.Thickness(12) };
+        var all = new Button { Content = "Toate grupele", HorizontalAlignment = HorizontalAlignment.Stretch };
+        _groupChecks.Clear();
+        all.Click += (_, _) =>
+        {
+            _selectedGroupIds.Clear();
+            foreach (var box in _groupChecks)
+                box.IsChecked = false;
+            UpdateGroupTitle();
+            Rebind();
+            UpdateOrderTotal();
+        };
+        panel.Children.Add(all);
+        foreach (var option in _groupOptions)
+        {
+            var id = option.Id.ToString();
+            var box = new CheckBox { Content = option.Name, IsChecked = _selectedGroupIds.Contains(id) };
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (box.IsChecked == true)
+                    _selectedGroupIds.Add(id);
+                else
+                    _selectedGroupIds.Remove(id);
+                UpdateGroupTitle();
+                Rebind();
+                UpdateOrderTotal();
+            };
+            _groupChecks.Add(box);
+            panel.Children.Add(box);
+        }
+        _groupButton.Flyout = new Flyout { Content = panel };
+    }
+
+    private void UpdateGroupTitle()
+    {
+        var names = _groupOptions.Where(option => _selectedGroupIds.Contains(option.Id.ToString())).Select(option => option.Name).ToList();
+        _groupButton.Content = names.Count switch
+        {
+            0 => "Toate grupele",
+            1 => names[0],
+            _ => names.Count + " grupe"
+        };
+    }
+
+    private void UpdateCategoryTitle()
+    {
+        var names = (FieldChoices.Options("products", "tip") ?? Array.Empty<FieldChoice>())
+            .Where(choice => choice.Code != "produs_finit" && _selectedCategories.Contains(choice.Code))
+            .Select(choice => choice.Label)
+            .ToList();
+        _categoryButton.Content = names.Count switch
+        {
+            0 => "Toate categoriile",
+            1 => names[0],
+            _ => names.Count + " categorii"
+        };
+    }
+
+    private sealed record GroupOption(Guid Id, string Name);
+
+    private async Task ApplyPrices(Guid company, List<NeedLine> lines)
+    {
+        var prices = await LatestGrossPrices(company, lines.Select(line => line.ProductId).Distinct().ToList());
+        foreach (var line in lines)
+            line.GrossPrice = prices.TryGetValue(line.ProductId, out var price) ? price : null;
+    }
+
+    private async Task<Dictionary<Guid, decimal>> LatestGrossPrices(Guid company, List<Guid> ids)
+    {
+        var best = new Dictionary<Guid, (string Date, string Created, decimal Price)>();
+        var factors = new Dictionary<Guid, decimal>();
+        for (var start = 0; start < ids.Count; start += 40)
+        {
+            var slice = ids.Skip(start).Take(40).ToList();
+            if (slice.Count == 0)
+                break;
+            var idList = string.Join(",", slice);
+            foreach (var row in await Pages("products", $"id=in.({idList})&select=id,factor_conversie"))
+            {
+                if (row.TryGetProperty("id", out var id) && id.TryGetGuid(out var productId))
+                {
+                    var factor = Number(row, "factor_conversie");
+                    factors[productId] = factor > 0 ? factor : 1;
+                }
+            }
+            foreach (var row in await Pages("supplier_nir_lines", $"company_id=eq.{company}&product_id=in.({idList})&suma_linie=gt.0&select=product_id,cantitate,suma_linie,suma_tva,created_at,supplier_nirs(data_nir)"))
+                Consider(best, row, "supplier_nirs", "data_nir", 1);
+            foreach (var row in await Pages("supplier_invoice_lines", $"company_id=eq.{company}&product_id=in.({idList})&suma_linie=gt.0&select=product_id,cantitate,suma_linie,suma_tva,created_at,supplier_invoices(data_factura)"))
+            {
+                if (!row.TryGetProperty("product_id", out var id) || !id.TryGetGuid(out var productId))
+                    continue;
+                var factor = factors.TryGetValue(productId, out var found) && found > 0 ? found : 1;
+                Consider(best, row, "supplier_invoices", "data_factura", factor);
+            }
+        }
+        return best.ToDictionary(pair => pair.Key, pair => pair.Value.Price);
+    }
+
+    private void Consider(Dictionary<Guid, (string Date, string Created, decimal Price)> best, JsonElement row, string parent, string dateField, decimal factor)
+    {
+        if (!row.TryGetProperty("product_id", out var id) || !id.TryGetGuid(out var productId))
+            return;
+        var qty = Number(row, "cantitate") * (factor > 0 ? factor : 1);
+        if (qty <= 0)
+            return;
+        var price = decimal.Round((Number(row, "suma_linie") + Number(row, "suma_tva")) / qty, 2, MidpointRounding.AwayFromZero);
+        if (price <= 0)
+            return;
+        var date = row.TryGetProperty(parent, out var stamp) && stamp.ValueKind == JsonValueKind.Object ? Text(stamp, dateField) : "";
+        var created = Text(row, "created_at");
+        if (best.TryGetValue(productId, out var current))
+        {
+            if (string.CompareOrdinal(date, current.Date) < 0)
+                return;
+            if (date == current.Date && string.CompareOrdinal(created, current.Created) <= 0)
+                return;
+        }
+        best[productId] = (date, created, price);
     }
 
     private static string Text(JsonElement row, string name)
@@ -421,8 +673,12 @@ public sealed class ReorderNeedView : UserControl
         public override string ToString() => Name;
     }
 
-    public sealed class NeedLine
+    public sealed class NeedLine : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private decimal _order;
+        private decimal? _grossPrice;
+
         public NeedLine(Guid productId, string code, string name, string unit, string kind, decimal current, decimal minimum, decimal optimal, decimal order)
         {
             ProductId = productId;
@@ -433,7 +689,7 @@ public sealed class ReorderNeedView : UserControl
             Current = current;
             Minimum = minimum;
             Optimal = optimal;
-            Order = order;
+            _order = Math.Max(0, order);
         }
 
         public Guid ProductId { get; }
@@ -446,10 +702,32 @@ public sealed class ReorderNeedView : UserControl
         public decimal Current { get; }
         public decimal Minimum { get; }
         public decimal Optimal { get; }
-        public decimal Order { get; set; }
+        public decimal Order
+        {
+            get => _order;
+            set
+            {
+                _order = Math.Max(0, value);
+                Changed(nameof(OrderText));
+                Changed(nameof(LineTotalText));
+            }
+        }
+        public decimal? GrossPrice
+        {
+            get => _grossPrice;
+            set
+            {
+                _grossPrice = value;
+                Changed(nameof(PriceText));
+                Changed(nameof(LineTotalText));
+            }
+        }
         public string CurrentText => Amount(Current);
         public string MinimumText => Amount(Minimum);
         public string OptimalText => Amount(Optimal);
+        public string PriceText => _grossPrice is decimal price ? Money(price) : "—";
+        public decimal LineTotal => _grossPrice is decimal price ? decimal.Round(price * Order, 2, MidpointRounding.AwayFromZero) : 0;
+        public string LineTotalText => _grossPrice == null ? "—" : Money(LineTotal);
         public string OrderText
         {
             get => Amount(Order);
@@ -464,7 +742,11 @@ public sealed class ReorderNeedView : UserControl
 
         public override string ToString() => Category + " · " + Name + (string.IsNullOrEmpty(Code) ? "" : " · " + Code);
 
-        private static string Amount(decimal value) => value.ToString("0.####", CultureInfo.GetCultureInfo("ro-RO"));
+        private void Changed(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        private static string Amount(decimal value) => StockFormat.Text(value);
+
+        private static string Money(decimal value) => value.ToString("N2", CultureInfo.GetCultureInfo("ro-RO"));
 
         private static int CategoryOrder(string kind)
         {
@@ -509,11 +791,18 @@ static class ReorderNeedPdf
         const float width = 595;
         const float height = 842;
         const float margin = 36;
-        var headers = new[] { "Cod", "Denumire", "UM", "Stoc real", "Minim", "Optim", "De comandat" };
-        var widths = new[] { 70f, 150f, 40f, 65f, 60f, 60f, 75f };
+        var headers = new[] { "Cod", "Denumire", "UM", "Stoc curent", "De comandat", "Preț", "Total" };
+        var widths = new[] { 52f, 175f, 36f, 62f, 68f, 62f, 68f };
+        decimal orderTotal = 0;
+        foreach (var line in lines)
+        {
+            if (line.GrossPrice != null)
+                orderTotal += line.LineTotal;
+        }
         var page = 0;
         var index = 0;
-        while (index < lines.Count || page == 0)
+        var totalDrawn = false;
+        while (index < lines.Count || !totalDrawn)
         {
             page++;
             var canvas = document.BeginPage(width, height);
@@ -525,28 +814,36 @@ static class ReorderNeedPdf
             y += 16;
             canvas.DrawText(DateTime.Now.ToString("dd.MM.yyyy HH:mm"), margin, y, body);
             y += 16;
-            DrawRow(canvas, headers, widths, margin, y, head);
-            y += 16;
+            if (index < lines.Count)
+            {
+                DrawRow(canvas, headers, widths, margin, y, head);
+                y += 16;
+            }
             var lastCategory = "";
-            while (index < lines.Count && y < height - 48)
+            while (index < lines.Count && y < height - 64)
             {
                 var line = lines[index];
                 if (line.Category != lastCategory)
                 {
-                    if (y > height - 70)
+                    if (y > height - 86)
                         break;
                     canvas.DrawText(line.Category, margin, y, head);
                     y += 14;
                     lastCategory = line.Category;
                 }
-                DrawRow(canvas, new[] { line.Code, line.Name, line.Unit, line.CurrentText, line.MinimumText, line.OptimalText, line.OrderText }, widths, margin, y, body);
+                DrawRow(canvas, new[] { line.Code, line.Name, line.Unit, line.CurrentText, line.OrderText, line.PriceText, line.LineTotalText }, widths, margin, y, body);
                 canvas.DrawLine(margin, y + 4, margin + widths.Sum(), y + 4, linePaint);
                 y += 14;
                 index++;
             }
+            if (index >= lines.Count && y < height - 48)
+            {
+                canvas.DrawText("Total comandă: " + orderTotal.ToString("N2", CultureInfo.GetCultureInfo("ro-RO")) + " lei", margin, y + 16, head);
+                totalDrawn = true;
+            }
             canvas.DrawText("pag. " + page + "  ·  Document generat cu ERP Mobile by DateConta", margin, height - 24, body);
             document.EndPage();
-            if (index >= lines.Count)
+            if (index >= lines.Count && totalDrawn)
                 break;
         }
         document.Close();

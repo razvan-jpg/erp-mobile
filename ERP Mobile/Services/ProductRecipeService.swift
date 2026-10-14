@@ -7,6 +7,8 @@ enum ProductRecipeError: LocalizedError {
     case duplicateIngredient
     case ingredientNotAllowed
     case cannotUseSelfAsIngredient
+    case cannotCopyOwnRecipe
+    case emptySourceRecipe
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +22,10 @@ enum ProductRecipeError: LocalizedError {
             return L10n.tr("products.recipe_error_ingredient_not_allowed")
         case .cannotUseSelfAsIngredient:
             return L10n.tr("products.recipe_error_self_ingredient")
+        case .cannotCopyOwnRecipe:
+            return L10n.tr("products.recipe_copy_error_self")
+        case .emptySourceRecipe:
+            return L10n.tr("products.recipe_copy_error_empty")
         }
     }
 }
@@ -90,6 +96,7 @@ enum ProductRecipeService {
         cantitate: Decimal,
         unitateMasura: String
     ) async throws -> ProductRecipeLine {
+        let cantitate = SupplierFormatting.roundRecipeQuantity(cantitate)
         guard cantitate > 0 else { throw ProductRecipeError.invalidQuantity }
         let trimmedUnit = normalizedUnit(unitateMasura)
         guard !trimmedUnit.isEmpty else { throw ProductRecipeError.invalidUnit }
@@ -180,6 +187,7 @@ enum ProductRecipeService {
         cantitate: Decimal,
         unitateMasura: String
     ) async throws -> ProductRecipeLine {
+        let cantitate = SupplierFormatting.roundRecipeQuantity(cantitate)
         guard cantitate > 0 else { throw ProductRecipeError.invalidQuantity }
         let trimmedUnit = normalizedUnit(unitateMasura)
         guard !trimmedUnit.isEmpty else { throw ProductRecipeError.invalidUnit }
@@ -260,6 +268,45 @@ enum ProductRecipeService {
         let remaining = try await fetchRecipeLines(productId: productId)
         if remaining.isEmpty {
             _ = try await ProductService.updateCatalogSettings(productId: productId, hasRecipe: false)
+        }
+    }
+
+    /// Înlocuiește rețeta produsului curent cu liniile produsului sursă. După copiere, liniile se pot edita.
+    static func copyRecipe(
+        from sourceProductId: UUID,
+        to productId: UUID,
+        companyId: UUID
+    ) async throws {
+        guard sourceProductId != productId else { throw ProductRecipeError.cannotCopyOwnRecipe }
+
+        let sourceLines = try await fetchRecipeLines(productId: sourceProductId)
+            .filter { $0.ingredientProductId != productId }
+        guard !sourceLines.isEmpty else { throw ProductRecipeError.emptySourceRecipe }
+
+        for line in sourceLines {
+            let ingredient = try await ProductService.fetchProduct(id: line.ingredientProductId)
+            guard allowedIngredientKinds.contains(ingredient.tip) else {
+                throw ProductRecipeError.ingredientNotAllowed
+            }
+        }
+
+        let existing = try await fetchRecipeLines(productId: productId)
+        for line in existing {
+            try await client
+                .from("product_recipe_lines")
+                .delete()
+                .eq("id", value: line.id.uuidString)
+                .execute()
+        }
+
+        for line in sourceLines {
+            _ = try await addLine(
+                companyId: companyId,
+                productId: productId,
+                ingredientProductId: line.ingredientProductId,
+                cantitate: line.cantitate,
+                unitateMasura: line.unitateMasura
+            )
         }
     }
 
@@ -409,13 +456,32 @@ enum ProductRecipeService {
 
         var result: [UUID: Decimal] = [:]
         for (productId, productLines) in Dictionary(grouping: rows, by: \.productId) {
+            guard !productLines.isEmpty else { continue }
             let lineCosts = productLines.compactMap { row -> Decimal? in
                 guard let pretAchizitie = row.pretAchizitie else { return nil }
                 return SupplierFormatting.roundAmount(row.cantitate * pretAchizitie)
             }
-            guard lineCosts.count == productLines.count, !productLines.isEmpty else { continue }
             result[productId] = lineCosts.reduce(0, +)
         }
         return result
+    }
+
+    static func fetchProductIdsMissingRecipePrice(companyId: UUID) async throws -> Set<UUID> {
+        struct Row: Decodable {
+            let productId: UUID
+
+            enum CodingKeys: String, CodingKey {
+                case productId = "product_id"
+            }
+        }
+
+        let rows: [Row] = try await client
+            .from("product_recipe_lines")
+            .select("product_id")
+            .eq("company_id", value: companyId.uuidString)
+            .is("pret_achizitie", value: nil)
+            .execute()
+            .value
+        return Set(rows.map(\.productId))
     }
 }

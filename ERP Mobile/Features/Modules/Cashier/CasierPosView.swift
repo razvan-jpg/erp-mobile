@@ -26,6 +26,8 @@ struct CasierPosView: View {
     @State private var pickFiscalFolder = false
     @State private var cardAcceptedKey: String?
     @State private var fiscalBusy = false
+    @State private var closingShift = false
+    @State private var shiftClosed = false
 
     init(location: CompanyWorkLocation, onExit: @escaping () -> Void) {
         self.location = location
@@ -77,6 +79,24 @@ struct CasierPosView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(notice ?? "")
+        }
+        .alert(L10n.tr("module.cashier.shift_closed"), isPresented: $shiftClosed) {
+            Button("OK", role: .cancel) {}
+        }
+        .overlay {
+            if closingShift {
+                ZStack {
+                    Color.black.opacity(0.55)
+                        .ignoresSafeArea()
+                    Text(L10n.tr("module.cashier.shift_wait"))
+                        .font(.title.weight(.bold))
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.white)
+                        .padding(32)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(true)
+            }
         }
         .sheet(item: $cuiBlock) { block in
             CuiBlockSheet(block: block) {
@@ -271,9 +291,9 @@ struct CasierPosView: View {
                                     qty: "",
                                     name: "Discount 100%",
                                     amount: Self.money(-row.discountAmount),
-                                    vat: nil,
-                                    showVat: false,
-                                    detailedVat: false,
+                                    vat: row.vatRate,
+                                    showVat: true,
+                                    detailedVat: row.menuBlock != nil,
                                     addon: true,
                                     onDelete: nil
                                 )
@@ -560,7 +580,7 @@ struct CasierPosView: View {
 
     private var productGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
-            ForEach(tiles) { tile in
+            ForEach(saleTiles) { tile in
                 Button {
                     add(tile)
                 } label: {
@@ -571,6 +591,11 @@ struct CasierPosView: View {
                 .opacity(shownPrice(tile) <= 0 ? 0.4 : 1)
             }
         }
+    }
+
+    private var saleTiles: [CasierPosTile] {
+        guard activeTicket.onlineSale else { return tiles }
+        return tiles.filter { $0.onlinePrice > 0 }
     }
 
     private var cart: [PosCartRow] {
@@ -999,10 +1024,19 @@ struct CasierPosView: View {
         }
         var recap = ""
         do {
+            try await PosStockService.discharge(
+                locationId: locationId,
+                receiptNumber: outcome.reply.number,
+                items: Self.stockItems(ticket)
+            )
+        } catch {
+            recap = " " + error.localizedDescription
+        }
+        do {
             try await recordSale(ticket, channel: channel, amount: outcome.payment, locationId: locationId, cash: outcome.cashTaken, card: outcome.cardTaken)
             await loadTakings()
         } catch {
-            recap = " " + error.localizedDescription
+            recap += " " + error.localizedDescription
         }
         cardAcceptedKey = nil
         clearActiveTicket()
@@ -1075,10 +1109,19 @@ struct CasierPosView: View {
         }
         var recap = ""
         do {
+            try await PosStockService.discharge(
+                locationId: location.id,
+                receiptNumber: outcome.reply.number,
+                items: Self.stockItems(ticket)
+            )
+        } catch {
+            recap = " " + error.localizedDescription
+        }
+        do {
             try await recordSale(ticket, channel: draft.takingChannel, amount: outcome.payment, locationId: location.id, cash: outcome.cashTaken, card: outcome.cardTaken)
             await loadTakings()
         } catch {
-            recap = " " + error.localizedDescription
+            recap += " " + error.localizedDescription
         }
         cardAcceptedKey = nil
         clearActiveTicket()
@@ -1154,6 +1197,13 @@ struct CasierPosView: View {
             splitEnteredIsCash: entry?.isCash ?? true
         )
         let reply = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "bf", nonFiscal: false), commands: built.commands, timeout: 60)
+        if reply.bonOk == 1, !reply.number.isEmpty, channel == "cash" || channel == "split" {
+            _ = await FiscalNetStation.send(
+                fileName: FiscalNet.fileName(prefix: "ds", nonFiscal: false),
+                commands: FiscalNet.openDrawer(),
+                timeout: 20
+            )
+        }
         if reply.bonOk == 1, !reply.number.isEmpty, let documentPath, !documentUrl.isEmpty {
             let company = companyManager.currentCompany
             let supplier = Self.supplierLines(company)
@@ -1163,6 +1213,29 @@ struct CasierPosView: View {
             try? await PosDocumentStore.upload(path: documentPath, data: pdf)
         }
         return (reply, built.payment, documentUrl, built.cashTaken, built.cardTaken)
+    }
+
+    private static func stockItems(_ ticket: PosTicket) -> [PosStockService.Item] {
+        var quantities: [UUID: Decimal] = [:]
+        func add(_ id: UUID?, _ amount: Decimal) {
+            guard let id, amount > 0 else { return }
+            quantities[id, default: 0] += amount
+        }
+        for line in ticket.lines {
+            if line.menuHeader { continue }
+            add(line.productId ?? line.id, Decimal(line.quantity))
+            for addon in line.addons {
+                add(addon.productId, addon.perUnit * Decimal(line.quantity))
+            }
+        }
+        let canal = ticket.onlineSale ? "online" : "in_store"
+        return quantities.map { productId, quantity in
+            PosStockService.Item(
+                productId: productId,
+                cantitate: NSDecimalNumber(decimal: quantity).doubleValue,
+                canal: canal
+            )
+        }
     }
 
     private func recordSale(_ ticket: PosTicket, channel: String, amount: Decimal, locationId: UUID, cash: Decimal? = nil, card: Decimal? = nil) async throws {
@@ -1413,26 +1486,42 @@ struct CasierPosView: View {
     }
 
     private func closeShift() async {
+        guard !closingShift, !fiscalBusy else { return }
+        guard fiscalReady else {
+            notice = L10n.tr("module.cashier.report_x_pending")
+            return
+        }
+        closingShift = true
+        fiscalBusy = true
+        defer {
+            fiscalBusy = false
+            closingShift = false
+        }
+        let reportX = await FiscalNetStation.send(
+            fileName: FiscalNet.fileName(prefix: "x", nonFiscal: false),
+            commands: FiscalNet.report("X"),
+            timeout: 90
+        )
+        guard reportX.bonOk == 1 else {
+            notice = FiscalNet.failure(reportX, fallback: L10n.tr("module.cashier.report_x_failed"))
+            return
+        }
+        let reportZ = await FiscalNetStation.send(
+            fileName: FiscalNet.fileName(prefix: "z", nonFiscal: false),
+            commands: FiscalNet.report("Z"),
+            timeout: 90
+        )
+        guard reportZ.bonOk == 1 else {
+            notice = FiscalNet.failure(reportZ, fallback: L10n.tr("module.cashier.report_z_failed"))
+            return
+        }
         do {
-            if fiscalReady {
-                guard !fiscalBusy else { return }
-                fiscalBusy = true
-                let reply = await FiscalNetStation.send(fileName: FiscalNet.fileName(prefix: "z", nonFiscal: false), commands: FiscalNet.report("Z"), timeout: 90)
-                fiscalBusy = false
-                guard reply.bonOk == 1 else {
-                    notice = FiscalNet.failure(reply, fallback: L10n.tr("module.cashier.report_z_failed"))
-                    return
-                }
-                try await PosShiftTakingsService.closeZ(locationId: location.id)
-                await loadTakings()
-                notice = L10n.tr("module.cashier.report_z_done")
-                return
-            }
+            try await PosStockService.closeShiftProduction(locationId: location.id)
+            try await PosStockService.createStockSheet(locationId: location.id, zNumber: reportZ.number)
             try await PosShiftTakingsService.closeZ(locationId: location.id)
             await loadTakings()
-            notice = L10n.tr("module.cashier.report_z_closed")
+            shiftClosed = true
         } catch {
-            fiscalBusy = false
             notice = error.localizedDescription
         }
     }
@@ -1583,7 +1672,7 @@ struct CasierPosView: View {
             let amount = money(line.unitPrice * Decimal(line.quantity))
             rows.append((Self.lineLabel(quantity: line.quantity, name: line.name), Self.markedAmount(amount, vat: line.vatRate, marked: onMenu)))
             if line.showsDiscount {
-                rows.append(("Discount 100%", money(-line.discountAmount)))
+                rows.append(("Discount 100%", Self.markedAmount(money(-line.discountAmount), vat: line.vatRate, marked: onMenu)))
             }
             for addon in line.addons where !isSgr(addon.name) {
                 let addonAmount = addon.perUnit * Decimal(line.quantity) * addon.unitPrice

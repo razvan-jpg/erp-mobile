@@ -28,6 +28,24 @@ enum ProductionVoucherService {
         }
     }
 
+    private struct UpdateParams: Encodable {
+        let pVoucherId: UUID
+        let pDataBon: String
+        let pWarehouseId: UUID
+        let pProductId: UUID
+        let pCantitate: Double
+        let pObservatii: String?
+
+        enum CodingKeys: String, CodingKey {
+            case pVoucherId = "p_voucher_id"
+            case pDataBon = "p_data_bon"
+            case pWarehouseId = "p_warehouse_id"
+            case pProductId = "p_product_id"
+            case pCantitate = "p_cantitate"
+            case pObservatii = "p_observatii"
+        }
+    }
+
     private struct DeleteParams: Encodable {
         let pVoucherId: UUID
 
@@ -101,6 +119,32 @@ enum ProductionVoucherService {
                 .rpc("post_production_voucher", params: payload)
                 .execute()
                 .value
+        } catch {
+            throw ProductionVoucherError.map(error)
+        }
+    }
+
+    static func updateVoucher(
+        id: UUID,
+        dataBon: Date,
+        warehouseId: UUID,
+        productId: UUID,
+        cantitate: Decimal,
+        observatii: String?
+    ) async throws {
+        guard cantitate > 0 else { throw ProductionVoucherError.invalidQuantity }
+        let payload = UpdateParams(
+            pVoucherId: id,
+            pDataBon: SupabaseDecoding.dateOnlyString(from: dataBon),
+            pWarehouseId: warehouseId,
+            pProductId: productId,
+            pCantitate: NSDecimalNumber(decimal: cantitate).doubleValue,
+            pObservatii: observatii
+        )
+        do {
+            try await client
+                .rpc("update_production_voucher", params: payload)
+                .execute()
         } catch {
             throw ProductionVoucherError.map(error)
         }

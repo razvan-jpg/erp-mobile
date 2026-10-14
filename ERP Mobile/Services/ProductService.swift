@@ -137,11 +137,14 @@ private struct ProductPricingPatch: Encodable {
     let cotaTva: Decimal?
     let pretVanzare: Decimal?
     let pretVanzareOnline: Decimal?
+    let pretAchizitie: Decimal?
+    let includePurchasePrice: Bool
 
     enum CodingKeys: String, CodingKey {
         case cotaTva = "cota_tva"
         case pretVanzare = "pret_vanzare"
         case pretVanzareOnline = "pret_vanzare_online"
+        case pretAchizitie = "pret_achizitie"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -154,6 +157,13 @@ private struct ProductPricingPatch: Encodable {
         }
         if let pretVanzareOnline {
             try container.encode(pretVanzareOnline, forKey: .pretVanzareOnline)
+        }
+        if includePurchasePrice {
+            if let pretAchizitie {
+                try container.encode(pretAchizitie, forKey: .pretAchizitie)
+            } else {
+                try container.encodeNil(forKey: .pretAchizitie)
+            }
         }
     }
 }
@@ -221,10 +231,12 @@ enum ProductService {
     nonisolated static let canonicalPulpePuiDezProductName = "PULPE DE PUI DEZOSATE CU PIELE"
     /// Materie primă — pita (nu lipie tip C / PITA EXTRA; nu e in catalog).
     nonisolated static let canonicalPitaProductName = "PITA"
-    /// Materie primă — portocale 3-5 P (nu suc / bauturi; nu e in catalog).
-    nonisolated static let canonicalPortocaleProductName = "PORTOCALE 3-5 P"
-    /// Materie primă — portocale suc (nu 3-5 P / bauturi; nu e in catalog).
+    /// Materie primă — portocale (cod 103921). Aliasuri: PORTOCALE 3-5 P și PORTOCALE SUC. Nu băuturi. Nu e în catalog.
+    nonisolated static let canonicalPortocaleProductName = "PORTOCALE"
+    /// Nume de pe factură pentru portocale suc; se leagă pe PORTOCALE.
     nonisolated static let canonicalPortocaleSucProductName = "PORTOCALE SUC"
+    /// Nume vechi al fișei; se leagă pe PORTOCALE.
+    nonisolated static let legacyPortocaleProductName = "PORTOCALE 3-5 P"
     /// Materie primă — salata verde (nu salate finite; nu e in catalog).
     nonisolated static let canonicalSalataVerdeProductName = "SALATA VERDE"
     /// Catalog CM — bere sticlă 0.33 (promo/SGR Metro etc. se unifică aici).
@@ -614,10 +626,11 @@ enum ProductService {
         return folded.contains("suc") || folded.contains("juice")
     }
 
-    /// Portocale (3-5 P) din facturi; nu PORTOCALE SUC / Mirinda / Fanta etc.
+    /// Portocale din facturi (inclusiv 3-5 P); nu PORTOCALE SUC / Mirinda / Fanta etc.
     nonisolated static func isPortocaleImportName(_ denumire: String) -> Bool {
         let trimmed = denumire.trimmingCharacters(in: .whitespacesAndNewlines)
         if namesMatch(trimmed, canonicalPortocaleProductName) { return true }
+        if namesMatch(trimmed, legacyPortocaleProductName) { return true }
         if isPortocaleSucImportName(trimmed) { return false }
         let folded = foldedProductName(trimmed)
         guard folded.contains("portocal") || folded.contains("orange") else { return false }
@@ -1408,7 +1421,8 @@ enum ProductService {
         companyId: UUID,
         inCatalog: Bool? = nil,
         inStockSheet: Bool? = nil,
-        hasRecipe: Bool? = nil
+        hasRecipe: Bool? = nil,
+        tip: ProductKind? = nil
     ) async throws -> [Product] {
         return try await SupabasePaging.fetchAll { from, to in
             var query = client
@@ -1425,6 +1439,9 @@ enum ProductService {
             }
             if let hasRecipe {
                 query = query.eq("has_recipe", value: hasRecipe)
+            }
+            if let tip {
+                query = query.eq("tip", value: tip.rawValue)
             }
 
             return try await query
@@ -1650,6 +1667,8 @@ enum ProductService {
         cotaTva: Decimal? = nil,
         pretVanzare: Decimal? = nil,
         pretVanzareOnline: Decimal? = nil,
+        pretAchizitie: Decimal? = nil,
+        updatesPurchasePrice: Bool = false,
         isVatPayer: Bool
     ) async throws -> Product {
         var validatedVat: Decimal?
@@ -1662,7 +1681,9 @@ enum ProductService {
         let payload = ProductPricingPatch(
             cotaTva: validatedVat,
             pretVanzare: pretVanzare,
-            pretVanzareOnline: pretVanzareOnline
+            pretVanzareOnline: pretVanzareOnline,
+            pretAchizitie: pretAchizitie,
+            includePurchasePrice: updatesPurchasePrice
         )
         let rows: [Product] = try await client
             .from("products")
@@ -2255,7 +2276,7 @@ enum ProductService {
         if isPieptPuiDezImportName(denumire) { return canonicalPieptPuiDezProductName }
         if isPulpePuiDezImportName(denumire) { return canonicalPulpePuiDezProductName }
         if isPitaImportName(denumire) { return canonicalPitaProductName }
-        if isPortocaleSucImportName(denumire) { return canonicalPortocaleSucProductName }
+        if isPortocaleSucImportName(denumire) { return canonicalPortocaleProductName }
         if isPortocaleImportName(denumire) { return canonicalPortocaleProductName }
         if isSalataVerdeImportName(denumire) { return canonicalSalataVerdeProductName }
         if isCarlsberg033ImportName(denumire) { return canonicalCarlsberg033ProductName }
@@ -2418,13 +2439,11 @@ enum ProductService {
             return namesMatch(productName, canonicalPitaProductName)
                 || isPitaImportName(productName)
         }
-        if isPortocaleSucImportName(importName) {
-            return namesMatch(productName, canonicalPortocaleSucProductName)
-                || isPortocaleSucImportName(productName)
-        }
-        if isPortocaleImportName(importName) {
+        if isPortocaleSucImportName(importName) || isPortocaleImportName(importName) {
             return namesMatch(productName, canonicalPortocaleProductName)
+                || namesMatch(productName, legacyPortocaleProductName)
                 || isPortocaleImportName(productName)
+                || isPortocaleSucImportName(productName)
         }
         if isSalataVerdeImportName(importName) {
             return namesMatch(productName, canonicalSalataVerdeProductName)

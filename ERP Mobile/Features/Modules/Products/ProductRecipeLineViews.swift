@@ -30,7 +30,14 @@ struct ProductRecipeIngredientPickerView: View {
     private var parsedQuantity: Decimal? {
         SupplierFormatting.parseAmount(
             quantityText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.recipeQuantityFractionDigits
+        )
+    }
+
+    private var recipeQuantityText: Binding<String> {
+        Binding(
+            get: { quantityText },
+            set: { quantityText = SupplierFormatting.limitAmountInputFractionDigits($0, maxFractionDigits: SupplierFormatting.recipeQuantityFractionDigits) }
         )
     }
 
@@ -136,7 +143,7 @@ struct ProductRecipeIngredientPickerView: View {
                 Section {
                     FormTextField(
                         title: L10n.tr("products.recipe_field_quantity_plain"),
-                        text: $quantityText,
+                        text: recipeQuantityText,
                         keyboardType: .decimalPad,
                         autocapitalization: .never,
                         autocorrectionDisabled: true
@@ -148,7 +155,7 @@ struct ProductRecipeIngredientPickerView: View {
                         autocorrectionDisabled: true
                     )
                 } footer: {
-                    Text(SupplierFormatting.invoiceAmountHint)
+                    Text(L10n.tr("products.recipe_quantity_hint"))
                 }
             }
 
@@ -240,7 +247,7 @@ struct ProductRecipeLineEditView: View {
         self.line = line
         self.occupiedIngredientIds = occupiedIngredientIds
         self.onSaved = onSaved
-        _quantityText = State(initialValue: SupplierFormatting.amountString(line.cantitate))
+        _quantityText = State(initialValue: SupplierFormatting.recipeQuantityString(line.cantitate))
         _unitText = State(initialValue: line.unitateMasura)
     }
 
@@ -265,7 +272,14 @@ struct ProductRecipeLineEditView: View {
     private var parsedQuantity: Decimal? {
         SupplierFormatting.parseAmount(
             quantityText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.recipeQuantityFractionDigits
+        )
+    }
+
+    private var recipeQuantityText: Binding<String> {
+        Binding(
+            get: { quantityText },
+            set: { quantityText = SupplierFormatting.limitAmountInputFractionDigits($0, maxFractionDigits: SupplierFormatting.recipeQuantityFractionDigits) }
         )
     }
 
@@ -353,7 +367,7 @@ struct ProductRecipeLineEditView: View {
             Section {
                 FormTextField(
                     title: L10n.tr("products.recipe_field_quantity_plain"),
-                    text: $quantityText,
+                    text: recipeQuantityText,
                     keyboardType: .decimalPad,
                     autocapitalization: .never,
                     autocorrectionDisabled: true
@@ -365,7 +379,7 @@ struct ProductRecipeLineEditView: View {
                     autocorrectionDisabled: true
                 )
             } footer: {
-                Text(SupplierFormatting.invoiceAmountHint)
+                Text(L10n.tr("products.recipe_quantity_hint"))
             }
 
             Section {
@@ -493,6 +507,156 @@ struct ProductRecipeLineEditView: View {
         do {
             try await ProductRecipeService.deleteLine(lineId: line.id, productId: productId)
             await onSaved()
+            presentationMode.wrappedValue.dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+struct ProductRecipeCopyPickerView: View {
+    let productId: UUID
+    let companyId: UUID
+    let replacesExisting: Bool
+    let onCopied: () async -> Void
+
+    @Environment(\.presentationMode) private var presentationMode
+
+    @State private var products: [Product] = []
+    @State private var searchText = ""
+    @State private var isLoading = false
+    @State private var isCopying = false
+    @State private var errorMessage: String?
+    @State private var pendingProduct: Product?
+    @State private var showReplaceConfirm = false
+
+    private var filteredProducts: [Product] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let others = products.filter { $0.id != productId }
+        guard !query.isEmpty else { return others }
+        return others.filter { product in
+            product.denumire.localizedCaseInsensitiveContains(query)
+                || BarcodeMatching.matchesField(product.cod, query: query)
+        }
+    }
+
+    var body: some View {
+        NavigationView {
+            Group {
+                if let errorMessage, filteredProducts.isEmpty, !isLoading {
+                    AppEmptyStateView(
+                        errorMessage,
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(L10n.tr("products.recipe_copy_empty_hint"))
+                    )
+                } else if filteredProducts.isEmpty && !isLoading {
+                    AppEmptyStateView(
+                        L10n.tr("products.recipe_copy_empty"),
+                        systemImage: "doc.on.doc",
+                        description: Text(L10n.tr("products.recipe_copy_empty_hint"))
+                    )
+                } else {
+                    List(filteredProducts) { product in
+                        Button {
+                            choose(product)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(product.denumire)
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.primary)
+                                HStack(spacing: 8) {
+                                    Text(product.tip.label)
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondary)
+                                    if let cod = product.cod, !cod.isEmpty {
+                                        Text(cod)
+                                            .font(.caption)
+                                            .foregroundColor(AppColors.secondary)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .disabled(isCopying)
+                    }
+                    .appSearchable(text: $searchText, prompt: L10n.tr("inventory.search_prompt"))
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let errorMessage, !filteredProducts.isEmpty {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(UIColor.systemBackground).opacity(0.95))
+                }
+            }
+            .navigationTitle(L10n.tr("products.recipe_copy_title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.tr("common.cancel")) {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                    .disabled(isCopying)
+                }
+            }
+            .appFullOverlay { LoadingOverlay(isLoading: isLoading || isCopying) }
+            .appTask { await loadProducts() }
+            .alert(isPresented: $showReplaceConfirm) {
+                Alert(
+                    title: Text(L10n.tr("products.recipe_copy_confirm_title")),
+                    message: Text(L10n.tr("products.recipe_copy_confirm_message", pendingProduct?.denumire ?? "")),
+                    primaryButton: .default(Text(L10n.tr("products.recipe_copy"))) {
+                        guard let pendingProduct else { return }
+                        Task { await copy(from: pendingProduct) }
+                    },
+                    secondaryButton: .cancel {
+                        pendingProduct = nil
+                    }
+                )
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+
+    private func choose(_ product: Product) {
+        errorMessage = nil
+        pendingProduct = product
+        if replacesExisting {
+            showReplaceConfirm = true
+        } else {
+            Task { await copy(from: product) }
+        }
+    }
+
+    private func loadProducts() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            products = try await ProductService.fetchProducts(
+                companyId: companyId,
+                hasRecipe: true,
+                tip: .produsFinit
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func copy(from source: Product) async {
+        isCopying = true
+        errorMessage = nil
+        defer { isCopying = false }
+        do {
+            try await ProductRecipeService.copyRecipe(
+                from: source.id,
+                to: productId,
+                companyId: companyId
+            )
+            await onCopied()
             presentationMode.wrappedValue.dismiss()
         } catch {
             errorMessage = error.localizedDescription

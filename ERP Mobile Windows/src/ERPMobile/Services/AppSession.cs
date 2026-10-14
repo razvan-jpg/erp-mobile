@@ -238,6 +238,7 @@ public sealed class AppSession
         SessionFile.Clear();
         RememberedEmail = "";
         Profile = null;
+        StockFormat.Apply(2);
         CurrentCompany = null;
         Companies.Clear();
         SwitchableCompanies.Clear();
@@ -262,6 +263,7 @@ public sealed class AppSession
             await _api.PatchProfile(Profile.Id, new { selected_company_id = company.Id });
             Profile.SelectedCompanyId = company.Id;
             CurrentCompany = company;
+            await LoadStockDigits();
             await LoadModules();
         }
         catch (Exception ex)
@@ -618,6 +620,7 @@ public sealed class AppSession
 
         if (SwitchableCompanies.Count == 0)
         {
+            StockFormat.Apply(2);
             CurrentCompany = null;
             if (Profile.IsSuperAdmin)
                 await _api.PatchProfile(Profile.Id, new { selected_company_id = (Guid?)null });
@@ -634,6 +637,33 @@ public sealed class AppSession
             Profile.SelectedCompanyId = selected.Id;
         }
         CurrentCompany = selected;
+        await LoadStockDigits();
+    }
+
+    public async Task LoadStockDigits()
+    {
+        var company = CurrentCompany;
+        if (_api == null || company == null)
+        {
+            StockFormat.Apply(2);
+            return;
+        }
+        try
+        {
+            var rows = await SelectRows("company_stock_settings", "company_id=eq." + company.Id + "&select=fraction_digits");
+            if (rows.ValueKind == JsonValueKind.Array && rows.GetArrayLength() > 0
+                && rows[0].TryGetProperty("fraction_digits", out var digits)
+                && digits.TryGetInt32(out var value))
+            {
+                StockFormat.Apply(value);
+                return;
+            }
+            StockFormat.Apply(StockFormat.Fallback(company));
+        }
+        catch
+        {
+            StockFormat.Apply(StockFormat.Fallback(company));
+        }
     }
 
     private async Task LoadModules()

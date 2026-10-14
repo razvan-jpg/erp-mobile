@@ -212,13 +212,14 @@ struct ProductImportTests {
         #expect(ProductService.isPortocaleImportName("PORTOCALE"))
         #expect(ProductService.isPortocaleImportName("PORTOCALE SUC") == false)
         #expect(ProductService.isPortocaleImportName("MIRINDA ORANGE 0.5 L") == false)
-        #expect(ProductService.canonicalProduceName(forImportName: "PORTOCALE") == "PORTOCALE 3-5 P")
+        #expect(ProductService.canonicalProduceName(forImportName: "PORTOCALE") == "PORTOCALE")
+        #expect(ProductService.canonicalProduceName(forImportName: "PORTOCALE 3-5 P") == "PORTOCALE")
 
         #expect(ProductService.isPortocaleSucImportName("PORTOCALE SUC"))
         #expect(ProductService.isPortocaleSucImportName("PORTOCALE PENTRU SUC"))
         #expect(ProductService.isPortocaleSucImportName("PORTOCALE 3-5 P") == false)
         #expect(ProductService.isPortocaleSucImportName("MIRINDA ORANGE 0.5 L") == false)
-        #expect(ProductService.canonicalProduceName(forImportName: "PORTOCALE SUC") == "PORTOCALE SUC")
+        #expect(ProductService.canonicalProduceName(forImportName: "PORTOCALE SUC") == "PORTOCALE")
 
         #expect(ProductService.isSalataVerdeImportName("SALATA VERDE"))
         #expect(ProductService.isSalataVerdeImportName("SALATA ICEBERG"))

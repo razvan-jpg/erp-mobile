@@ -286,7 +286,7 @@ struct StockControlSheet: View {
                 }
             }
             Spacer()
-            Text("\(SupplierFormatting.amountString(row.cantitate)) \(row.product?.unitateMasura ?? "buc")")
+            Text("\(SupplierFormatting.stockQuantityString(row.cantitate)) \(row.product?.unitateMasura ?? "buc")")
                 .font(.subheadline.monospacedDigit().bold())
                 .foregroundColor(row.cantitate < 0 ? .red : .primary)
         }

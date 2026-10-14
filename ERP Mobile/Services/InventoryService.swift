@@ -427,6 +427,152 @@ enum InventoryService {
         }
         return all
     }
+
+    /// Ultimul preț de cumpărare cu TVA, pe unitatea de stoc.
+    /// Preferă recepția NIR; dacă factura este mai nouă, folosește factura și factorul de conversie.
+    static func fetchLatestGrossPurchasePrices(companyId: UUID, productIds: [UUID]) async throws -> [UUID: Decimal] {
+        let uniqueIds = Array(Set(productIds))
+        guard !uniqueIds.isEmpty else { return [:] }
+
+        struct FactorRow: Decodable {
+            let id: UUID
+            @SupabaseDecimal var factorConversie: Decimal
+
+            enum CodingKeys: String, CodingKey {
+                case id
+                case factorConversie = "factor_conversie"
+            }
+        }
+
+        struct NirPriceRow: Decodable {
+            let productId: UUID
+            @SupabaseDecimal var cantitate: Decimal
+            @SupabaseDecimal var sumaLinie: Decimal
+            @SupabaseDecimal var sumaTva: Decimal
+            let createdAt: String?
+            let nir: NirStamp
+
+            struct NirStamp: Decodable {
+                let dataNir: String
+                enum CodingKeys: String, CodingKey { case dataNir = "data_nir" }
+            }
+
+            enum CodingKeys: String, CodingKey {
+                case cantitate
+                case productId = "product_id"
+                case sumaLinie = "suma_linie"
+                case sumaTva = "suma_tva"
+                case createdAt = "created_at"
+                case nir = "supplier_nirs"
+            }
+        }
+
+        struct InvoicePriceRow: Decodable {
+            let productId: UUID
+            @SupabaseDecimal var cantitate: Decimal
+            @SupabaseDecimal var sumaLinie: Decimal
+            @SupabaseDecimal var sumaTva: Decimal
+            let createdAt: String?
+            let invoice: InvoiceStamp
+
+            struct InvoiceStamp: Decodable {
+                let dataFactura: String
+                enum CodingKeys: String, CodingKey { case dataFactura = "data_factura" }
+            }
+
+            enum CodingKeys: String, CodingKey {
+                case cantitate
+                case productId = "product_id"
+                case sumaLinie = "suma_linie"
+                case sumaTva = "suma_tva"
+                case createdAt = "created_at"
+                case invoice = "supplier_invoices"
+            }
+        }
+
+        var factors: [UUID: Decimal] = [:]
+        var best: [UUID: (date: String, created: String, price: Decimal)] = [:]
+
+        func keep(productId: UUID, date: String, created: String, price: Decimal) {
+            let rounded = SupplierFormatting.roundAmount(price)
+            guard rounded > 0 else { return }
+            if let current = best[productId] {
+                if date < current.date { return }
+                if date == current.date, created <= current.created { return }
+            }
+            best[productId] = (date, created, rounded)
+        }
+
+        for chunk in stride(from: 0, to: uniqueIds.count, by: 60) {
+            let slice = uniqueIds[chunk..<min(chunk + 60, uniqueIds.count)].map(\.uuidString)
+            var factorFrom = 0
+            while true {
+                let page: [FactorRow] = try await client
+                    .from("products")
+                    .select("id, factor_conversie")
+                    .in("id", values: slice)
+                    .range(from: factorFrom, to: factorFrom + 999)
+                    .execute()
+                    .value
+                for row in page {
+                    factors[row.id] = row.factorConversie > 0 ? row.factorConversie : 1
+                }
+                if page.count < 1000 { break }
+                factorFrom += 1000
+            }
+
+            var nirFrom = 0
+            while true {
+                let page: [NirPriceRow] = try await client
+                    .from("supplier_nir_lines")
+                    .select("product_id, cantitate, suma_linie, suma_tva, created_at, supplier_nirs!inner(data_nir)")
+                    .eq("company_id", value: companyId.uuidString)
+                    .in("product_id", values: slice)
+                    .gt("suma_linie", value: 0)
+                    .range(from: nirFrom, to: nirFrom + 999)
+                    .execute()
+                    .value
+                for row in page where row.cantitate > 0 {
+                    keep(
+                        productId: row.productId,
+                        date: row.nir.dataNir,
+                        created: row.createdAt ?? "",
+                        price: (row.sumaLinie + row.sumaTva) / row.cantitate
+                    )
+                }
+                if page.count < 1000 { break }
+                nirFrom += 1000
+            }
+
+            var invoiceFrom = 0
+            while true {
+                let page: [InvoicePriceRow] = try await client
+                    .from("supplier_invoice_lines")
+                    .select("product_id, cantitate, suma_linie, suma_tva, created_at, supplier_invoices!inner(data_factura)")
+                    .eq("company_id", value: companyId.uuidString)
+                    .in("product_id", values: slice)
+                    .gt("suma_linie", value: 0)
+                    .range(from: invoiceFrom, to: invoiceFrom + 999)
+                    .execute()
+                    .value
+                for row in page where row.cantitate > 0 {
+                    let factor = factors[row.productId] ?? 1
+                    let stockQty = row.cantitate * (factor > 0 ? factor : 1)
+                    guard stockQty > 0 else { continue }
+                    keep(
+                        productId: row.productId,
+                        date: row.invoice.dataFactura,
+                        created: row.createdAt ?? "",
+                        price: (row.sumaLinie + row.sumaTva) / stockQty
+                    )
+                }
+                if page.count < 1000 { break }
+                invoiceFrom += 1000
+            }
+        }
+
+        return best.mapValues(\.price)
+    }
 }
 
 enum InventoryAdminError: LocalizedError {

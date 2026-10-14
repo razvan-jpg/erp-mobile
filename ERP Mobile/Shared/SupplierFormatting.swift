@@ -278,6 +278,59 @@ enum SupplierFormatting {
         displayAmount(roundedToTwoDecimals(value))
     }
 
+    static var recipeQuantityFractionDigits: Int { stockQuantityMaxFractionDigits }
+
+    static func recipeQuantityString(_ value: Decimal) -> String {
+        stockQuantityString(value)
+    }
+
+    static func roundRecipeQuantity(_ value: Decimal) -> Decimal {
+        roundQuantity(value, fractionDigits: recipeQuantityFractionDigits)
+    }
+
+    static var stockQuantityMaxFractionDigits: Int {
+        StockQuantityFormat.normalized(StockQuantityFormat.shared.fractionDigits)
+    }
+
+    static func stockQuantityString(_ value: Decimal) -> String {
+        fixedQuantityString(value, fractionDigits: stockQuantityMaxFractionDigits)
+    }
+
+    static func fixedQuantityString(_ value: Decimal, fractionDigits: Int) -> String {
+        let digits = StockQuantityFormat.normalized(fractionDigits)
+        let rounded = roundQuantity(value, fractionDigits: digits)
+        return quantityFormatter(digits: digits).string(from: rounded as NSDecimalNumber) ?? zeroQuantity(digits: digits)
+    }
+
+    static func roundQuantity(_ value: Decimal, fractionDigits: Int) -> Decimal {
+        var rounded = Decimal()
+        var input = value
+        let digits = StockQuantityFormat.normalized(fractionDigits)
+        NSDecimalRound(&rounded, &input, digits, .plain)
+        return rounded
+    }
+
+    private static func zeroQuantity(digits: Int) -> String {
+        digits <= 0 ? "0" : "0," + String(repeating: "0", count: digits)
+    }
+
+    private static func quantityFormatter(digits: Int) -> NumberFormatter {
+        if let existing = quantityFormatters[digits] {
+            return existing
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = digits
+        formatter.maximumFractionDigits = digits
+        formatter.locale = romanianLocale
+        formatter.decimalSeparator = ","
+        formatter.groupingSeparator = "."
+        quantityFormatters[digits] = formatter
+        return formatter
+    }
+
+    private static var quantityFormatters: [Int: NumberFormatter] = [:]
+
     static var invoiceAmountInputMaxFractionDigits: Int { 4 }
 
     static var invoiceAmountHint: String { L10n.tr("invoices.amount_input_hint") }

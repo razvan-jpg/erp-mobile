@@ -7,6 +7,7 @@ struct ProductPricingFields: View {
     @Binding var selectedVatRate: Decimal
     @Binding var pretVanzareText: String
     @Binding var pretVanzareOnlineText: String
+    @Binding var pretAchizitieText: String
     var isSaving: Bool
     var showsSaveButton: Bool = true
     var onSave: () -> Void
@@ -28,7 +29,15 @@ struct ProductPricingFields: View {
                     text: $pretVanzareOnlineText,
                     keyboardType: .decimalPad
                 )
+                FormTextField(
+                    title: L10n.tr("module.products.field_purchase_price", unit),
+                    text: $pretAchizitieText,
+                    keyboardType: .decimalPad
+                )
                 Text(L10n.tr("module.products.sale_price_inclusive_hint"))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondary)
+                Text(L10n.tr("module.products.purchase_price_hint"))
                     .font(.caption)
                     .foregroundColor(AppColors.secondary)
                 if showsSaveButton {
@@ -41,6 +50,7 @@ struct ProductPricingFields: View {
                 AppLabeledContent(L10n.tr("module.products.field_vat_rate"), value: displayVat)
                 AppLabeledContent(L10n.tr("module.products.field_sale_price", unit), value: displayPrice)
                 AppLabeledContent(L10n.tr("module.products.field_sale_price_online", unit), value: displayOnlinePrice)
+                AppLabeledContent(L10n.tr("module.products.field_purchase_price", unit), value: displayPurchasePrice)
             }
 
             if isVatPayer {
@@ -104,6 +114,14 @@ struct ProductPricingFields: View {
         ProductService.parseSalePrice(pretVanzareOnlineText)
     }
 
+    private var displayPurchasePrice: String {
+        let trimmed = pretAchizitieText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let price = ProductService.parseSalePrice(trimmed) else {
+            return L10n.tr("module.products.tile_value_missing")
+        }
+        return SupplierFormatting.amountString(price)
+    }
+
     private func normalizeVatSelection() {
         let normalized = ProductVATRates.normalizedRate(selectedVatRate, isVatPayer: isVatPayer)
         if selectedVatRate != normalized {
@@ -120,5 +138,10 @@ extension Product {
 
     var pretVanzareOnlineInputText: String {
         SupplierFormatting.amountString(pretVanzareOnline)
+    }
+
+    var pretAchizitieInputText: String {
+        guard let pretAchizitie else { return "" }
+        return SupplierFormatting.amountString(pretAchizitie)
     }
 }

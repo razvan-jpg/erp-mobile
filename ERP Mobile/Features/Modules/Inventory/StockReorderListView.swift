@@ -3,6 +3,7 @@ import SwiftUI
 /// Listă necesar de comandat: articole cu stoc minim pe fișă, unde stocul < minim (și dacă e negativ).
 struct StockReorderListView: View {
     @EnvironmentObject private var companyManager: CompanyManager
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
 
     @State private var rows: [StockReorderRow] = []
     @State private var warehouses: [CompanyWarehouse] = []
@@ -14,13 +15,31 @@ struct StockReorderListView: View {
     @State private var showExportPicker = false
     @State private var showAdd = false
     @State private var orderDrafts: [UUID: String] = [:]
+    @State private var selectedCategoryRaws: Set<String> = []
+    @State private var selectedGroupIds: Set<UUID> = []
+    @State private var catalogGroups: [CMProductGroup] = []
+    @State private var groupIdsByProduct: [UUID: Set<UUID>] = [:]
+    @State private var showCategoryFilter = false
+    @State private var showGroupFilter = false
 
     private var filteredRows: [StockReorderRow] {
+        var base = rows
+        if !selectedCategoryRaws.isEmpty {
+            base = base.filter { selectedCategoryRaws.contains($0.tip.rawValue) }
+        }
+        if !selectedGroupIds.isEmpty {
+            base = base.filter { row in
+                guard let groups = groupIdsByProduct[row.productId] else { return false }
+                return !groups.isDisjoint(with: selectedGroupIds)
+            }
+        }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = query.isEmpty ? rows : rows.filter { row in
-            row.denumire.localizedCaseInsensitiveContains(query)
-                || (row.cod?.localizedCaseInsensitiveContains(query) ?? false)
-                || row.tip.label.localizedCaseInsensitiveContains(query)
+        if !query.isEmpty {
+            base = base.filter { row in
+                row.denumire.localizedCaseInsensitiveContains(query)
+                    || (row.cod?.localizedCaseInsensitiveContains(query) ?? false)
+                    || row.tip.label.localizedCaseInsensitiveContains(query)
+            }
         }
         return base.sorted { lhs, rhs in
             let left = categoryRank(lhs.tip)
@@ -42,6 +61,71 @@ struct StockReorderListView: View {
         return order.map { ($0, buckets[$0] ?? []) }
     }
 
+    private var selectedCategoryTitle: String {
+        if selectedCategoryRaws.isEmpty {
+            return L10n.tr("module.products.filter_categories_all")
+        }
+        if selectedCategoryRaws.count == 1,
+           let raw = selectedCategoryRaws.first,
+           let kind = ProductKind(rawValue: raw) {
+            return kind.label
+        }
+        return L10n.tr("module.products.filter_categories_count", selectedCategoryRaws.count)
+    }
+
+    private var selectedGroupTitle: String {
+        let names = catalogGroups.filter { selectedGroupIds.contains($0.id) }.map(\.name)
+        if names.isEmpty {
+            return L10n.tr("module.products.filter_group_all")
+        }
+        if names.count == 1 {
+            return names[0]
+        }
+        return L10n.tr("module.products.filter_groups_count", names.count)
+    }
+
+    private func groupSelection(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { selectedGroupIds.contains(id) },
+            set: { isOn in
+                if isOn {
+                    selectedGroupIds.insert(id)
+                } else {
+                    selectedGroupIds.remove(id)
+                }
+            }
+        )
+    }
+
+    private func categorySelection(_ raw: String) -> Binding<Bool> {
+        Binding(
+            get: { selectedCategoryRaws.contains(raw) },
+            set: { isOn in
+                if isOn {
+                    selectedCategoryRaws.insert(raw)
+                } else {
+                    selectedCategoryRaws.remove(raw)
+                }
+            }
+        )
+    }
+
+    private func filterCapsule(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                Text(title)
+                    .lineLimit(1)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(AppColors.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color(.secondarySystemBackground)))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func categoryRank(_ tip: ProductKind) -> Int {
         ProductKind.articleCategories.firstIndex(of: tip) ?? (ProductKind.allCases.count + 1)
     }
@@ -60,6 +144,36 @@ struct StockReorderListView: View {
             }
 
             HStack(spacing: 8) {
+                filterCapsule(selectedGroupTitle) {
+                    showGroupFilter = true
+                }
+                .popover(isPresented: $showGroupFilter, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(L10n.tr("module.products.filter_group_all")) {
+                            selectedGroupIds = []
+                        }
+                        ForEach(catalogGroups) { group in
+                            Toggle(group.name, isOn: groupSelection(group.id))
+                        }
+                    }
+                    .padding(16)
+                    .frame(minWidth: 220)
+                }
+                filterCapsule(selectedCategoryTitle) {
+                    showCategoryFilter = true
+                }
+                .popover(isPresented: $showCategoryFilter, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(L10n.tr("module.products.filter_categories_all")) {
+                            selectedCategoryRaws = []
+                        }
+                        ForEach(ProductKind.articleCategories.filter { $0 != .produsFinit }) { kind in
+                            Toggle(kind.label, isOn: categorySelection(kind.rawValue))
+                        }
+                    }
+                    .padding(16)
+                    .frame(minWidth: 220)
+                }
                 Button {
                     Task { await printList() }
                 } label: {
@@ -113,13 +227,23 @@ struct StockReorderListView: View {
             }
         }
         .appSafeAreaInsetBottom {
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(8)
-                    .appBarBackground()
+            VStack(spacing: 0) {
+                if !filteredRows.isEmpty {
+                    Text(L10n.tr("inventory.reorder_order_total", SupplierFormatting.amountString(orderTotal)))
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                        .appBarBackground()
+                }
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .appBarBackground()
+                }
             }
         }
         .appFullOverlay { LoadingOverlay(isLoading: isLoading) }
@@ -147,7 +271,7 @@ struct StockReorderListView: View {
                     existingIds: Set(rows.map(\.productId))
                 ) { row in
                     rows.append(row)
-                    orderDrafts[row.productId] = SupplierFormatting.amountString(row.cantitateNecesara)
+                    orderDrafts[row.productId] = stockDecimals.string(row.cantitateNecesara)
                     showAdd = false
                 }
             }
@@ -179,24 +303,24 @@ struct StockReorderListView: View {
                     Text(L10n.tr("inventory.reorder_current"))
                         .font(.caption2)
                         .foregroundColor(AppColors.tertiary)
-                    Text("\(SupplierFormatting.amountString(row.cantitateCurenta)) \(row.unitateMasura)")
+                    Text("\(stockDecimals.string(row.cantitateCurenta)) \(row.unitateMasura)")
                         .font(.subheadline.monospacedDigit())
                         .foregroundColor(row.cantitateCurenta < 0 ? .red : .primary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(L10n.tr("inventory.reorder_minimum"))
+                    Text(L10n.tr("inventory.reorder_price"))
                         .font(.caption2)
                         .foregroundColor(AppColors.tertiary)
-                    Text("\(SupplierFormatting.amountString(row.cantitateMinima)) \(row.unitateMasura)")
+                    Text(priceText(row.pretCuTva))
                         .font(.subheadline.monospacedDigit())
                 }
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(L10n.tr("inventory.reorder_optimal"))
+                    Text(L10n.tr("inventory.reorder_line_total"))
                         .font(.caption2)
                         .foregroundColor(AppColors.tertiary)
-                    Text("\(SupplierFormatting.amountString(row.cantitateOptima)) \(row.unitateMasura)")
-                        .font(.subheadline.monospacedDigit())
+                    Text(priceText(lineTotal(row)))
+                        .font(.subheadline.monospacedDigit().bold())
                 }
             }
             HStack(alignment: .center) {
@@ -244,16 +368,32 @@ struct StockReorderListView: View {
         }
     }
 
+    private func priceText(_ value: Decimal?) -> String {
+        guard let value else { return "—" }
+        return SupplierFormatting.amountString(value)
+    }
+
+    private func lineTotal(_ row: StockReorderRow) -> Decimal? {
+        guard let price = row.pretCuTva else { return nil }
+        return SupplierFormatting.roundAmount(price * orderAmount(row))
+    }
+
+    private var orderTotal: Decimal {
+        filteredRows.reduce(Decimal.zero) { partial, row in
+            partial + (lineTotal(row) ?? 0)
+        }
+    }
+
     private func orderDraft(_ row: StockReorderRow) -> Binding<String> {
         Binding(
-            get: { orderDrafts[row.productId] ?? SupplierFormatting.amountString(row.cantitateNecesara) },
+            get: { orderDrafts[row.productId] ?? stockDecimals.string(row.cantitateNecesara) },
             set: { orderDrafts[row.productId] = $0 }
         )
     }
 
     private func orderAmount(_ row: StockReorderRow) -> Decimal {
         if let text = orderDrafts[row.productId],
-           let value = SupplierFormatting.parseAmount(text, maxFractionDigits: 4) {
+           let value = SupplierFormatting.parseAmount(text, maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits) {
             return max(0, value)
         }
         return max(0, row.cantitateNecesara)
@@ -318,6 +458,8 @@ struct StockReorderListView: View {
             rows = []
             warehouses = []
             orderDrafts = [:]
+            catalogGroups = []
+            groupIdsByProduct = [:]
             return
         }
         isLoading = true
@@ -331,6 +473,17 @@ struct StockReorderListView: View {
                 warehouseId: selectedWarehouseId,
                 warehouses: warehouses
             )
+            let prices = try await InventoryService.fetchLatestGrossPurchasePrices(
+                companyId: companyId,
+                productIds: rows.map(\.productId)
+            )
+            for index in rows.indices {
+                rows[index].pretCuTva = prices[rows[index].productId]
+            }
+            let groups = try await CMProductGroupService.fetchGroups(companyId: companyId)
+            catalogGroups = groups.filter { $0.kind == .custom }
+            groupIdsByProduct = try await CMProductGroupService.fetchProductGroupIds(companyId: companyId)
+            selectedGroupIds.formIntersection(Set(catalogGroups.map(\.id)))
         } catch {
             rows = []
             orderDrafts = [:]
@@ -348,6 +501,7 @@ private struct ReorderAddProductSheet: View {
     let onAdd: (StockReorderRow) -> Void
 
     @Environment(\.presentationMode) private var presentationMode
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
     @State private var query = ""
     @State private var results: [StockReorderRow] = []
     @State private var isLoading = false
@@ -401,7 +555,7 @@ private struct ReorderAddProductSheet: View {
                                     }
                                     Text(row.tip.label)
                                     Spacer()
-                                    Text("\(SupplierFormatting.amountString(row.cantitateCurenta)) \(row.unitateMasura)")
+                                    Text("\(stockDecimals.string(row.cantitateCurenta)) \(row.unitateMasura)")
                                 }
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondary)
@@ -444,8 +598,16 @@ private struct ReorderAddProductSheet: View {
                 warehouses: warehouses,
                 query: text
             )
+            let prices = try await InventoryService.fetchLatestGrossPurchasePrices(
+                companyId: companyId,
+                productIds: found.map(\.productId)
+            )
             guard !Task.isCancelled else { return }
-            results = found
+            results = found.map { row in
+                var copy = row
+                copy.pretCuTva = prices[row.productId]
+                return copy
+            }
         } catch {
             if !Task.isCancelled {
                 results = []

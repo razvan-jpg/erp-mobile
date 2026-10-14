@@ -16,6 +16,8 @@ struct StockSheetDetailView: View {
     @State private var exportExcludedActivities: [UIActivity.ActivityType]?
     @State private var pdfAttachmentURL: URL?
     @State private var exportErrorMessage: String?
+    @State private var showSavePicker = false
+    @State private var saveURL: URL?
 
     private var product: Product { context.row.product }
 
@@ -57,6 +59,13 @@ struct StockSheetDetailView: View {
                     onFinish: { showExportShare = false }
                 )
             }
+            .sheet(isPresented: $showSavePicker, onDismiss: { saveURL = nil }) {
+                if let saveURL {
+                    LocalSaveDocumentPicker(sourceURL: saveURL) {
+                        showSavePicker = false
+                    }
+                }
+            }
             .sheet(isPresented: $showPrintSheet) {
                 if let pdfAttachmentURL,
                    let data = try? Data(contentsOf: pdfAttachmentURL) {
@@ -80,6 +89,8 @@ struct StockSheetDetailView: View {
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondary)
             }
+            labeledRow(L10n.tr("stock_sheet.filter_location"), context.locationName)
+            labeledRow(L10n.tr("stock_sheet.filter_date"), SupplierFormatting.date(context.asOf))
 
             if let cod = product.cod, !cod.isEmpty {
                 labeledRow(L10n.tr("module.products.field_code"), cod)
@@ -90,7 +101,7 @@ struct StockSheetDetailView: View {
             labeledRow(L10n.tr("inventory.field_unit"), product.unitateMasura)
             labeledRow(
                 L10n.tr("inventory.field_quantity"),
-                "\(SupplierFormatting.amountString(snapshot?.cantitate ?? context.row.cantitate)) \(product.unitateMasura)"
+                "\(SupplierFormatting.stockQuantityString(snapshot?.cantitate ?? context.row.cantitate)) \(product.unitateMasura)"
             )
             labeledRow(
                 L10n.tr("inventory.weighted_average_cost"),
@@ -144,6 +155,18 @@ struct StockSheetDetailView: View {
             ) {
                 Task { await performExport(.sendEmailOrWhatsApp) }
             }
+            FloatingIconActionButton(
+                systemImage: "printer",
+                label: L10n.tr("stock_sheet.blank_print")
+            ) {
+                Task { await performExport(.printBlank) }
+            }
+            FloatingIconActionButton(
+                systemImage: "doc",
+                label: L10n.tr("stock_sheet.blank_pdf")
+            ) {
+                Task { await performExport(.saveBlank) }
+            }
 
             FloatingIconActionDivider()
 
@@ -174,7 +197,10 @@ struct StockSheetDetailView: View {
             snapshot = try await StockSheetService.fetchSnapshot(
                 companyId: companyId,
                 company: companyManager.currentCompany,
-                product: product
+                product: product,
+                locationName: context.locationName,
+                warehouseIds: context.warehouseIds,
+                asOf: context.asOf
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -187,6 +213,8 @@ struct StockSheetDetailView: View {
         case exportPDF
         case exportXLS
         case sendEmailOrWhatsApp
+        case printBlank
+        case saveBlank
     }
 
     private func performExport(_ action: ExportAction) async {
@@ -199,7 +227,10 @@ struct StockSheetDetailView: View {
                 current = try await StockSheetService.fetchSnapshot(
                     companyId: companyId,
                     company: companyManager.currentCompany,
-                    product: product
+                    product: product,
+                    locationName: context.locationName,
+                    warehouseIds: context.warehouseIds,
+                    asOf: context.asOf
                 )
                 snapshot = current
             } catch {
@@ -225,9 +256,21 @@ struct StockSheetDetailView: View {
 #endif
             case .exportPDF:
                 let url = try StockSheetPDFBuilder.writeTemporaryPDF(from: current)
-                exportShareItems = [url]
-                exportExcludedActivities = nil
-                showExportShare = true
+                try await savePDF(url)
+            case .printBlank:
+                let url = try StockSheetPDFBuilder.writeTemporaryBlankPDF(from: current)
+#if targetEnvironment(macCatalyst)
+                try DocumentExportSupport.printPDF(
+                    url: url,
+                    jobName: L10n.tr("stock_sheet.print_job_blank", product.denumire)
+                )
+#else
+                pdfAttachmentURL = url
+                showPrintSheet = true
+#endif
+            case .saveBlank:
+                let url = try StockSheetPDFBuilder.writeTemporaryBlankPDF(from: current)
+                try await savePDF(url)
             case .exportXLS:
                 let url = try StockSheetXLSBuilder.writeTemporaryXLS(from: current)
                 exportShareItems = [url]
@@ -242,5 +285,17 @@ struct StockSheetDetailView: View {
         } catch {
             exportErrorMessage = error.localizedDescription
         }
+    }
+
+    private func savePDF(_ url: URL) async throws {
+#if targetEnvironment(macCatalyst)
+        let suggested = url.deletingPathExtension().lastPathComponent + ".pdf"
+        if !DocumentExportSupport.saveOnMac(from: url, suggestedName: suggested) {
+            exportErrorMessage = L10n.tr("inventory.reorder_save_failed")
+        }
+#else
+        saveURL = url
+        showSavePicker = true
+#endif
     }
 }

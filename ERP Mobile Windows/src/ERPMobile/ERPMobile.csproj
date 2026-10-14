@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ERPMobile</RootNamespace>
     <AssemblyName>ERPMobile</AssemblyName>
-    <Version>1.0.284</Version>
-    <InformationalVersion>1.0.284</InformationalVersion>
+    <Version>1.0.316</Version>
+    <InformationalVersion>1.0.316</InformationalVersion>
     <Product>ERP Mobile</Product>
     <Company>Dateconta</Company>
     <Description>ERP Mobile pentru Windows</Description>

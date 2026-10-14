@@ -74,12 +74,14 @@ public sealed class ProductEditor : Window
     private readonly ComboBox _vat = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBox _price = new();
     private readonly TextBox _onlinePrice = new();
+    private readonly TextBox _purchasePrice = new() { Watermark = "fără TVA" };
     private readonly CheckBox _inCatalog = new() { Content = "Folosit în catalog" };
     private readonly CheckBox _inStockSheet = new() { Content = "Folosit în Foaie stoc" };
     private readonly CheckBox _hasRecipe = new() { Content = "Are rețetă" };
     private readonly StackPanel _groups = new() { Spacing = 4 };
     private readonly StackPanel _addons = new() { Spacing = 4 };
     private readonly StackPanel _recipe = new() { Spacing = 4 };
+    private int _recipeGeneration;
     private readonly List<(string Id, CheckBox Box)> _groupBoxes = new();
     private HashSet<string> _initialGroups = new(StringComparer.OrdinalIgnoreCase);
     private string? _imagineUrl;
@@ -177,13 +179,15 @@ public sealed class ProductEditor : Window
         _page.Children.Add(Hint("Când stocul scade sub minim (inclusiv stoc negativ), articolul apare la Necesar comandă. Cantitatea de comandat este stocul optim minus stocul real. Birotica nu intră automat. 0 = fără prag. Nu se aplică la produs finit."));
         _category.SelectionChanged += (_, _) => RefreshMinStockVisibility();
 
-        AddHeading("Prețuri vânzare");
+        AddHeading("Prețuri");
         foreach (var rate in new[] { "0", "11", "21" })
             _vat.Items.Add(new FieldChoice(rate, rate + "%"));
         AddField("Cotă TVA", _vat);
         AddField("Preț vânzare In Store (inclusiv TVA)", _price);
         AddField("Preț vânzare On Line (inclusiv TVA)", _onlinePrice);
+        AddField("Preț achiziție (fără TVA)", _purchasePrice);
         _page.Children.Add(Hint("Prețul afișat pe raft include TVA."));
+        _page.Children.Add(Hint("Prețul de achiziție este fără TVA, pe unitatea articolului. Se actualizează la fiecare factură furnizor și la fiecare NIR. Îl poți modifica."));
         _page.Children.Add(Hint("Alegeți cota TVA: 0%, 11% (ex. produse alimentare) sau 21%."));
 
         AddHeading("Catalog, Foaie stoc și rețetă");
@@ -200,6 +204,15 @@ public sealed class ProductEditor : Window
         _page.Children.Add(Hint("La vânzarea acestui produs pe casă, fiecare adițional apare ca linie separată pe bonul fiscal."));
 
         AddHeading("Rețetă (materii prime)");
+        var copyRecipe = new Button
+        {
+            Content = "Copiază rețetă",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Padding = new Avalonia.Thickness(12, 6)
+        };
+        copyRecipe.Click += async (_, _) => await ShowCopyRecipe();
+        _page.Children.Add(copyRecipe);
+        _page.Children.Add(Hint("Alegi produsul finit de la care se copiază rețeta. Liniile ajung pe articolul curent și le poți modifica."));
         _page.Children.Add(_recipe);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Margin = new Avalonia.Thickness(0, 12, 0, 0) };
@@ -234,12 +247,13 @@ public sealed class ProductEditor : Window
             Select(_category, Text(row, "tip"), Categories[0].Code);
             SelectUnit(_stockUnit, Text(row, "unitate_masura"), "Buc.");
             SelectPurchase(Text(row, "unitate_achizitie"));
-            _minStock.Text = Amount(row, "cantitate_minima", "0");
-            _optimalStock.Text = Amount(row, "cantitate_optima", "0");
+            _minStock.Text = StockAmount(row, "cantitate_minima", "0");
+            _optimalStock.Text = StockAmount(row, "cantitate_optima", "0");
             RefreshMinStockVisibility();
             _factor.Text = Amount(row, "factor_conversie", "1");
             _price.Text = Amount(row, "pret_vanzare", "0");
             _onlinePrice.Text = Amount(row, "pret_vanzare_online", Amount(row, "pret_vanzare", "0"));
+            _purchasePrice.Text = Amount(row, "pret_achizitie", "");
             _inCatalog.IsChecked = Bool(row, "in_catalog");
             _inStockSheet.IsChecked = Bool(row, "in_stock_sheet");
             _hasRecipe.IsChecked = Bool(row, "has_recipe");
@@ -350,10 +364,15 @@ public sealed class ProductEditor : Window
 
     private async Task LoadRecipe()
     {
+        var generation = ++_recipeGeneration;
         _recipe.Children.Clear();
         var rows = await _session.SelectRows(
             "product_recipe_lines",
-            "product_id=eq." + _productId + "&select=cantitate,unitate_masura,ingredient_product_id&order=numar_linie.asc");
+            "product_id=eq." + _productId + "&select=id,cantitate,unitate_masura,ingredient_product_id&order=numar_linie.asc",
+            0,
+            999);
+        if (generation != _recipeGeneration)
+            return;
         if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
         {
             _recipe.Children.Add(Hint("Rețeta este goală."));
@@ -361,14 +380,290 @@ public sealed class ProductEditor : Window
         }
         foreach (var row in rows.EnumerateArray())
         {
+            var lineId = Text(row, "id");
             var name = await ProductName(Text(row, "ingredient_product_id"));
-            _recipe.Children.Add(new TextBlock
+            if (generation != _recipeGeneration)
+                return;
+            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            line.Children.Add(new TextBlock
             {
-                Text = name + "  ·  " + Amount(row, "cantitate", "0") + " " + Text(row, "unitate_masura"),
+                Text = name,
+                Width = 320,
+                VerticalAlignment = VerticalAlignment.Center,
                 Foreground = Brand.Brush(Brand.Navy),
                 TextWrapping = TextWrapping.Wrap
             });
+            var quantity = new TextBox { Text = RecipeQuantity(row), Width = 90 };
+            var lastQuantity = quantity.Text ?? "";
+            quantity.LostFocus += async (_, _) =>
+            {
+                if (generation != _recipeGeneration)
+                    return;
+                var text = quantity.Text ?? "";
+                if (text == lastQuantity)
+                    return;
+                if (!TryAmount(text, out var number) || number <= 0)
+                {
+                    quantity.Text = lastQuantity;
+                    _status.Text = "Cantitatea trebuie să fie mai mare decât zero.";
+                    _status.Foreground = Brushes.Firebrick;
+                    return;
+                }
+                var rounded = decimal.Round(number, StockFormat.Digits, MidpointRounding.AwayFromZero);
+                var shown = StockFormat.Text(rounded);
+                quantity.Text = shown;
+                lastQuantity = shown;
+                try
+                {
+                    await _session.UpdateRow("product_recipe_lines", lineId, new Dictionary<string, object?>
+                    {
+                        ["cantitate"] = rounded
+                    });
+                    _status.Text = "Cantitatea a fost salvată.";
+                    _status.Foreground = Brand.Brush(Brand.Muted);
+                }
+                catch (Exception ex)
+                {
+                    _status.Text = ex.Message;
+                    _status.Foreground = Brushes.Firebrick;
+                }
+            };
+            line.Children.Add(quantity);
+            line.Children.Add(new TextBlock
+            {
+                Text = Text(row, "unitate_masura"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            var remove = new Button { Content = "Șterge", Padding = new Avalonia.Thickness(8, 4) };
+            remove.Click += async (_, _) =>
+            {
+                if (generation != _recipeGeneration)
+                    return;
+                try
+                {
+                    await _session.DeleteRow("product_recipe_lines", lineId);
+                    var left = await _session.SelectRows(
+                        "product_recipe_lines",
+                        "product_id=eq." + _productId + "&select=id",
+                        0,
+                        0);
+                    if (left.ValueKind != JsonValueKind.Array || left.GetArrayLength() == 0)
+                    {
+                        await _session.UpdateRow("products", _productId, new Dictionary<string, object?>
+                        {
+                            ["has_recipe"] = false
+                        });
+                        _hasRecipe.IsChecked = false;
+                    }
+                    await LoadRecipe();
+                    _status.Text = "Linia a fost scoasă din rețetă.";
+                    _status.Foreground = Brand.Brush(Brand.Muted);
+                }
+                catch (Exception ex)
+                {
+                    _status.Text = ex.Message;
+                    _status.Foreground = Brushes.Firebrick;
+                }
+            };
+            line.Children.Add(remove);
+            _recipe.Children.Add(line);
         }
+    }
+
+    private async Task ShowCopyRecipe()
+    {
+        List<RecipeSource> sources;
+        try
+        {
+            sources = await LoadRecipeSources();
+        }
+        catch (Exception ex)
+        {
+            _status.Text = ex.Message;
+            _status.Foreground = Brushes.Firebrick;
+            return;
+        }
+        if (sources.Count == 0)
+        {
+            _status.Text = "Niciun produs finit cu rețetă.";
+            _status.Foreground = Brushes.Firebrick;
+            return;
+        }
+
+        var window = new Window
+        {
+            Title = "De la ce produs finit",
+            Width = 560,
+            Height = 520,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Icon = Brand.WindowIcon()
+        };
+        var search = new TextBox { Watermark = "Denumire sau cod", Margin = new Avalonia.Thickness(12) };
+        var list = new ListBox { Margin = new Avalonia.Thickness(12, 0, 12, 12), ItemsSource = sources };
+        var copy = new Button
+        {
+            Content = "Copiază rețetă",
+            Margin = new Avalonia.Thickness(12),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            IsEnabled = false
+        };
+        list.SelectionChanged += (_, _) => copy.IsEnabled = list.SelectedItem is RecipeSource;
+        search.TextChanged += (_, _) =>
+        {
+            var term = (search.Text ?? "").Trim();
+            list.ItemsSource = term.Length == 0
+                ? sources
+                : sources.Where(item =>
+                    item.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+                    || item.Code.Contains(term, StringComparison.CurrentCultureIgnoreCase)).ToList();
+        };
+        RecipeSource? chosen = null;
+        copy.Click += (_, _) =>
+        {
+            if (list.SelectedItem is RecipeSource source)
+            {
+                chosen = source;
+                window.Close();
+            }
+        };
+        var root = new DockPanel();
+        DockPanel.SetDock(search, Dock.Top);
+        DockPanel.SetDock(copy, Dock.Bottom);
+        root.Children.Add(search);
+        root.Children.Add(copy);
+        root.Children.Add(list);
+        window.Content = root;
+        await window.ShowDialog(this);
+        if (chosen == null)
+            return;
+        await CopyRecipeFrom(chosen);
+    }
+
+    private async Task<List<RecipeSource>> LoadRecipeSources()
+    {
+        var sources = new List<RecipeSource>();
+        for (var from = 0; ; from += 1000)
+        {
+            var rows = await _session.SelectRows(
+                "products",
+                "company_id=eq." + _companyId
+                    + "&is_active=eq.true&has_recipe=eq.true&tip=eq.produs_finit&id=neq." + _productId
+                    + "&select=id,denumire,cod&order=denumire.asc",
+                from,
+                from + 999);
+            if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() == 0)
+                break;
+            foreach (var row in rows.EnumerateArray())
+            {
+                var id = Text(row, "id");
+                var name = Text(row, "denumire");
+                if (id.Length == 0 || name.Length == 0)
+                    continue;
+                sources.Add(new RecipeSource(id, name, Text(row, "cod")));
+            }
+            if (rows.GetArrayLength() < 1000)
+                break;
+        }
+        return sources;
+    }
+
+    private async Task CopyRecipeFrom(RecipeSource source)
+    {
+        try
+        {
+            var existing = await _session.SelectRows(
+                "product_recipe_lines",
+                "product_id=eq." + _productId + "&select=id",
+                0,
+                999);
+            var hasLines = existing.ValueKind == JsonValueKind.Array && existing.GetArrayLength() > 0;
+            if (hasLines)
+            {
+                var ok = await ConfirmDialog.Ask(
+                    this,
+                    "Rețeta actuală se înlocuiește cu cea de la " + source.Name + ". După copiere poți modifica liniile.");
+                if (!ok)
+                    return;
+            }
+
+            var sourceRows = await _session.SelectRows(
+                "product_recipe_lines",
+                "product_id=eq." + source.Id + "&select=ingredient_product_id,cantitate,unitate_masura,pret_achizitie,pret_achizitie_sursa,numar_linie&order=numar_linie.asc",
+                0,
+                999);
+            var lines = new List<JsonElement>();
+            if (sourceRows.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in sourceRows.EnumerateArray())
+                {
+                    if (!string.Equals(Text(row, "ingredient_product_id"), _productId, StringComparison.OrdinalIgnoreCase))
+                        lines.Add(row);
+                }
+            }
+            if (lines.Count == 0)
+            {
+                _status.Text = "Produsul ales nu are linii de rețetă de copiat.";
+                _status.Foreground = Brushes.Firebrick;
+                return;
+            }
+
+            if (existing.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in existing.EnumerateArray())
+                    await _session.DeleteRow("product_recipe_lines", Text(row, "id"));
+            }
+
+            var number = 1;
+            foreach (var row in lines)
+            {
+                if (!TryAmount(Text(row, "cantitate"), out var quantity) || quantity <= 0)
+                    continue;
+                var payload = new Dictionary<string, object?>
+                {
+                    ["company_id"] = _companyId,
+                    ["product_id"] = _productId,
+                    ["ingredient_product_id"] = Text(row, "ingredient_product_id"),
+                    ["numar_linie"] = number++,
+                    ["cantitate"] = decimal.Round(quantity, StockFormat.Digits, MidpointRounding.AwayFromZero),
+                    ["unitate_masura"] = Text(row, "unitate_masura"),
+                    ["pret_achizitie_sursa"] = Text(row, "pret_achizitie_sursa") is { Length: > 0 } priceSource ? priceSource : "local"
+                };
+                if (TryAmount(Text(row, "pret_achizitie"), out var price))
+                    payload["pret_achizitie"] = price;
+                await _session.InsertRow("product_recipe_lines", payload);
+            }
+
+            await _session.UpdateRow("products", _productId, new Dictionary<string, object?>
+            {
+                ["has_recipe"] = true
+            });
+            _hasRecipe.IsChecked = true;
+            await LoadRecipe();
+            _status.Text = "Rețeta a fost copiată. Poți modifica cantitățile.";
+            _status.Foreground = Brand.Brush(Brand.Muted);
+        }
+        catch (Exception ex)
+        {
+            _status.Text = ex.Message;
+            _status.Foreground = Brushes.Firebrick;
+            await LoadRecipe();
+        }
+    }
+
+    private sealed class RecipeSource
+    {
+        public RecipeSource(string id, string name, string code)
+        {
+            Id = id;
+            Name = name;
+            Code = code;
+        }
+
+        public string Id { get; }
+        public string Name { get; }
+        public string Code { get; }
+
+        public override string ToString() => Code.Length == 0 ? Name : Name + "  ·  " + Code;
     }
 
     private async Task<string> ProductName(string id)
@@ -477,6 +772,18 @@ public sealed class ProductEditor : Window
             _status.Foreground = Brushes.Firebrick;
             return;
         }
+        decimal? purchasePrice = null;
+        var purchaseRaw = (_purchasePrice.Text ?? "").Trim();
+        if (purchaseRaw.Length > 0)
+        {
+            if (!TryAmount(purchaseRaw, out var parsedPurchase) || parsedPurchase < 0)
+            {
+                _status.Text = "Prețul de achiziție nu este valid.";
+                _status.Foreground = Brushes.Firebrick;
+                return;
+            }
+            purchasePrice = decimal.Round(parsedPurchase, 2, MidpointRounding.AwayFromZero);
+        }
         var purchase = PurchaseValue();
         var stock = SelectedCode(_stockUnit);
         if (stock.Length == 0)
@@ -519,6 +826,8 @@ public sealed class ProductEditor : Window
                 _status.Foreground = Brushes.Firebrick;
                 return;
             }
+            minStock = decimal.Round(minStock, StockFormat.Digits, MidpointRounding.AwayFromZero);
+            optimalStock = decimal.Round(optimalStock, StockFormat.Digits, MidpointRounding.AwayFromZero);
         }
         try
         {
@@ -538,7 +847,8 @@ public sealed class ProductEditor : Window
                 ["has_recipe"] = _hasRecipe.IsChecked == true,
                 ["cota_tva"] = vatNumber,
                 ["pret_vanzare"] = price,
-                ["pret_vanzare_online"] = onlinePrice
+                ["pret_vanzare_online"] = onlinePrice,
+                ["pret_achizitie"] = purchasePrice
             });
             await SaveGroups();
             _saved = true;
@@ -704,6 +1014,22 @@ public sealed class ProductEditor : Window
         if (!row.TryGetProperty(field, out var value) || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
             return "";
         return value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText();
+    }
+
+    private static string RecipeQuantity(JsonElement row)
+    {
+        var text = Text(row, "cantitate");
+        return TryAmount(text, out var number)
+            ? StockFormat.Text(number)
+            : (text.Length == 0 ? StockFormat.Text(0) : text);
+    }
+
+    private static string StockAmount(JsonElement row, string field, string fallback)
+    {
+        var text = Text(row, field);
+        if (text.Length == 0)
+            return fallback;
+        return TryAmount(text, out var number) ? StockFormat.Text(number) : text;
     }
 
     private static string Amount(JsonElement row, string field, string fallback)

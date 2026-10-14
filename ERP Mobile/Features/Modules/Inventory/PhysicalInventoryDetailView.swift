@@ -292,10 +292,10 @@ struct PhysicalInventoryDetailView: View {
             HStack(spacing: 12) {
                 summaryChip(L10n.tr("inventory.physical_summary_differences"), "\(summary.differenceLines)")
                 if summary.plusDifference > 0 {
-                    summaryChip(L10n.tr("inventory.physical_summary_plus"), "+\(SupplierFormatting.amountString(summary.plusDifference))", color: .green)
+                    summaryChip(L10n.tr("inventory.physical_summary_plus"), "+\(SupplierFormatting.stockQuantityString(summary.plusDifference))", color: .green)
                 }
                 if summary.minusDifference > 0 {
-                    summaryChip(L10n.tr("inventory.physical_summary_minus"), "−\(SupplierFormatting.amountString(summary.minusDifference))", color: .red)
+                    summaryChip(L10n.tr("inventory.physical_summary_minus"), "−\(SupplierFormatting.stockQuantityString(summary.minusDifference))", color: .red)
                 }
             }
             if canEdit {
@@ -396,7 +396,7 @@ struct PhysicalInventoryDetailView: View {
         let draft = countedDrafts[line.id] ?? countedDisplay(for: line)
         let parsed = SupplierFormatting.parseAmount(
             draft,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         )
         let liveDiff: Decimal? = {
             if let parsed { return parsed - line.stocScriptic }
@@ -426,7 +426,7 @@ struct PhysicalInventoryDetailView: View {
                 .frame(width: codeWidth, alignment: .leading)
                 .padding(.horizontal, 6)
 
-            Text(SupplierFormatting.amountString(line.stocScriptic))
+            Text(SupplierFormatting.stockQuantityString(line.stocScriptic))
                 .font(.subheadline.monospacedDigit())
                 .frame(width: qtyWidth, alignment: .trailing)
                 .padding(.horizontal, 6)
@@ -445,7 +445,7 @@ struct PhysicalInventoryDetailView: View {
                                 .fill(Color(.secondarySystemBackground))
                         )
                 } else {
-                    Text(line.isCounted ? SupplierFormatting.amountString(line.cantitateNumarata ?? 0) : "—")
+                    Text(line.isCounted ? SupplierFormatting.stockQuantityString(line.cantitateNumarata ?? 0) : "—")
                         .font(.subheadline.monospacedDigit().bold())
                         .foregroundColor(line.isCounted ? .primary : .secondary)
                 }
@@ -497,7 +497,7 @@ struct PhysicalInventoryDetailView: View {
 
     private func countedDisplay(for line: PhysicalInventoryLine) -> String {
         guard let counted = line.cantitateNumarata else { return "" }
-        return SupplierFormatting.amountString(counted)
+        return SupplierFormatting.stockQuantityString(counted)
     }
 
     private func rowBackground(for index: Int) -> Color {
@@ -508,7 +508,7 @@ struct PhysicalInventoryDetailView: View {
         guard let value else { return "—" }
         if value == 0 { return "0" }
         let sign = value > 0 ? "+" : "−"
-        return "\(sign)\(SupplierFormatting.amountString(abs(value)))"
+        return "\(sign)\(SupplierFormatting.stockQuantityString(abs(value)))"
     }
 
     private func differenceColor(_ value: Decimal?) -> Color {
@@ -630,8 +630,8 @@ struct PhysicalInventoryDetailView: View {
             "inventory.physical_finalize_confirm",
             summary.countedLines,
             summary.differenceLines,
-            SupplierFormatting.amountString(summary.plusDifference),
-            SupplierFormatting.amountString(summary.minusDifference)
+            SupplierFormatting.stockQuantityString(summary.plusDifference),
+            SupplierFormatting.stockQuantityString(summary.minusDifference)
         )
     }
 
@@ -731,14 +731,14 @@ struct PhysicalInventoryDetailView: View {
         }
         guard let amount = SupplierFormatting.parseAmount(
             raw,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         ), amount >= 0 else {
             errorMessage = L10n.tr("inventory.physical_error_invalid_quantity")
             countedDrafts[line.id] = countedDisplay(for: line)
             return
         }
         if let existing = line.cantitateNumarata, existing == amount {
-            countedDrafts[line.id] = SupplierFormatting.amountString(amount)
+            countedDrafts[line.id] = SupplierFormatting.stockQuantityString(amount)
             return
         }
 
@@ -754,7 +754,7 @@ struct PhysicalInventoryDetailView: View {
             if let idx = lines.firstIndex(where: { $0.id == line.id }) {
                 lines[idx] = line.withCounted(updated.cantitateNumarata, stocScriptic: updated.stocScriptic)
             }
-            countedDrafts[line.id] = SupplierFormatting.amountString(amount)
+            countedDrafts[line.id] = SupplierFormatting.stockQuantityString(amount)
         } catch {
             errorMessage = error.localizedDescription
             countedDrafts[line.id] = countedDisplay(for: line)

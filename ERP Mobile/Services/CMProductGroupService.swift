@@ -458,6 +458,15 @@ enum CMProductGroupService {
             .value
     }
 
+    static func fetchCompanyMenuLines(companyId: UUID) async throws -> [CMMenuLine] {
+        try await client
+            .from("cm_menu_lines")
+            .select()
+            .eq("company_id", value: companyId.uuidString)
+            .execute()
+            .value
+    }
+
     static func fetchMenuLines(menuId: UUID) async throws -> [CMMenuLine] {
         try await client
             .from("cm_menu_lines")

@@ -7,7 +7,11 @@ enum StockSheetPDFBuilder {
     private static let margin: CGFloat = 36
 
     static func writeTemporaryPDF(from snapshot: StockSheetSnapshot) throws -> URL {
-        try write(data: makeDetailPDF(from: snapshot), fileName: "Fisa-stoc-\(sanitized(snapshot.product.denumire))")
+        try write(data: makeDetailPDF(from: snapshot, blank: false), fileName: "Foaie-stoc-\(sanitized(snapshot.product.denumire))")
+    }
+
+    static func writeTemporaryBlankPDF(from snapshot: StockSheetSnapshot) throws -> URL {
+        try write(data: makeDetailPDF(from: snapshot, blank: true), fileName: "Foaie-stoc-formular-gol-\(sanitized(snapshot.product.denumire))")
     }
 
     static func writeTemporaryListingPDF(from snapshot: StockSheetListingSnapshot) throws -> URL {
@@ -69,7 +73,7 @@ enum StockSheetPDFBuilder {
                             "\(index + 1)",
                             row.product.denumire,
                             row.unit,
-                            SupplierFormatting.amountString(row.cantitate),
+                            SupplierFormatting.stockQuantityString(row.cantitate),
                             row.pretMediu.map { SupplierFormatting.amountString($0) } ?? "—",
                             SupplierFormatting.currency(row.valoare)
                         ],
@@ -102,7 +106,7 @@ enum StockSheetPDFBuilder {
         }
     }
 
-    private static func makeDetailPDF(from snapshot: StockSheetSnapshot) -> Data {
+    private static func makeDetailPDF(from snapshot: StockSheetSnapshot, blank: Bool = false) -> Data {
         let pageRect = CGRect(origin: .zero, size: landscapeSize)
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
         let titleFont = UIFont.boldSystemFont(ofSize: 16)
@@ -114,8 +118,23 @@ enum StockSheetPDFBuilder {
             context.beginPage()
             var y = margin
             y = drawHeader(company: snapshot.company, generatedAt: snapshot.generatedAt, pageWidth: pageRect.width, y: y)
-            y = drawText(L10n.tr("stock_sheet.detail_title"), at: y + 6, pageWidth: pageRect.width, font: titleFont)
+            let title = blank
+                ? L10n.tr("stock_sheet.blank_title")
+                : L10n.tr("stock_sheet.detail_title")
+            y = drawText(title, at: y + 6, pageWidth: pageRect.width, font: titleFont)
             y = drawText(snapshot.product.denumire, at: y, pageWidth: pageRect.width, font: sectionFont)
+            y = drawText(
+                L10n.tr("common.detail_line", L10n.tr("stock_sheet.filter_location"), snapshot.locationName),
+                at: y,
+                pageWidth: pageRect.width,
+                font: bodyFont
+            )
+            y = drawText(
+                L10n.tr("common.detail_line", L10n.tr("stock_sheet.filter_date"), SupplierFormatting.date(snapshot.asOf)),
+                at: y,
+                pageWidth: pageRect.width,
+                font: bodyFont
+            )
             var summaryLines: [String] = []
             if let cod = snapshot.product.cod, !cod.isEmpty {
                 summaryLines.append(L10n.tr("common.detail_line", L10n.tr("module.products.field_code"), cod))
@@ -125,21 +144,21 @@ enum StockSheetPDFBuilder {
                 L10n.tr(
                     "common.detail_line",
                     L10n.tr("inventory.field_quantity"),
-                    "\(SupplierFormatting.amountString(snapshot.cantitate)) \(snapshot.product.unitateMasura)"
+                    blank ? "—" : "\(SupplierFormatting.stockQuantityString(snapshot.cantitate)) \(snapshot.product.unitateMasura)"
                 )
             )
             summaryLines.append(
                 L10n.tr(
                     "common.detail_line",
                     L10n.tr("inventory.weighted_average_cost"),
-                    snapshot.pretMediu.map { SupplierFormatting.amountString($0) } ?? "—"
+                    blank ? "—" : (snapshot.pretMediu.map { SupplierFormatting.amountString($0) } ?? "—")
                 )
             )
             summaryLines.append(
                 L10n.tr(
                     "common.detail_line",
                     L10n.tr("stock_sheet.col_value"),
-                    SupplierFormatting.currency(snapshot.valoare)
+                    blank ? "—" : SupplierFormatting.currency(snapshot.valoare)
                 )
             )
             y = drawText(summaryLines.joined(separator: "   "), at: y, pageWidth: pageRect.width, font: bodyFont)
@@ -158,7 +177,25 @@ enum StockSheetPDFBuilder {
             ]
             y = drawTableRow(headers, widths: widths, x: margin, y: y, font: sectionFont, isHeader: true, isAlternate: false)
 
-            if snapshot.entries.isEmpty {
+            if blank {
+                let empty = Array(repeating: "", count: headers.count)
+                for index in 0..<18 {
+                    if y > pageRect.height - margin - 24 {
+                        context.beginPage()
+                        y = margin
+                        y = drawTableRow(headers, widths: widths, x: margin, y: y, font: sectionFont, isHeader: true, isAlternate: false)
+                    }
+                    y = drawTableRow(
+                        empty,
+                        widths: widths,
+                        x: margin,
+                        y: y,
+                        font: bodyFont,
+                        isHeader: false,
+                        isAlternate: !index.isMultiple(of: 2)
+                    )
+                }
+            } else if snapshot.entries.isEmpty {
                 _ = drawTableRow(
                     [L10n.tr("stock_sheet.ledger_empty"), "", "", "", "", "", "", ""],
                     widths: widths,
@@ -197,7 +234,7 @@ enum StockSheetPDFBuilder {
             blankIfZero(entry.valoareIntrare, currency: true),
             blankIfZero(entry.cantitateIesire),
             blankIfZero(entry.valoareIesire, currency: true),
-            SupplierFormatting.amountString(entry.stocCantitate),
+            SupplierFormatting.stockQuantityString(entry.stocCantitate),
             SupplierFormatting.currency(entry.stocValoare)
         ]
     }

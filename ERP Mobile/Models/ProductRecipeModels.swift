@@ -65,8 +65,11 @@ struct ProductRecipeSummary: Sendable {
     let lines: [ProductRecipeLine]
 
     var totalCost: Decimal? {
-        let costs = lines.compactMap(\.lineCost)
-        guard costs.count == lines.count, !lines.isEmpty else { return nil }
-        return costs.reduce(0, +)
+        guard !lines.isEmpty else { return nil }
+        return lines.compactMap(\.lineCost).reduce(0, +)
+    }
+
+    var hasMissingPurchasePrice: Bool {
+        lines.contains { $0.pretAchizitie == nil }
     }
 }

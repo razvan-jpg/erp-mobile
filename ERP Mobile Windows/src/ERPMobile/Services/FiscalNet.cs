@@ -112,9 +112,9 @@ public static class FiscalNet
             var group = line.VatGroup is >= 1 and <= 5 ? line.VatGroup : 1;
             commands.Add("S^" + Sanitize(line.Name, 42) + "^" + price + "^" + qty + "^buc^" + group + "^1");
             if (line.FullDiscount)
-                commands.Add("DV^" + prepared[i].Gross);
+                commands.Add("DV^" + prepared[i].Gross + "^" + group);
             else if (cutByLine[i] > 0)
-                commands.Add("DV^" + cutByLine[i]);
+                commands.Add("DV^" + cutByLine[i] + "^" + group);
             var note = Sanitize(line.Note ?? "", 42);
             if (note.Length > 0)
                 notes.Add(note);
@@ -156,6 +156,9 @@ public static class FiscalNet
     public static IReadOnlyList<string> Pos(decimal amount) => new[] { "POS^" + Math.Max(0, Bani(amount)) };
 
     public static IReadOnlyList<string> Report(string kind) => new[] { kind + "^" };
+
+    /// <summary>Deschidere sertar. Se trimite după un bon încasat numerar sau numerar + card.</summary>
+    public static IReadOnlyList<string> OpenDrawer() => new[] { "DS^" };
 
     public static IReadOnlyList<string> NonFiscal(IEnumerable<string> lines, string? documentUrl)
     {

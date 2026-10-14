@@ -25,6 +25,7 @@ struct ProductDetailView: View {
     @State private var selectedVatRate: Decimal
     @State private var pretVanzareText: String
     @State private var pretVanzareOnlineText: String
+    @State private var pretAchizitieText: String
     @State private var imagineUrl: String?
     @State private var showPhotoLibrary = false
     @State private var showCamera = false
@@ -78,14 +79,15 @@ struct ProductDetailView: View {
         _unitateAchizitie = State(initialValue: product.unitateAchizitie ?? "")
         _factorConversieText = State(initialValue: SupplierFormatting.amountString(product.factorConversie))
         _tip = State(initialValue: product.tip)
-        _cantitateMinimaText = State(initialValue: SupplierFormatting.amountString(product.cantitateMinima))
-        _cantitateOptimaText = State(initialValue: SupplierFormatting.amountString(product.cantitateOptima))
+        _cantitateMinimaText = State(initialValue: SupplierFormatting.stockQuantityString(product.cantitateMinima))
+        _cantitateOptimaText = State(initialValue: SupplierFormatting.stockQuantityString(product.cantitateOptima))
         _inCatalog = State(initialValue: product.inCatalog)
         _inStockSheet = State(initialValue: product.inStockSheet)
         _hasRecipe = State(initialValue: product.hasRecipe)
         _selectedVatRate = State(initialValue: product.cotaTva)
         _pretVanzareText = State(initialValue: product.pretVanzareInputText)
         _pretVanzareOnlineText = State(initialValue: product.pretVanzareOnlineInputText)
+        _pretAchizitieText = State(initialValue: product.pretAchizitieInputText)
         _imagineUrl = State(initialValue: product.imagineUrl)
     }
 
@@ -214,6 +216,19 @@ struct ProductDetailView: View {
                             hasRecipe = updated.hasRecipe
                         }
                     }
+                case .copy(let replacesExisting):
+                    ProductRecipeCopyPickerView(
+                        productId: product.id,
+                        companyId: product.companyId,
+                        replacesExisting: replacesExisting,
+                        onCopied: {
+                            recipeReloadToken = UUID()
+                            hasRecipe = true
+                            if let updated = try? await ProductService.fetchProduct(id: product.id) {
+                                hasRecipe = updated.hasRecipe
+                            }
+                        }
+                    )
                 }
             }
             .fullScreenCover(item: $saleAddonEditorSheet) { sheet in
@@ -383,11 +398,11 @@ struct ProductDetailView: View {
                 } else {
                     AppLabeledContent(
                         L10n.tr("module.products.field_min_stock"),
-                        value: "\(SupplierFormatting.amountString(parsedMinimumStock)) \(unitateMasura)"
+                        value: "\(SupplierFormatting.stockQuantityString(parsedMinimumStock)) \(unitateMasura)"
                     )
                     AppLabeledContent(
                         L10n.tr("module.products.field_optimal_stock"),
-                        value: "\(SupplierFormatting.amountString(parsedOptimalStock)) \(unitateMasura)"
+                        value: "\(SupplierFormatting.stockQuantityString(parsedOptimalStock)) \(unitateMasura)"
                     )
                 }
             } header: {
@@ -402,7 +417,7 @@ struct ProductDetailView: View {
         guard tip != .produsFinit else { return 0 }
         let parsed = SupplierFormatting.parseAmount(
             cantitateMinimaText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         ) ?? 0
         return max(0, parsed)
     }
@@ -411,7 +426,7 @@ struct ProductDetailView: View {
         guard tip != .produsFinit else { return 0 }
         let parsed = SupplierFormatting.parseAmount(
             cantitateOptimaText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         ) ?? 0
         return max(0, parsed)
     }
@@ -434,6 +449,7 @@ struct ProductDetailView: View {
                 selectedVatRate: $selectedVatRate,
                 pretVanzareText: $pretVanzareText,
                 pretVanzareOnlineText: $pretVanzareOnlineText,
+                pretAchizitieText: $pretAchizitieText,
                 isSaving: isSaving,
                 showsSaveButton: false,
                 onSave: {}
@@ -519,6 +535,9 @@ struct ProductDetailView: View {
                 },
                 onEditLine: { line, occupiedIngredientIds in
                     recipeEditorSheet = .edit(line: line, occupiedIngredientIds: occupiedIngredientIds)
+                },
+                onCopyRecipe: { replacesExisting in
+                    recipeEditorSheet = .copy(replacesExisting: replacesExisting)
                 },
                 onRecipeChanged: {
                     if !hasRecipe {
@@ -689,6 +708,16 @@ struct ProductDetailView: View {
             errorMessage = ProductCreateError.invalidSalePrice.localizedDescription
             return
         }
+        let purchaseText = pretAchizitieText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pretAchizitie: Decimal?
+        if purchaseText.isEmpty {
+            pretAchizitie = nil
+        } else if let parsed = ProductService.parseSalePrice(purchaseText) {
+            pretAchizitie = parsed
+        } else {
+            errorMessage = L10n.tr("module.products.error_invalid_purchase_price")
+            return
+        }
         let parsedFactor = SupplierFormatting.parseAmount(
             factorConversieText,
             maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
@@ -735,11 +764,14 @@ struct ProductDetailView: View {
                 cotaTva: vatRate,
                 pretVanzare: pretVanzare,
                 pretVanzareOnline: pretVanzareOnline,
+                pretAchizitie: pretAchizitie,
+                updatesPurchasePrice: true,
                 isVatPayer: isVatPayer
             )
             selectedVatRate = ProductVATRates.normalizedRate(updatedPricing.cotaTva, isVatPayer: isVatPayer)
             pretVanzareText = updatedPricing.pretVanzareInputText
             pretVanzareOnlineText = updatedPricing.pretVanzareOnlineInputText
+            pretAchizitieText = updatedPricing.pretAchizitieInputText
 
             if selectedCMGroupIds != initialCMGroupIds {
                 try await CMProductGroupService.setProductGroups(
@@ -878,8 +910,8 @@ struct ProductDetailView: View {
         unitateAchizitie = updated.unitateAchizitie ?? ""
         factorConversieText = SupplierFormatting.amountString(updated.factorConversie)
         tip = updated.tip
-        cantitateMinimaText = SupplierFormatting.amountString(updated.cantitateMinima)
-        cantitateOptimaText = SupplierFormatting.amountString(updated.cantitateOptima)
+        cantitateMinimaText = SupplierFormatting.stockQuantityString(updated.cantitateMinima)
+        cantitateOptimaText = SupplierFormatting.stockQuantityString(updated.cantitateOptima)
         imagineUrl = updated.imagineUrl
     }
 }

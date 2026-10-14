@@ -89,6 +89,7 @@ struct UserSettingsView: View {
                     usersLink
                     pendingSyncLink
                     zettaSettingsLink
+                    stockDecimalsLink
                     efacturaSettingsLink
                     macDesktopShortcutButton
                     adminCompaniesLink
@@ -242,6 +243,22 @@ struct UserSettingsView: View {
                     title: L10n.tr("settings.efactura.title"),
                     subtitle: L10n.tr("settings.efactura.hint"),
                     systemImage: "checkmark.seal",
+                    showsChevron: true
+                )
+                .settingsMenuButtonChrome()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var stockDecimalsLink: some View {
+        if companyManager.currentCompany != nil {
+            NavigationLink(destination: StockDecimalsSettingsView()) {
+                SettingsMenuButtonLabel(
+                    title: L10n.tr("settings.stock_decimals.title"),
+                    subtitle: L10n.tr("settings.stock_decimals.menu_hint"),
+                    systemImage: "number",
                     showsChevron: true
                 )
                 .settingsMenuButtonChrome()

@@ -25,9 +25,9 @@ struct PhysicalInventoryLineEditView: View {
         self.canEdit = canEdit
         self.onSaved = onSaved
         if let counted = line.cantitateNumarata {
-            _countedText = State(initialValue: SupplierFormatting.amountString(counted))
+            _countedText = State(initialValue: SupplierFormatting.stockQuantityString(counted))
         } else {
-            _countedText = State(initialValue: SupplierFormatting.amountString(line.stocScriptic))
+            _countedText = State(initialValue: SupplierFormatting.stockQuantityString(line.stocScriptic))
         }
         _observatii = State(initialValue: line.observatii ?? "")
     }
@@ -35,7 +35,7 @@ struct PhysicalInventoryLineEditView: View {
     private var parsedCount: Decimal? {
         SupplierFormatting.parseAmount(
             countedText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         )
     }
 
@@ -79,7 +79,7 @@ struct PhysicalInventoryLineEditView: View {
                         AppLabeledContent(L10n.tr("inventory.physical_field_barcode"), value: barcode)
                     }
                     AppLabeledContent(L10n.tr("inventory.physical_book_stock")) {
-                        Text("\(SupplierFormatting.amountString(line.stocScriptic)) \(line.unitateMasura)")
+                        Text("\(SupplierFormatting.stockQuantityString(line.stocScriptic)) \(line.unitateMasura)")
                     }
                 }
 
@@ -92,7 +92,7 @@ struct PhysicalInventoryLineEditView: View {
                             .foregroundColor(Self.secondaryTextColor)
                     } else if let counted = line.cantitateNumarata {
                         AppLabeledContent(L10n.tr("inventory.field_quantity")) {
-                            Text("\(SupplierFormatting.amountString(counted)) \(line.unitateMasura)")
+                            Text("\(SupplierFormatting.stockQuantityString(counted)) \(line.unitateMasura)")
                         }
                     }
                 }
@@ -130,7 +130,7 @@ struct PhysicalInventoryLineEditView: View {
         let sign = value > 0 ? "+" : "−"
         return L10n.tr(
             "inventory.physical_difference",
-            "\(sign)\(SupplierFormatting.amountString(abs(value))) \(line.unitateMasura)"
+            "\(sign)\(SupplierFormatting.stockQuantityString(abs(value))) \(line.unitateMasura)"
         )
     }
 

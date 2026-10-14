@@ -74,8 +74,8 @@ enum PhysicalInventoryPDFBuilder {
                 L10n.tr("inventory.physical_summary_lines") + ": \(snapshot.summary.totalLines)",
                 L10n.tr("inventory.physical_summary_counted") + ": \(snapshot.summary.countedLines)",
                 L10n.tr("inventory.physical_summary_differences") + ": \(snapshot.summary.differenceLines)",
-                L10n.tr("inventory.physical_summary_plus") + ": \(SupplierFormatting.amountString(snapshot.summary.plusDifference))",
-                L10n.tr("inventory.physical_summary_minus") + ": \(SupplierFormatting.amountString(snapshot.summary.minusDifference))"
+                L10n.tr("inventory.physical_summary_plus") + ": \(SupplierFormatting.stockQuantityString(snapshot.summary.plusDifference))",
+                L10n.tr("inventory.physical_summary_minus") + ": \(SupplierFormatting.stockQuantityString(snapshot.summary.minusDifference))"
             ], at: y, pageWidth: pageRect.width, font: bodyFont)
 
             if let observatii = inventory.observatii, !observatii.isEmpty {
@@ -256,7 +256,7 @@ enum PhysicalInventoryPDFBuilder {
     }
 
     private static func rowValues(for line: PhysicalInventoryLine, index: Int) -> [String] {
-        let counted = line.cantitateNumarata.map { SupplierFormatting.amountString($0) } ?? "—"
+        let counted = line.cantitateNumarata.map { SupplierFormatting.stockQuantityString($0) } ?? "—"
         let difference: String
         let status: String
         if let delta = line.diferenta {
@@ -265,7 +265,7 @@ enum PhysicalInventoryPDFBuilder {
                 status = L10n.tr("inventory.physical_pdf_status_ok")
             } else {
                 let sign = delta > 0 ? "+" : "−"
-                difference = "\(sign)\(SupplierFormatting.amountString(abs(delta)))"
+                difference = "\(sign)\(SupplierFormatting.stockQuantityString(abs(delta)))"
                 status = L10n.tr("inventory.physical_pdf_status_diff")
             }
         } else {
@@ -279,7 +279,7 @@ enum PhysicalInventoryPDFBuilder {
             line.product?.cod ?? "",
             line.product?.codBare ?? "",
             line.unitateMasura,
-            SupplierFormatting.amountString(line.stocScriptic),
+            SupplierFormatting.stockQuantityString(line.stocScriptic),
             counted,
             difference,
             status

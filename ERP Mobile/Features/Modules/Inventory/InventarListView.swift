@@ -336,9 +336,9 @@ struct InventoryDifferenceReportView: View {
                     Text(line.denumire).font(.headline)
                     Text(L10n.tr(
                         "inventory.report_line",
-                        SupplierFormatting.amountString(line.stocScriptic),
-                        SupplierFormatting.amountString(line.cantitateFaptica),
-                        SupplierFormatting.amountString(line.diferenta),
+                        SupplierFormatting.stockQuantityString(line.stocScriptic),
+                        SupplierFormatting.stockQuantityString(line.cantitateFaptica),
+                        SupplierFormatting.stockQuantityString(line.diferenta),
                         line.unitateMasura
                     ))
                     .font(.caption)

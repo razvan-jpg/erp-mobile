@@ -454,11 +454,7 @@ public sealed class ShellWindow : Window
                 new ModuleSection("Stocuri și mișcări", "Solduri și mișcări de stoc.", lists.Where(list => list.Title is "Stocuri" or "Mișcări").ToList()),
                 new ModuleSection("Inventar fizic", "Inventarele salvate.", lists.Where(list => list.Title == "Inventar fizic").ToList())
             ]),
-            "stock_sheet" => new SectionHome(session, module,
-            [
-                new ModuleSection("Actualizare stocuri inițiale", "Cantitatea curentă pe articol.", lists.Where(list => list.Title == "Stoc curent").ToList()),
-                new ModuleSection("Generare fișă stoc", "Intrări și ieșiri din care se calculează fișa.", lists.Where(list => list.Title == "Mișcări").ToList())
-            ]),
+            "stock_sheet" => new StockSheetListView(session),
             _ when lists.Count == 0 => TextPage(module.Name, "Modul în dezvoltare."),
             _ => new ModuleHost(session, module, lists)
         };
@@ -523,6 +519,70 @@ public sealed class ShellWindow : Window
         var page = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 14, MaxWidth = 720 };
         page.Children.Add(new TextBlock { Text = "Ce este nou...", FontSize = 22, FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy) });
         page.Children.Add(new TextBlock { Text = "What's New", FontSize = 16, Foreground = Brand.Brush("#003399") });
+        page.Children.Add(Release("1.0.316", "14.10.2026",
+            "Bonurile de producție și de transfer se filtrează după locație și dată, ca foile de stoc. Click-ul le deschide la vizualizare. La modificare sunteți avertizat: salvarea recalculează foile de stoc de la bonul afectat până astăzi."));
+        page.Children.Add(Release("1.0.315", "14.10.2026",
+            "La fiecare Raport Z se salvează foaia de stoc a punctului de lucru și a turei. Lista din Foaie stoc arată data, tura, numărul Z și seria. Stocul final care nu bate cu gestiunea este scris cu roșu."));
+        page.Children.Add(Release("1.0.314", "14.10.2026",
+            "La Raport Z, ecranul de vânzare se blochează până se închide tura. Se listează Raport X, apoi Raport Z. Produsele finite vândute primesc bon de producție: stocul lor revine la 0, iar materiile prime scad conform rețetei. Încasările din josul ecranului revin la 0."));
+        page.Children.Add(Release("1.0.313", "14.10.2026",
+            "După Emite bon, când casa listează bonul, gestiunea scade cantitățile vândute. Pe fișa produsului apare ieșire prin BF, cu numărul bonului."));
+        page.Children.Add(Release("1.0.312", "14.10.2026",
+            "Un produs cu preț On line 0 nu se vinde online. Nu apare în catalog când bonul este pe On line și nu are profit On line."));
+        page.Children.Add(Release("1.0.311", "14.10.2026",
+            "Pe tile-urile din Articole, Profit In Store/bucată și Profit On line/bucată arată și procentul față de prețul de achiziție."));
+        page.Children.Add(Release("1.0.310", "14.10.2026",
+            "NECTARIE: la SOS SAMURAI (84), SOS USTUROI (81) și SOS TZATZIKI (1462) prețul de producție este pentru 0,025 kg, ca la celelalte sosuri. Rețetele care îi folosesc s-au recalculat."));
+        page.Children.Add(Release("1.0.309", "14.10.2026",
+            "Pe meniuri apar prețul de achiziție și cele două profituri, ca la articolele din catalog. Prețul de achiziție este suma costurilor produsului principal și ale produsului secundar obligatoriu."));
+        page.Children.Add(Release("1.0.308", "14.10.2026",
+            "Lista de articole nu se mai reîncarcă când derulezi peste capătul de sus sau de jos. Produsele rămân pe ecran."));
+        page.Children.Add(Release("1.0.307", "14.10.2026",
+            "Pe tile-urile din Articole, profitul pe bucată apare doar la produsele din catalog. Vezi Profit In Store/bucată și Profit On line/bucată. La On line se scade 30% din prețul de vânzare, apoi prețul de achiziție."));
+        page.Children.Add(Release("1.0.306", "14.10.2026",
+            "Pe fișa articolului apare prețul de achiziție fără TVA. Îl poți modifica. La fiecare factură furnizor și la fiecare NIR se actualizează singur, pe unitatea articolului."));
+        page.Children.Add(Release("1.0.305", "14.10.2026",
+            "Profitul de pe tile folosește prețul de achiziție pe bucată sau pe kilogram. Berea, Granini și cartofii albi nu mai iau prețul pe cutie sau pe sac din factură. Rețetele care îi folosesc se recalculează."));
+        page.Children.Add(Release("1.0.304", "14.10.2026",
+            "Costul rețetei se calculează și dacă unei materii prime îi lipsește prețul de achiziție. Se recalculează când prețul apare sau se schimbă. Pe tile-ul din Articole apare un avertisment dacă rețeta nu are toate prețurile."));
+        page.Children.Add(Release("1.0.303", "14.10.2026",
+            "Foaie stoc se deschide direct pe listă. Tile-urile din modul au fost scoase."));
+        page.Children.Add(Release("1.0.302", "14.10.2026",
+            "Modulul de pe Acasă se numește Foaie stoc."));
+        page.Children.Add(Release("1.0.301", "14.10.2026",
+            "Pe Fișa stoc, primul tile este Foaie stoc. Lista foilor se filtrează după locație și dată. Din foaie puteți tipări sau salva PDF-ul, inclusiv formularul gol."));
+        page.Children.Add(Release("1.0.300", "14.10.2026",
+            "La Necesar comandă puteți filtra după categorii și grupe, ca la Articole. De exemplu doar marfă, sau doar băuturi. Lista, totalul și PDF-ul respectă filtrul."));
+        page.Children.Add(Release("1.0.299", "14.10.2026",
+            "La Necesar comandă, lista și PDF-ul arată cod, denumire, UM, stoc curent, de comandat, ultimul preț de cumpărare cu TVA și totalul liniei. Jos este totalul comenzii în lei."));
+        page.Children.Add(Release("1.0.298", "14.10.2026",
+            "La meniurile din POS, discountul de 100% pleacă la casă cu aceeași cotă ca produsul. La doză, cota este A."));
+        page.Children.Add(Release("1.0.297", "14.10.2026",
+            "Prețul tuturor rețetelor este recalculat din ultima achiziție. La un produs finit folosit în altă rețetă, prețul este costul lui de producție."));
+        page.Children.Add(Release("1.0.296", "14.10.2026",
+            "NECTARIE: ceapa prăjită (411271), 0,015 kg, este în rețetele produselor finite din Farfurii & Box, Sandwich & Chifle și Shaorma."));
+        page.Children.Add(Release("1.0.295", "14.10.2026",
+            "La Emite bon, sertarul se deschide și la Numerar + card, la fel ca la Numerar."));
+        page.Children.Add(Release("1.0.294", "14.10.2026",
+            "La Emite bon, dacă încasarea este Numerar, casa de marcat deschide și sertarul. La celelalte încasări sertarul rămâne închis."));
+        page.Children.Add(Release("1.0.293", "14.10.2026",
+            "La casă, AQUA PLATĂ și AQUA MINERALĂ 0,5 L se trimit cu cota B. Limonadele clasică, lime, mandarin și melon se trimit cu cota A."));
+        page.Children.Add(Release("1.0.292", "14.10.2026",
+            "Taxa ambalaj și Taxa ambalaj mică se trimit pe bon cu cota A (21%), nu cu B."));
+        page.Children.Add(Release("1.0.291", "14.10.2026",
+            "Zecimalele din Setări se aplică și la rețete, nu doar la stocuri. Prețurile rămân cu 2 zecimale."));
+        page.Children.Add(Release("1.0.290", "14.10.2026",
+            "În Setări poți alege 2, 3 sau 4 zecimale doar pentru cantitățile de stoc. La Nectarie sunt 4."));
+        page.Children.Add(Release("1.0.289", "14.10.2026",
+            "NECTARIE: fișa 103921 se numește PORTOCALE. PORTOCALE 3-5 P și PORTOCALE SUC rămân aliasuri și se leagă tot acolo."));
+        page.Children.Add(Release("1.0.288", "14.10.2026",
+            "NECTARIE: portocalele pentru suc (cod 103572) sunt pe fișa PORTOCALE 3-5 P (cod 103921). Stocul și recepțiile sunt împreună."));
+        page.Children.Add(Release("1.0.287", "13.10.2026",
+            "La Copiază rețetă, lista rămâne deschisă și arată doar produsele finite."));
+        page.Children.Add(Release("1.0.286", "13.10.2026",
+            "La rețetă, Copiază rețetă aduce liniile de la alt produs. Apoi le poți modifica."));
+        page.Children.Add(Release("1.0.285", "13.10.2026",
+            "Cantitățile din rețetă se scriu și se afișează cu 3 zecimale."));
         page.Children.Add(Release("1.0.284", "13.10.2026",
             "La Necesar comandă, cantitatea de comandat este un câmp cu chenar și creion, ca să se vadă că se poate modifica."));
         page.Children.Add(Release("1.0.283", "13.10.2026",
@@ -913,7 +973,7 @@ public sealed class ShellWindow : Window
             "Setări Windows: limbă, utilizatori, sync, setări Zetta, scurtătură pe Desktop, administrare societăți și deconectare — aceleași intrări ca pe Mac.",
             "La modificare, categoria articolului și celelalte câmpuri cu variante se aleg din listă.",
             "Utilitare Windows: arhivă MT940 din extrasul bancar și Excel NextUp din nota contabilă PDF."));
-        page.Children.Add(new TextBlock { Text = "Urmează în 1.0.285", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
+        page.Children.Add(new TextBlock { Text = "Urmează în 1.0.317", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
         page.Children.Add(Bullet("BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală)."));
         page.Children.Add(Bullet("Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA)."));
         page.Children.Add(Bullet("Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z)."));
@@ -979,7 +1039,7 @@ public sealed class ModuleHost : UserControl
             note ??= module.Code switch
             {
                 "sales" => "Bonurile și rapoartele Z sunt aceleași înregistrări ca în aplicația mobilă.",
-                "stock_sheet" => "Fișa de stoc se calculează din stocul și mișcările de mai jos.",
+                "stock_sheet" => "Foaie stoc listează foile generate. Filtrați după locație și dată.",
                 _ => null
             };
             Content = new RegisterView(session, lists, access, note);

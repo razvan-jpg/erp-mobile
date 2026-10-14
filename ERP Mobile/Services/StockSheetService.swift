@@ -4,7 +4,11 @@ import Supabase
 enum StockSheetService {
     private static let client = SupabaseManager.client
 
-    static func fetchListRows(companyId: UUID) async throws -> [StockSheetListRow] {
+    static func fetchListRows(
+        companyId: UUID,
+        warehouseIds: [UUID] = [],
+        asOf: Date = Date()
+    ) async throws -> [StockSheetListRow] {
         let products = try await ProductService.fetchProducts(companyId: companyId, inStockSheet: true)
         let stocks = try await InventoryService.fetchStockRows(companyId: companyId)
         let quantityByProduct = Dictionary(uniqueKeysWithValues: stocks.map { ($0.productId, $0.cantitate) })
@@ -13,10 +17,12 @@ enum StockSheetService {
             productIds: products.map(\.id)
         )
         let movementsByProduct = Dictionary(grouping: movements, by: \.productId)
+        let useLedger = !warehouseIds.isEmpty || !Calendar.current.isDateInToday(asOf)
 
         return products.map { product in
-            let ledger = StockSheetLedgerBuilder.build(movements: movementsByProduct[product.id] ?? [])
-            let quantity = quantityByProduct[product.id] ?? ledger.finalQuantity
+            let scoped = scopedMovements(movementsByProduct[product.id] ?? [], warehouseIds: warehouseIds, asOf: asOf)
+            let ledger = StockSheetLedgerBuilder.build(movements: scoped)
+            let quantity = useLedger ? ledger.finalQuantity : (quantityByProduct[product.id] ?? ledger.finalQuantity)
             let pretMediu = ledger.weightedAverageCost
             let valoare = (pretMediu ?? 0) * quantity
             return StockSheetListRow(
@@ -34,7 +40,10 @@ enum StockSheetService {
     static func fetchSnapshot(
         companyId: UUID,
         company: Company?,
-        product: Product
+        product: Product,
+        locationName: String,
+        warehouseIds: [UUID] = [],
+        asOf: Date = Date()
     ) async throws -> StockSheetSnapshot {
         let stocks = try await InventoryService.fetchStockRows(companyId: companyId)
         let quantity = stocks.first(where: { $0.productId == product.id })?.cantitate
@@ -42,8 +51,10 @@ enum StockSheetService {
             companyId: companyId,
             productId: product.id
         )
-        let ledger = StockSheetLedgerBuilder.build(movements: movements)
-        let cantitate = quantity ?? ledger.finalQuantity
+        let scoped = scopedMovements(movements, warehouseIds: warehouseIds, asOf: asOf)
+        let ledger = StockSheetLedgerBuilder.build(movements: scoped)
+        let useLedger = !warehouseIds.isEmpty || !Calendar.current.isDateInToday(asOf)
+        let cantitate = useLedger ? ledger.finalQuantity : (quantity ?? ledger.finalQuantity)
         let pretMediu = ledger.weightedAverageCost
         return StockSheetSnapshot(
             company: company,
@@ -52,8 +63,25 @@ enum StockSheetService {
             cantitate: cantitate,
             pretMediu: pretMediu,
             valoare: (pretMediu ?? 0) * cantitate,
-            generatedAt: Date()
+            generatedAt: Date(),
+            locationName: locationName,
+            asOf: asOf
         )
+    }
+
+    private static func scopedMovements(
+        _ movements: [StockMovementDetailRow],
+        warehouseIds: [UUID],
+        asOf: Date
+    ) -> [StockMovementDetailRow] {
+        let end = Calendar.current.startOfDay(for: asOf).addingTimeInterval(86_399)
+        let ids = Set(warehouseIds)
+        return movements.filter { movement in
+            if movement.transactionDate > end { return false }
+            if ids.isEmpty { return true }
+            guard let warehouseId = movement.warehouseId else { return false }
+            return ids.contains(warehouseId)
+        }
     }
 
     static func fetchInitialStockDraft(companyId: UUID) async throws -> InitialStockDraftSnapshot {
@@ -75,7 +103,7 @@ enum StockSheetService {
             let initial = initialByProduct[product.id]
             return InitialStockDraftLine(
                 product: product,
-                quantityText: initial.map { SupplierFormatting.amountString($0.cantitate) } ?? "",
+                quantityText: initial.map { SupplierFormatting.stockQuantityString($0.cantitate) } ?? "",
                 unitPriceText: initial.flatMap { movement -> String? in
                     let price = movement.unitPurchasePrice
                     return price == 0 && movement.pretUnitar == nil ? nil : SupplierFormatting.amountString(price)
@@ -118,6 +146,39 @@ enum StockSheetService {
             return L10n.tr("stock_sheet.initial.invalid_qty_rpc")
         }
         return text
+    }
+
+    static func fetchZSheets(companyId: UUID, locationId: UUID?, date: Date) async throws -> [ZStockSheetRow] {
+        let day = dateString(date)
+        if let locationId {
+            return try await client
+                .from("z_stock_sheets")
+                .select()
+                .eq("company_id", value: companyId.uuidString)
+                .eq("sheet_date", value: day)
+                .eq("work_location_id", value: locationId.uuidString)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+        }
+        return try await client
+            .from("z_stock_sheets")
+            .select()
+            .eq("company_id", value: companyId.uuidString)
+            .eq("sheet_date", value: day)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    static func fetchZSheetLines(sheetId: UUID) async throws -> [ZStockSheetLine] {
+        try await client
+            .from("z_stock_sheet_lines")
+            .select()
+            .eq("sheet_id", value: sheetId.uuidString)
+            .order("nr_crt", ascending: true)
+            .execute()
+            .value
     }
 
     private static func dateString(_ date: Date) -> String {

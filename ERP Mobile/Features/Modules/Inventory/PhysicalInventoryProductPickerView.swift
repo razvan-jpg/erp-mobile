@@ -41,7 +41,7 @@ struct PhysicalInventoryProductPickerView: View {
     private var parsedCount: Decimal? {
         SupplierFormatting.parseAmount(
             countedText,
-            maxFractionDigits: SupplierFormatting.invoiceAmountInputMaxFractionDigits
+            maxFractionDigits: SupplierFormatting.stockQuantityMaxFractionDigits
         )
     }
 
@@ -141,7 +141,7 @@ struct PhysicalInventoryProductPickerView: View {
                                 }
                             }
                             if let stock = stockByProductId[product.id] {
-                                Text(L10n.tr("inventory.physical_book_stock_value", SupplierFormatting.amountString(stock), product.unitateMasura))
+                                Text(L10n.tr("inventory.physical_book_stock_value", SupplierFormatting.stockQuantityString(stock), product.unitateMasura))
                                     .font(.caption)
                                     .foregroundColor(AppColors.tertiary)
                             }
@@ -168,7 +168,7 @@ struct PhysicalInventoryProductPickerView: View {
                     AppLabeledContent(L10n.tr("inventory.physical_product"), value: product.denumire)
                     if let stock = stockByProductId[product.id] {
                         AppLabeledContent(L10n.tr("inventory.physical_book_stock")) {
-                            Text("\(SupplierFormatting.amountString(stock)) \(product.unitateMasura)")
+                            Text("\(SupplierFormatting.stockQuantityString(stock)) \(product.unitateMasura)")
                         }
                     } else {
                         AppLabeledContent(L10n.tr("inventory.physical_book_stock")) {
@@ -228,7 +228,7 @@ struct PhysicalInventoryProductPickerView: View {
     private func selectProduct(_ product: Product) {
         selectedProduct = product
         let stock = stockByProductId[product.id] ?? 0
-        countedText = SupplierFormatting.amountString(stock)
+        countedText = SupplierFormatting.stockQuantityString(stock)
     }
 
     private func handleBarcodeScan(_ code: String) {

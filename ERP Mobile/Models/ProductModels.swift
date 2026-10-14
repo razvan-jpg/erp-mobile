@@ -96,6 +96,7 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
     @SupabaseDecimal var cotaTva: Decimal
     @SupabaseDecimal var pretVanzare: Decimal
     @SupabaseDecimal var pretVanzareOnline: Decimal
+    @SupabaseOptionalDecimal var pretAchizitie: Decimal?
     var imagineUrl: String?
     @SupabaseDecimal var cantitateMinima: Decimal
     @SupabaseDecimal var cantitateOptima: Decimal
@@ -118,6 +119,7 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         case cotaTva = "cota_tva"
         case pretVanzare = "pret_vanzare"
         case pretVanzareOnline = "pret_vanzare_online"
+        case pretAchizitie = "pret_achizitie"
         case imagineUrl = "imagine_url"
         case cantitateMinima = "cantitate_minima"
         case cantitateOptima = "cantitate_optima"
@@ -150,6 +152,7 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         } else {
             _pretVanzareOnline = SupabaseDecimal(wrappedValue: storePrice.wrappedValue)
         }
+        _pretAchizitie = try container.decodeIfPresent(SupabaseOptionalDecimal.self, forKey: .pretAchizitie) ?? SupabaseOptionalDecimal(wrappedValue: nil)
         imagineUrl = try container.decodeIfPresent(String.self, forKey: .imagineUrl)
         if let minQty = try container.decodeIfPresent(SupabaseDecimal.self, forKey: .cantitateMinima) {
             _cantitateMinima = minQty
@@ -185,6 +188,7 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         try container.encode(_cotaTva, forKey: .cotaTva)
         try container.encode(_pretVanzare, forKey: .pretVanzare)
         try container.encode(_pretVanzareOnline, forKey: .pretVanzareOnline)
+        try container.encodeIfPresent(_pretAchizitie.wrappedValue, forKey: .pretAchizitie)
         try container.encodeIfPresent(imagineUrl, forKey: .imagineUrl)
         try container.encode(_cantitateMinima, forKey: .cantitateMinima)
         try container.encode(_cantitateOptima, forKey: .cantitateOptima)

@@ -281,7 +281,7 @@ enum StockControlPDFBuilder {
                 row.product?.cod ?? "",
                 row.product?.codBare ?? "",
                 row.product?.unitateMasura ?? "buc",
-                SupplierFormatting.amountString(row.cantitate)
+                SupplierFormatting.stockQuantityString(row.cantitate)
             ]
             let height = estimatedRowHeight(values: values, columnWidths: widths, font: bodyFont)
             ensureSpace(for: height)

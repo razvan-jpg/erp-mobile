@@ -20,7 +20,7 @@ struct ModuleDestinationView: View {
         case ModuleCode.inventory:
             InventoryView(module: module)
         case ModuleCode.stockSheet:
-            StockSheetModuleView(module: module)
+            StockSheetArchiveView(module: module)
         case ModuleCode.hr:
             HRModuleView(module: module)
         case ModuleCode.products:

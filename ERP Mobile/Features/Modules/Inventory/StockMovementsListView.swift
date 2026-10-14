@@ -113,6 +113,6 @@ private struct StockMovementRowView: View {
 
     private var quantityLabel: String {
         let sign = row.tip.isInbound ? "+" : "−"
-        return "\(sign)\(SupplierFormatting.amountString(row.cantitate)) \(row.unitateMasura)"
+        return "\(sign)\(SupplierFormatting.stockQuantityString(row.cantitate)) \(row.unitateMasura)"
     }
 }

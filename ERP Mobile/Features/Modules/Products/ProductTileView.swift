@@ -42,12 +42,15 @@ struct ProductTileView: View {
     var productionCost: Decimal?
     var purchasePrice: Decimal?
     var showsExtendedMetrics: Bool = false
+    var recipePricesIncomplete: Bool = false
     let onTap: () -> Void
+
+    @ObservedObject private var stockDecimals = StockQuantityFormat.shared
 
     /// Fixed portrait tile proportions.
     private static let tileAspectRatio: CGFloat = 0.62
-    private static let imageHeightFraction: CGFloat = 2.0 / 3.0
-    private static let textHeightFraction: CGFloat = 1.0 / 3.0
+    private static let imageHeightFraction: CGFloat = 0.58
+    private static let textHeightFraction: CGFloat = 0.42
     private static let maxImageWidthFraction: CGFloat = 0.8
     private static let titleZoneHeightFraction: CGFloat = 0.36
     private static let tileTextHorizontalPadding: CGFloat = 2
@@ -59,7 +62,7 @@ struct ProductTileView: View {
     private var optimalStockLabel: String {
         L10n.tr(
             "module.products.tile_optimal_stock",
-            SupplierFormatting.amountString(product.cantitateOptima),
+            stockDecimals.string(product.cantitateOptima),
             product.unitateMasura
         )
     }
@@ -67,7 +70,7 @@ struct ProductTileView: View {
     private var minimumStockLabel: String {
         L10n.tr(
             "module.products.tile_min_stock",
-            SupplierFormatting.amountString(product.cantitateMinima),
+            stockDecimals.string(product.cantitateMinima),
             product.unitateMasura
         )
     }
@@ -75,7 +78,7 @@ struct ProductTileView: View {
     private var stockLabel: String {
         L10n.tr(
             "module.products.tile_stock",
-            SupplierFormatting.amountString(stockQuantity),
+            stockDecimals.string(stockQuantity),
             product.unitateMasura
         )
     }
@@ -88,7 +91,7 @@ struct ProductTileView: View {
         L10n.tr(
             "module.products.tile_stock_location",
             line.locationName,
-            SupplierFormatting.amountString(line.quantity),
+            stockDecimals.string(line.quantity),
             product.unitateMasura
         )
     }
@@ -117,38 +120,54 @@ struct ProductTileView: View {
         case .marfa:
             return L10n.tr(
                 "module.products.tile_purchase_price",
-                formattedAmount(purchasePrice)
+                formattedAmount(merchandisePurchasePrice)
             )
         default:
             return L10n.tr(
                 "module.products.tile_purchase_price",
-                formattedAmount(nil)
+                formattedAmount(product.pretAchizitie)
             )
         }
     }
 
-    private var profitPerUnitLabel: String {
-        guard let profit = profitPerUnit else {
-            let missing = L10n.tr("module.products.tile_value_missing")
-            return L10n.tr("module.products.tile_profit_per_unit", missing, missing)
-        }
+    private var storeProfitLabel: String {
+        profitAmountLabel("module.products.tile_profit_store", storeProfit)
+    }
 
+    private var onlineProfitLabel: String {
+        profitAmountLabel("module.products.tile_profit_online", onlineProfit)
+    }
+
+    private func profitAmountLabel(_ key: String, _ profit: Decimal?) -> String {
+        let missing = L10n.tr("module.products.tile_value_missing")
+        guard let profit else {
+            return L10n.tr(key, missing, missing)
+        }
         let amount = SupplierFormatting.amountString(profit)
-        let percent = formattedProfitPercent(profit)
-        return L10n.tr("module.products.tile_profit_per_unit", amount, percent)
-    }
-
-    private func formattedProfitPercent(_ profit: Decimal) -> String {
-        guard let cost = unitCostBasis, cost > 0 else {
-            return L10n.tr("module.products.tile_value_missing")
+        let percent: String
+        if let cost = unitCostBasis, cost > 0 {
+            percent = InventoryFormatting.vatPercent(
+                SupplierFormatting.roundAmount((profit / cost) * Decimal(100))
+            )
+        } else {
+            percent = missing
         }
-        let percent = SupplierFormatting.roundAmount((profit / cost) * Decimal(100))
-        return InventoryFormatting.vatPercent(percent)
+        return L10n.tr(key, amount, percent)
     }
 
-    private var profitPerUnit: Decimal? {
+    private var storeProfit: Decimal? {
         guard let unitCostBasis else { return nil }
         return SupplierFormatting.roundAmount(product.pretVanzare - unitCostBasis)
+    }
+
+    private var onlineProfit: Decimal? {
+        guard let unitCostBasis else { return nil }
+        let commission = SupplierFormatting.roundAmount(product.pretVanzareOnline * Decimal(3) / Decimal(10))
+        return SupplierFormatting.roundAmount(product.pretVanzareOnline - commission - unitCostBasis)
+    }
+
+    private var merchandisePurchasePrice: Decimal? {
+        product.pretAchizitie ?? purchasePrice
     }
 
     private var unitCostBasis: Decimal? {
@@ -156,9 +175,9 @@ struct ProductTileView: View {
         case .produsFinit:
             return productionCost
         case .marfa:
-            return purchasePrice
+            return merchandisePurchasePrice
         default:
-            return nil
+            return product.pretAchizitie
         }
     }
 
@@ -173,13 +192,27 @@ struct ProductTileView: View {
                 let maxImageHeight = tileHeight * Self.imageHeightFraction
 
                 VStack(spacing: 0) {
-                    ZStack {
+                    ZStack(alignment: .bottom) {
                         ProductThumbnailView(
                             imagineUrl: product.imagineUrl,
                             contentMode: .fit
                         )
                         .frame(maxWidth: maxImageWidth, maxHeight: maxImageHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                        if recipePricesIncomplete {
+                            Text(L10n.tr("module.products.tile_recipe_price_warning"))
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.orange, in: Capsule())
+                                .padding(.bottom, 6)
+                                .padding(.horizontal, 6)
+                        }
                     }
                     .frame(width: tileWidth, height: imageZoneHeight)
 
@@ -268,7 +301,12 @@ struct ProductTileView: View {
             metricLine(onlinePriceLabel, color: .blue)
             stockMetricsBlock
             metricLine(costPriceLabel, color: .orange)
-            metricLine(profitPerUnitLabel, color: profitColor(profitPerUnit))
+            if product.inCatalog {
+                metricLine(storeProfitLabel, color: profitColor(storeProfit))
+                if product.pretVanzareOnline > 0 {
+                    metricLine(onlineProfitLabel, color: profitColor(onlineProfit))
+                }
+            }
         }
         .font(.caption.weight(.semibold))
         .frame(maxWidth: .infinity)
