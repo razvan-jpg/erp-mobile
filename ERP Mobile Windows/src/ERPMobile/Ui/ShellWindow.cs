@@ -11,8 +11,6 @@ namespace ERPMobile.Ui;
 public sealed class ShellWindow : Window
 {
     private readonly AppSession _session = new();
-    private readonly LaunchSplash _splash = new();
-    private bool _showingSplash = true;
     private string _section = "home";
     private AppModule? _module;
     private CasierHome? _cashier;
@@ -40,18 +38,14 @@ public sealed class ShellWindow : Window
             CoverScreen();
             if (OperatingSystem.IsWindows())
                 WindowsKiosk.Install();
-            var boot = _session.Bootstrap();
-            _splash.Start();
-            await _splash.Finished;
             try
             {
-                await boot;
+                await _session.Bootstrap();
             }
             catch (Exception)
             {
             }
             OfflineSync.Start(_session);
-            _showingSplash = false;
             Render();
         };
         Closed += (_, _) =>
@@ -59,7 +53,7 @@ public sealed class ShellWindow : Window
             if (OperatingSystem.IsWindows())
                 WindowsKiosk.Remove();
         };
-        Content = _splash;
+        Content = Center("Se încarcă...");
     }
 
     private void CoverScreen()
@@ -75,7 +69,7 @@ public sealed class ShellWindow : Window
 
     private void Render()
     {
-        if (_showingSplash || _rendering)
+        if (_rendering)
             return;
         _rendering = true;
         try
@@ -182,12 +176,22 @@ public sealed class ShellWindow : Window
         stack.Children.Add(brand);
 
         var nav = new StackPanel { Spacing = 4 };
-        nav.Children.Add(Nav("home", "Acasă"));
-        nav.Children.Add(Nav("crm", "CRM"));
-        nav.Children.Add(Nav("utilities", "Utilitare"));
-        nav.Children.Add(Nav("help", "Ajutor"));
-        nav.Children.Add(Nav("whatsnew", "Ce este nou..."));
-        nav.Children.Add(Nav("settings", "Setări"));
+        if (_session.IsStationCashier)
+        {
+            nav.Children.Add(Nav("home", "Casier"));
+            nav.Children.Add(Nav("help", "Ajutor"));
+            nav.Children.Add(Nav("whatsnew", "Ce este nou..."));
+            nav.Children.Add(LogoutNav());
+        }
+        else
+        {
+            nav.Children.Add(Nav("home", "Acasă"));
+            nav.Children.Add(Nav("crm", "CRM"));
+            nav.Children.Add(Nav("utilities", "Utilitare"));
+            nav.Children.Add(Nav("help", "Ajutor"));
+            nav.Children.Add(Nav("whatsnew", "Ce este nou..."));
+            nav.Children.Add(Nav("settings", "Setări"));
+        }
         DockPanel.SetDock(nav, Dock.Top);
         stack.Children.Add(nav);
         var logo = new Image
@@ -270,6 +274,23 @@ public sealed class ShellWindow : Window
         return button;
     }
 
+    private Button LogoutNav()
+    {
+        var button = new Button
+        {
+            Content = "Deconectare",
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            Background = Brushes.Transparent,
+            Foreground = Brushes.White,
+            Padding = new Avalonia.Thickness(12, 8),
+            CornerRadius = new Avalonia.CornerRadius(8)
+        };
+        button.Click += async (_, _) => await _session.Logout();
+        ToolTip.SetTip(button, "Deconectare");
+        return button;
+    }
+
     private Button Nav(string id, string title)
     {
         var selected = _module == null && _section == id;
@@ -312,7 +333,17 @@ public sealed class ShellWindow : Window
         grid.Children.Add(left);
 
         var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
-        if (_session.SwitchableCompanies.Count > 0)
+        if (_session.IsStationCashier)
+        {
+            right.Children.Add(new TextBlock
+            {
+                Text = _session.CurrentCompany?.Denumire ?? "",
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Brand.Brush(Brand.Navy),
+                FontWeight = FontWeight.SemiBold
+            });
+        }
+        else if (_session.SwitchableCompanies.Count > 0)
         {
             var combo = new ComboBox { MinWidth = 220, ItemsSource = _session.SwitchableCompanies, SelectedItem = _session.CurrentCompany };
             combo.SelectionChanged += async (_, _) =>
@@ -345,7 +376,8 @@ public sealed class ShellWindow : Window
         "help" => "Ajutor",
         "whatsnew" => "Ce este nou...",
         "settings" => "Setări",
-        _ => "Acasă"
+        "administrator" => "Administrator",
+        _ => _session.IsStationCashier ? "Casier" : "Acasă"
     };
 
     private Control CompanyChoice()
@@ -376,7 +408,13 @@ public sealed class ShellWindow : Window
         "help" => new HelpManualPage(_session),
         "whatsnew" => WhatsNewPage(),
         "settings" => SettingsPage(),
-        _ => HomePage()
+        "administrator" => new AdminHome(_session, () => Dispatcher.UIThread.Post(() =>
+        {
+            _section = "home";
+            _module = null;
+            Render();
+        })),
+        _ => _session.IsStationCashier ? CashierScreen() : HomePage()
     };
 
     private Control HomePage()
@@ -397,34 +435,56 @@ public sealed class ShellWindow : Window
         }
 
         var wrap = new WrapPanel { Orientation = Avalonia.Layout.Orientation.Horizontal };
+        var placedAdmin = false;
         foreach (var module in _session.Modules)
         {
-            var card = new Button
+            if (module.Code == "stock_sheet")
+                continue;
+            wrap.Children.Add(HomeCard(module.Name, module.Description ?? "", () =>
             {
-                Width = 240,
-                Height = 120,
-                Margin = new Avalonia.Thickness(0, 0, 12, 12),
-                Background = Brushes.White,
-                CornerRadius = new Avalonia.CornerRadius(12),
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                Padding = new Avalonia.Thickness(16)
-            };
-            var text = new StackPanel { Spacing = 6 };
-            text.Children.Add(new TextBlock { Text = module.Name, FontWeight = FontWeight.SemiBold, FontSize = 16, Foreground = Brand.Brush(Brand.Navy), TextWrapping = TextWrapping.Wrap });
-            if (!string.IsNullOrWhiteSpace(module.Description))
-                text.Children.Add(new TextBlock { Text = module.Description, Foreground = Brand.Brush(Brand.Muted), FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxHeight = 36 });
-            card.Content = text;
-            var chosen = module;
-            card.Click += (_, _) => Dispatcher.UIThread.Post(() =>
-            {
-                _module = chosen;
+                _module = module;
                 Render();
-            });
-            wrap.Children.Add(card);
+            }));
+            if (module.Code == "nomenclatoare" && _session.IsAdmin)
+            {
+                wrap.Children.Add(AdminCard());
+                placedAdmin = true;
+            }
         }
+        if (_session.IsAdmin && !placedAdmin)
+            wrap.Children.Add(AdminCard());
         page.Children.Add(wrap);
         return new ScrollViewer { Content = page };
+    }
+
+    private Button AdminCard() =>
+        HomeCard("Administrator", "Vânzări, foi de stoc și bonuri de consum, pe toate punctele de lucru.", () =>
+        {
+            _section = "administrator";
+            _module = null;
+            Render();
+        });
+
+    private Button HomeCard(string title, string description, Action open)
+    {
+        var card = new Button
+        {
+            Width = 240,
+            Height = 120,
+            Margin = new Avalonia.Thickness(0, 0, 12, 12),
+            Background = Brushes.White,
+            CornerRadius = new Avalonia.CornerRadius(12),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Padding = new Avalonia.Thickness(16)
+        };
+        var text = new StackPanel { Spacing = 6 };
+        text.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, FontSize = 16, Foreground = Brand.Brush(Brand.Navy), TextWrapping = TextWrapping.Wrap });
+        if (!string.IsNullOrWhiteSpace(description))
+            text.Children.Add(new TextBlock { Text = description, Foreground = Brand.Brush(Brand.Muted), FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxHeight = 48 });
+        card.Content = text;
+        card.Click += (_, _) => Dispatcher.UIThread.Post(open);
+        return card;
     }
 
     private Control ModuleScreen(AppSession session, AppModule module)
@@ -486,6 +546,7 @@ public sealed class ShellWindow : Window
             _pos = new CasierPosView(_session, id, name, () =>
             {
                 _pos = null;
+                _cashier?.ShowStart();
                 Render();
             });
             Render();
@@ -519,6 +580,213 @@ public sealed class ShellWindow : Window
         var page = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 14, MaxWidth = 720 };
         page.Children.Add(new TextBlock { Text = "Ce este nou...", FontSize = 22, FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy) });
         page.Children.Add(new TextBlock { Text = "What's New", FontSize = 16, Foreground = Brand.Brush("#003399") });
+        page.Children.Add(Release("1.0.420", "17.10.2026",
+            "Raport Produse arată produsele pe grupe, cu prețul de vânzare și totalul liniei. Garanția SGR este grupa ei. Fiecare grupă are subtotal, iar la final este totalul general."));
+        page.Children.Add(Release("1.0.419", "17.10.2026",
+            "La bonul de consum, după dată alegeți tura: 1 — ziua sau 2 — noapte. După aprobare, consumul scade din foaia de stoc a acelei date și a acelei ture."));
+        page.Children.Add(Release("1.0.418", "17.10.2026",
+            "În Raport Produse, după ce alegeți Z-ul, butonul Print listează produsele vândute pe casa de marcat."));
+        page.Children.Add(Release("1.0.417", "17.10.2026",
+            "La închiderea turei, ecranul de așteptare alege la întâmplare: cifre verzi care curg, sau un zbor printre formule și cod Swift, C# și ASP.NET. Mesajul alb rămâne același."));
+        page.Children.Add(Release("1.0.416", "17.10.2026",
+            "La închiderea turei, ecranul arată cifre verzi care curg și mesajul „Asteptati pentru inchiderea turei !!!” pe primul rând și „Calculez !!!” pe al doilea. Rămâne cât durează calculul, cel puțin 15 secunde."));
+        page.Children.Add(Release("1.0.415", "17.10.2026",
+            "Pe foaia de stoc, profitul unui produs finit scade costul rețetei din vânzare. Bonurile de producție și foile au fost recalculate cu rețetele actuale."));
+        page.Children.Add(Release("1.0.414", "17.10.2026",
+            "Ieșire din POS vă aduce direct la tile-urile Producție, POS și Foaie stoc."));
+        page.Children.Add(Release("1.0.413", "17.10.2026",
+            "MB3 100/SET (6421735000161) este unificat pe BFG 100 CASEROLE MB XPS 3COMP (396905). Stocul a trecut pe fișa principală. Intrările viitoare cu acest nume sau cod se leagă tot acolo."));
+        page.Children.Add(Release("1.0.412", "17.10.2026",
+            "În rețetele la farfurie (shaorma, shaormaxx, crispy, aripioare și șnițel) intră caserola (1 buc.) și furculița (1 buc.)."));
+        page.Children.Add(Release("1.0.411", "17.10.2026",
+            "În rețeta PITA EXTRA intră colțarul (0,004 kg)."));
+        page.Children.Add(Release("1.0.410", "17.10.2026",
+            "În rețetele SOS CURRY, KETCHUP, SAMURAI, TZATZIKI și USTUROI intră sosiera (1 buc.)."));
+        page.Children.Add(Release("1.0.409", "17.10.2026",
+            "În rețetele MAXX BUCKET ARIPIOARE, CRISPY și MIXT intră și furculița (1 buc.)."));
+        page.Children.Add(Release("1.0.408", "17.10.2026",
+            "În rețetele MAXX BUCKET ARIPIOARE, CRISPY și MIXT intră cutia de carton 2500 (1 buc.)."));
+        page.Children.Add(Release("1.0.407", "17.10.2026",
+            "În rețetele BOX PUI, BOX VITA și BOX MIXT intră cutia (1 buc.) și furculița (1 buc.)."));
+        page.Children.Add(Release("1.0.406", "17.10.2026",
+            "În rețetele de shaorma, chifle, sandwich, cheese kebab și falafel intră colțarul (0,004 kg) și hârtia (0,005 kg)."));
+        page.Children.Add(Release("1.0.405", "17.10.2026",
+            "Articol nou LIPIA CASEI, produs finit, în afara catalogului. Rețeta pentru o bucată: 0,05 kg făină, 0,0005 kg drojdie, 0,001 kg sare, 0,0015 l ulei și 0,0005 kg zahăr."));
+        page.Children.Add(Release("1.0.404", "17.10.2026",
+            "Pe foaia de stoc, DONER PUI apare la materii prime și ambalaje, chiar dacă articolul este produs finit."));
+        page.Children.Add(Release("1.0.403", "17.10.2026",
+            "Un produs finit folosit în altă rețetă se scade din stocul lui. Rețeta lui se folosește doar pe bonul de producție care îl face. Bonurile automate de la închiderea turei și foile de stoc au fost recalculate."));
+        page.Children.Add(Release("1.0.402", "17.10.2026",
+            "În Administrator, filtrul de dată are Toate pe Bonuri, Z-uri, Facturi, Foi de stoc și Bonuri de consum. Toate este ales la deschidere."));
+        page.Children.Add(Release("1.0.401", "17.10.2026",
+            "În Administrator, Bonuri, Z-uri, Facturi și Bonurile de consum se filtrează după punctul de lucru și după dată. Data pornește de azi."));
+        page.Children.Add(Release("1.0.400", "17.10.2026",
+            "La fiecare raport Z, baza și TVA-ul pe cote se calculează din vânzările acelui Z, de fiecare dată când îl deschizi, din Vânzări sau din Administrator."));
+        page.Children.Add(Release("1.0.399", "17.10.2026",
+            "Pe raportul Z, baza și TVA-ul pe fiecare cotă sunt calculate din vânzările acelui Z, la fel în Vânzări și în Administrator."));
+        page.Children.Add(Release("1.0.398", "16.10.2026",
+            "La click pe un raport Z se deschide pagina ca la casa: firmă, perioadă, încasări și TVA. Același document se descarcă PDF."));
+        page.Children.Add(Release("1.0.397", "16.10.2026",
+            "Raportul Z emis de la POS apare și în Vânzări, la Rapoarte Z, cu numerarul, cardul și plata modernă de pe casă."));
+        page.Children.Add(Release("1.0.396", "16.10.2026",
+            "În Administrator, click pe un bon deschide PDF-ul acelui Z, nu pe cel din Z-ul curent. La Z-uri apar doar rapoartele emise de POS; click-ul le deschide, cu listare și descărcare PDF. Bonurile de consum sunt împărțite în De aprobat și Finalizate."));
+        page.Children.Add(Release("1.0.395", "16.10.2026",
+            "Pe Acasă, după Nomenclatoare, administratorul și super-administratorul văd tile-ul Administrator: vânzări (bonuri, Z-uri și facturi), foi de stoc și bonuri de consum, pe toate punctele, cu căutare. Bonurile de consum se aprobă pe tot bonul sau pe linii."));
+        page.Children.Add(Release("1.0.394", "16.10.2026",
+            "La vânzarea modernă, discountul de pe bon se scrie în lei."));
+        page.Children.Add(Release("1.0.393", "16.10.2026",
+            "Raport Produse se vede și de către casier, fără drepturi de administrator."));
+        page.Children.Add(Release("1.0.392", "16.10.2026",
+            "Raport Produse arată produsele vândute, pe Z-ul închis și pe Z-ul curent."));
+        page.Children.Add(Release("1.0.391", "16.10.2026",
+            "Raport Produse se deschide peste ecranul POS, în fereastra aplicației."));
+        page.Children.Add(Release("1.0.390", "16.10.2026",
+            "Raport Produse arată lista de Z-uri și, după alegere, produsele vândute."));
+        page.Children.Add(Release("1.0.389", "16.10.2026",
+            "Pe POS, înainte de + Numerar, este Raport Produse. Alegeți Z-ul. Primul este Z-ul curent, În lucru - Neînchis. Se vede lista produselor vândute. Înapoi și Închide sunt în fereastră."));
+        page.Children.Add(Release("1.0.388", "16.10.2026",
+            "Pe bon, butonul × care scoate produsul este mai mare, ca să se apese ușor."));
+        page.Children.Add(Release("1.0.387", "16.10.2026",
+            "Pe ecranul POS, înainte de Raport X, sunt + Numerar și - Numerar. Se cere suma, pe Windows cu tastatura numerică, iar la OK casa bagă sau scoate banii."));
+        page.Children.Add(Release("1.0.386", "16.10.2026",
+            "Jos pe foaia de stoc, după centralizări, se trage o linie și urmează Consumuri: aprobate și scăzute din stoc, cu produs și explicație, apoi neaprobate, încă nescăzute. Intră și liniile parțiale."));
+        page.Children.Add(Release("1.0.385", "16.10.2026",
+            "Pe foaia de stoc, lângă dată, apare ora la care s-a emis Z-ul. Se aplică și foii deja create."));
+        page.Children.Add(Release("1.0.384", "16.10.2026",
+            "Pe bară au intrat cei 40 lei numerar și 36 lei card listați de casă și lipsiți din program. Încasarea se scrie pe bară imediat ce casa a listat bonul."));
+        page.Children.Add(Release("1.0.383", "16.10.2026",
+            "Pe bara de jos a casei, Glovo, Bolt și Wolt apar adunate la Modernă, în loc de G, B și W."));
+        page.Children.Add(Release("1.0.382", "16.10.2026",
+            "Pe foaia de stoc apare categoria Garanție cu SGR, numai pe valori, fără cantități de stoc, ca totalul să fie egal cu Z-ul. Ultimul rând este Bani de predat, cu suma din numerar. Se aplică și foii deja create."));
+        page.Children.Add(Release("1.0.381", "16.10.2026",
+            "Jos pe foaia de stoc sunt încasările: numerar, card și modernă (Glovo, Bolt, Wolt), apoi comparația cu Z-ul: foaie, Z și diferența. Se aplică și foii deja create."));
+        page.Children.Add(Release("1.0.380", "16.10.2026",
+            "Taxa de ambalaj apare pe foaia de stoc și intră în total. Z 389 din program este 517 lei, ca pe hârtie. O încasare fără bon listat pe casă nu intră în total și nici în Z."));
+        page.Children.Add(Release("1.0.379", "16.10.2026",
+            "Pe foaia de stoc, la tura 2 data scrisă este cu o zi în urmă. Se aplică și foii deja create."));
+        page.Children.Add(Release("1.0.378", "16.10.2026",
+            "Foaia de stoc arată totalul pe Val. magazin, Val. online și Profit, pe fiecare categorie și un total general. Se aplică și foii deja create."));
+        page.Children.Add(Release("1.0.377", "16.10.2026",
+            "Pe Windows, animația de la pornire a fost scoasă. Programul se deschide direct."));
+        page.Children.Add(Release("1.0.376", "16.10.2026",
+            "Foaia de stoc, inclusiv cea deja creată, arată doar produsele cu intrări sau ieșiri. Se deschide mare, pe tot ecranul, ca să o citiți, să o listați sau să o salvați."));
+        page.Children.Add(Release("1.0.375", "16.10.2026",
+            "Factura AGRO 9 a fost acceptată în e-Factura. Pe listă apar id-ul de încărcare și id-ul de descărcare. XML-ul pune județul și sectorul din adresă, ca ANAF să o accepte."));
+        page.Children.Add(Release("1.0.374", "16.10.2026",
+            "La Foaie stoc, un click pe foaia creată deschide PDF-ul în formatul foii, ca să o listați sau să o salvați."));
+        page.Children.Add(Release("1.0.372", "16.10.2026",
+            "Vânzări → Facturi este un tabel: număr, dată, client, CUI, total, stare, e-Factura, id încărcare și id descărcare. Un click pe rând deschide PDF-ul. Facturile noi se încarcă automat în SPV."));
+        page.Children.Add(Release("1.0.371", "16.10.2026",
+            "Încasările Z 389 au ieșit din bara POS. Factura AGRO 9 către First Consulting (cf BF 9) este în Vânzări → Facturi și se trimite în e-Factura SPV.",
+            "Pe lista de facturi vedeți starea e-Factura și cele două id-uri ANAF: încărcare și descărcare. Factura de la casă intră singură în listă."));
+        page.Children.Add(Release("1.0.370", "16.10.2026",
+            "Pe bara de jos a POS-ului, după încasări, scrie BF = și numărul următorului bon fiscal."));
+        page.Children.Add(Release("1.0.369", "16.10.2026",
+            "În Vânzări → Rapoarte Z, un click pe Z deschide PDF-ul raportului, cu numărul, data și încasările."));
+        page.Children.Add(Release("1.0.368", "16.10.2026",
+            "În Vânzări → Bonuri, un click pe bon deschide PDF-ul listat de casă, cu liniile, prețurile și încasarea."));
+        page.Children.Add(Release("1.0.367", "16.10.2026",
+            "Pe bonul de transfer, cantitatea e în câmp galben, ca să se vadă că se scrie. Dacă alegeți Ploiești, destinația se completează cu Agronomie, și invers. Bonul se salvează și dacă stocul devine negativ."));
+        page.Children.Add(Release("1.0.366", "16.10.2026",
+            "Pe bonul de transfer, cantitatea se scrie în câmpul de sub articol. Butonul 123 deschide tastatura numerică."));
+        page.Children.Add(Release("1.0.364", "16.10.2026",
+            "Pe bonul de transfer apar și produsele finite, inclusiv DONER PUI. După producție la Ploiești, îl alegeți pe bon și îl trimiteți la Agronomie."));
+        page.Children.Add(Release("1.0.365", "16.10.2026",
+            "La Raport Z, condimentul din reteta se scade si cand cantitatea este foarte mica. Se pastreaza cu 6 zecimale, sau cu 8 daca 6 nu ajung. Stocul poate ajunge negativ."));
+        page.Children.Add(Release("1.0.363", "16.10.2026",
+            "La Raport Z, un condiment din reteta mai mic de 0,0001 nu mai opreste inchiderea. Daca foaia nu s-a salvat dupa ce casa a listat Z-ul, apasati din nou Raport Z: casa nu mai listeaza, se salveaza foaia, se golesc incasarile si Z-ul intra la Vanzari."));
+        page.Children.Add(Release("1.0.362", "16.10.2026",
+            "Dupa ce casa listeaza bonul fiscal, ecranul de vanzare revine la alegerea categoriei, pentru bonul urmator."));
+        page.Children.Add(Release("1.0.361", "16.10.2026",
+            "Casierul vede seria de factura a punctului lui, fara drept de administrator. La Agronomie, Emite bon si FF foloseste seria AGRO."));
+        page.Children.Add(Release("1.0.360", "16.10.2026",
+            "La card nu se mai trimite nimic la POS-ul bancar. Marcati suma manual. Daca spuneti ca plata a reusit, casa listeaza bonul."));
+        page.Children.Add(Release("1.0.359", "16.10.2026",
+            "La card, suma pleaca intai la terminalul bancar. Daca banca accepta, casa listeaza bonul si il inregistreaza, ca inainte."));
+        page.Children.Add(Release("1.0.358", "16.10.2026",
+            "Bonul fiscal pleaca direct la casa. Nu se mai opreste inainte de listare din cauza unei comenzi separate catre terminalul de card."));
+        page.Children.Add(Release("1.0.357", "16.10.2026",
+            "Pe Windows, la bonul de consum, cantitatea deschide tastatura numerica."));
+        page.Children.Add(Release("1.0.356", "16.10.2026",
+            "Bonul fiscal se listeaza din nou fara sa astepte confirmarea operatorului. Dupa fiecare bon apare fereastra cu numarul si se inchide singura."));
+        page.Children.Add(Release("1.0.355", "16.10.2026",
+            "Pe Windows, cantitatea de pe bonul de productie si de pe bonul de transfer deschide tastatura numerica. La plata cu cardul, fereastra sta in fata: dupa Plata a reusit, casa listeaza bonul si il inregistreaza."));
+        page.Children.Add(Release("1.0.354", "16.10.2026",
+            "Pe Windows, la bonul de productie si la bonul de transfer, cantitatea deschide tastatura numerica."));
+        page.Children.Add(Release("1.0.353", "16.10.2026",
+            "La plata cu cardul, fereastra „Plata a reușit” apare din nou, ca să confirmați încasarea. După confirmare, casa listează bonul și îl închide, fără mesajul OK cu numărul bonului."));
+        page.Children.Add(Release("1.0.352", "16.10.2026",
+            "Raportul X nu mai cere OK după listare. La Raport Z rămâne doar ecranul de așteptare până se închide tura, apoi dispare singur."));
+        page.Children.Add(Release("1.0.351", "16.10.2026",
+            "După listarea bonului pe casa de marcat, nu mai apare mesajul cu numărul bonului. Trebuie să apăsați OK doar dacă ceva nu a mers."));
+        page.Children.Add(Release("1.0.350", "16.10.2026",
+            "Tabul Bonuri din Vanzari incarca bonurile din Z-ul curent si din Z-ul ales din lista."));
+        page.Children.Add(Release("1.0.349", "16.10.2026",
+            "In Vanzari, langa Rapoarte Z, tabul Bonuri arata bonurile fiscale din Z-ul curent si dintr-un Z salvat ales din lista."));
+        page.Children.Add(Release("1.0.348", "15.10.2026",
+            "La importul XML, accesul la folder se pastreaza. Cand folderul de facturi se schimba, il alegi din nou, o data pentru folderul nou."));
+        page.Children.Add(Release("1.0.347", "15.10.2026",
+            "La importul XML, fisierul primeste in fata importata_ si cand nu faci NIR, inclusiv daca factura era deja in lista."));
+        page.Children.Add(Release("1.0.346", "15.10.2026",
+            "Dupa importul unei facturi XML, fisierul primeste in fata importata_, fie ca se face NIR, fie ca nu."));
+        page.Children.Add(Release("1.0.345", "15.10.2026",
+            "La Raport Z, numerarul intra in registrul punctului de lucru si aceeasi suma pleaca ca transfer in casa sediu. La sediu se trece incasarea; daca nu exista registru in acea data, se creeaza cu soldul anterior din ultimul registru de sediu. Chitanta de la NIR platit cash este plata in casa sediu, la data facturii."));
+        page.Children.Add(Release("1.0.344", "15.10.2026",
+            "Pe fisa articolului, ingredientele din reteta stau alfabetic dupa denumire. Le poti trage in sus sau in jos, iar ordinea ramane salvata."));
+        page.Children.Add(Release("1.0.343", "15.10.2026",
+            "Reteta deschisa din fisa articolului ramane pe ecran pana o inchizi."));
+        page.Children.Add(Release("1.0.342", "15.10.2026",
+            "Pe fisa articolului, daca exista reteta, butonul Vezi reteta / PDF o deschide si o salveaza in PDF."));
+        page.Children.Add(Release("1.0.341", "15.10.2026",
+            "Importul de facturi XML din folder merge si pe iPhone si iPad."));
+        page.Children.Add(Release("1.0.340", "15.10.2026",
+            "Listele de produse, facturi si stocuri se deschid mai repede."));
+        page.Children.Add(Release("1.0.339", "15.10.2026",
+            "Listele de facturi, produse si stocuri se incarca mai repede."));
+        page.Children.Add(Release("1.0.338", "15.10.2026",
+            "Manualul casierului este fara diacritice. Textul si pozele nu mai au patratele."));
+        page.Children.Add(Release("1.0.337", "15.10.2026",
+            "După ce NIR-ul făcut dintr-un XML de factură este salvat ca PDF, fișierul XML rămâne în același loc și primește în față importat_."));
+        page.Children.Add(Release("1.0.336", "15.10.2026",
+            "Ajutorul casierului explică, în română și în engleză, fiecare apăsare: CUI pe bon, factura odată cu bonul, numerar, card, numerar + card și plata modernă, ștergerea unui articol, până la 4 bonuri, Raport Z numai după ce bonurile sunt închise, bonul de producție pentru DONER PUI, transferul către Agronomie și bonul de consum. La fiecare pas este o poză cu butonul de apăsat. Privacy, Termeni, Politica GDPR și Despre se deschid în același ecran."));
+        page.Children.Add(Release("1.0.335", "15.10.2026",
+            "Un bon de consum aprobat după foaia de stoc recalculează foile de la data bonului până la ultima foaie emisă. La fel la redeschidere sau ștergere."));
+        page.Children.Add(Release("1.0.334", "15.10.2026",
+            "Bonul de consum nu se salvează fără motiv și fără cel puțin un articol, cu cantitate."));
+        page.Children.Add(Release("1.0.333", "15.10.2026",
+            "Pe bonul de consum, după produs se scrie cantitatea. Produsele se filtrează după categorie, denumire sau cod. O linie adăugată se poate șterge."));
+        page.Children.Add(Release("1.0.332", "15.10.2026",
+            "În Ajutor, sus, sunt butoanele Privacy, Termeni, Politica GDPR și Despre aplicație, și pentru casier."));
+        page.Children.Add(Release("1.0.331", "15.10.2026",
+            "În Producție există Bon consum, și pentru casieri. Are motiv și produse din toată lista. Salvarea nu scade stocul. Managerul aprobă tot bonul sau doar liniile bifate, iar apoi bonul se blochează. Lista arată dacă este aprobat. Managerul îl poate redeschide, modifica sau șterge."));
+        page.Children.Add(Release("1.0.330", "15.10.2026",
+            "Categoria articolului este obligatorie. Nu se mai poate salva un produs fara categorie."));
+        page.Children.Add(Release("1.0.329", "15.10.2026",
+            "Importul de XML pentru NIR merge din nou. Garantie SGR ramane la categoria Garantie, fara grupa si fara stoc."));
+        page.Children.Add(Release("1.0.328", "15.10.2026",
+            "Prima foaie de stoc porneste din stocul real al gestiunii punctului, nu din stocul total al firmei. Dupa inventar, stocul initial este cantitatea numarata a acelui punct."));
+        page.Children.Add(Release("1.0.327", "15.10.2026",
+            "Garantie SGR este taxa, nu stoc. Nu are grupa, nu are stoc in gestiuni si nu intra pe foaia de stoc."));
+        page.Children.Add(Release("1.0.326", "15.10.2026",
+            "La bonul de transfer există Bon transfer nou. Pleacă din gestiunea punctului și ajunge în cealaltă gestiune."));
+        page.Children.Add(Release("1.0.325", "15.10.2026",
+            "Pe Windows, la casierul de punct, lista de bonuri de producție nu se mai blochează. Puteți crea un bon și vă puteți întoarce."));
+        page.Children.Add(Release("1.0.324", "15.10.2026",
+            "Casierul de punct are Deconectare în meniul din stânga. Închidere nu deloghează."));
+        page.Children.Add(Release("1.0.323", "14.10.2026",
+            "Casierul de punct intră în aplicație pe firma lui și nu mai rămâne pe ecranul de pregătire."));
+        page.Children.Add(Release("1.0.322", "14.10.2026",
+            "În Casier, când sunt mai multe puncte de lucru, POS le deschide într-o fereastră ca să alegeți locația."));
+        page.Children.Add(Release("1.0.321", "14.10.2026",
+            "Jos pe foaia de stoc sunt totalurile comparative cu Z-ul și totalul de profit."));
+        page.Children.Add(Release("1.0.320", "14.10.2026",
+            "Ajutorul descrie Casierul cu tile-urile colorate, foaia de stoc de după Raport Z și casierul de punct."));
+        page.Children.Add(Release("1.0.319", "14.10.2026",
+            "Casierii de punct intră direct în Casier, doar pe locația lor. Meniul are Casier, Ajutor, Ce este nou și Închidere. Firma nu se poate schimba."));
+        page.Children.Add(Release("1.0.318", "14.10.2026",
+            "Pe Mac, bonul fiscal din POS are fundal alb și text închis, ca liniile și totalul să se citească."));
+        page.Children.Add(Release("1.0.317", "14.10.2026",
+            "Foaie stoc este în Casier, nu pe Acasă. Tile-ul Producție are fundal verde, POS roșu și Foaie stoc albastru."));
         page.Children.Add(Release("1.0.316", "14.10.2026",
             "Bonurile de producție și de transfer se filtrează după locație și dată, ca foile de stoc. Click-ul le deschide la vizualizare. La modificare sunteți avertizat: salvarea recalculează foile de stoc de la bonul afectat până astăzi."));
         page.Children.Add(Release("1.0.315", "14.10.2026",
@@ -973,17 +1241,16 @@ public sealed class ShellWindow : Window
             "Setări Windows: limbă, utilizatori, sync, setări Zetta, scurtătură pe Desktop, administrare societăți și deconectare — aceleași intrări ca pe Mac.",
             "La modificare, categoria articolului și celelalte câmpuri cu variante se aleg din listă.",
             "Utilitare Windows: arhivă MT940 din extrasul bancar și Excel NextUp din nota contabilă PDF."));
-        page.Children.Add(new TextBlock { Text = "Urmează în 1.0.317", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
+        page.Children.Add(new TextBlock { Text = "Urmeaza in 1.0.421", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
         page.Children.Add(Bullet("BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală)."));
         page.Children.Add(Bullet("Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA)."));
         page.Children.Add(Bullet("Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z)."));
-        page.Children.Add(Bullet("e-Factura: încărcare directă ANAF SPV (OAuth) pe lângă canalul contabil."));
         page.Children.Add(Bullet("Manual Ajutor: capturi de ecran reale din modul Registru de casă."));
         page.Children.Add(Bullet("MT940: șabloane suplimentare de parsare extras bancă (formate bănci românești)."));
         page.Children.Add(Bullet("Registru de casă: export direct în folder (ca la Rapoarte Z), fine-tuning pixel-perfect pe model PDF."));
         page.Children.Add(new TextBlock
         {
-            Text = "ERP Mobile · DATECONTA.RO · 13 octombrie 2026",
+            Text = "ERP Mobile · DATECONTA.RO · 17 octombrie 2026",
             Foreground = Brand.Brush(Brand.Muted),
             Margin = new Avalonia.Thickness(0, 12, 0, 0)
         });
@@ -1038,11 +1305,13 @@ public sealed class ModuleHost : UserControl
             }
             note ??= module.Code switch
             {
-                "sales" => "Bonurile și rapoartele Z sunt aceleași înregistrări ca în aplicația mobilă.",
+                "sales" => "Bonurile fiscale din Z-ul curent sau dintr-un Z salvat. Rapoarte Z rămân în tabul alăturat.",
                 "stock_sheet" => "Foaie stoc listează foile generate. Filtrați după locație și dată.",
                 _ => null
             };
-            Content = new RegisterView(session, lists, access, note);
+            Content = module.Code == "sales"
+                ? new SalesModulePage(session, lists, access, note)
+                : new RegisterView(session, lists, access, note);
         }
         catch (Exception ex)
         {

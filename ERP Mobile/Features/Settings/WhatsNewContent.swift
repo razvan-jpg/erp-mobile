@@ -9,20 +9,19 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 14 octombrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · October 14, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 17 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 17, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.317",
+            targetVersionLabel: "1.0.421",
             romanianItems: [
                 "BINA Smart Business: stabilizare lista Rapoarte Z in perioada si descarcare batch PDF-uri in romana (validare finala).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP si Generic HTTP (pe langa BINA).",
                 "Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z).",
-                "e-Factura: incarcare directa ANAF SPV (OAuth) pe langa canalul contabil.",
                 "Manual Ajutor: capturi de ecran reale din modul Registru de casa.",
                 "MT940: sabloane suplimentare de parsare extras banca (formate banci romanesti).",
                 "Registru de casa: export direct in folder (ca la Rapoarte Z), fine-tuning pixel-perfect pe model PDF.",
@@ -31,7 +30,6 @@ enum WhatsNewContent {
                 "BINA Smart Business: stabilize Z report listing by date range and batch Romanian PDF download (final validation).",
                 "Z report extraction: Memgest, BOCP, and Generic HTTP connectors (in addition to BINA).",
                 "BINA BF import: detailed receipt line items (beyond slots generated from Z Documents).",
-                "e-Factura: direct ANAF SPV upload (OAuth) in addition to the accountant channel.",
                 "Help manual: real in-app screenshots for the Cash register module.",
                 "MT940: additional bank statement parsing templates (Romanian bank formats).",
                 "Cash register: direct folder export (like Z reports), pixel-perfect PDF template tuning.",
@@ -41,6 +39,935 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.0.420", "17.10.2026",
+                ro: [
+                    "Raport Produse arată produsele pe grupe, cu prețul de vânzare și totalul liniei. Garanția SGR este grupa ei. Fiecare grupă are subtotal, iar la final este totalul general.",
+                ],
+                en: [
+                    "Product report lists the products by group, with the sale price and the line total. The SGR deposit is its own group. Each group has a subtotal, and the report ends with the grand total.",
+                ]
+            ),
+            release(
+                "1.0.419", "17.10.2026",
+                ro: [
+                    "La bonul de consum, după dată alegeți tura: 1 — ziua sau 2 — noapte. După aprobare, consumul scade din foaia de stoc a acelei date și a acelei ture.",
+                ],
+                en: [
+                    "On a consumption note, after the date you choose the shift: 1 — day or 2 — night. After approval, the consumption is taken from the stock sheet of that date and shift.",
+                ]
+            ),
+            release(
+                "1.0.418", "17.10.2026",
+                ro: [
+                    "În Raport Produse, după ce alegeți Z-ul, butonul Print listează produsele vândute pe casa de marcat.",
+                ],
+                en: [
+                    "In Product report, after you pick a Z, Print sends the sold products to the fiscal printer.",
+                ]
+            ),
+            release(
+                "1.0.417", "17.10.2026",
+                ro: [
+                    "La închiderea turei, ecranul de așteptare alege la întâmplare: cifre verzi care curg, sau un zbor printre formule și cod Swift, C# și ASP.NET. Mesajul alb rămâne același.",
+                ],
+                en: [
+                    "When the shift closes, the wait screen picks at random: falling green digits, or a flight through formulas and Swift, C#, and ASP.NET code. The white message stays the same.",
+                ]
+            ),
+            release(
+                "1.0.416", "17.10.2026",
+                ro: [
+                    "La închiderea turei, ecranul arată cifre verzi care curg și mesajul „Asteptati pentru inchiderea turei !!!” pe primul rând și „Calculez !!!” pe al doilea. Rămâne cât durează calculul, cel puțin 15 secunde.",
+                ],
+                en: [
+                    "When the shift closes, the screen shows falling green digits and a two-line wait message. It stays for the whole calculation, at least 15 seconds.",
+                ]
+            ),
+            release(
+                "1.0.415", "17.10.2026",
+                ro: [
+                    "Pe foaia de stoc, profitul unui produs finit scade costul rețetei din vânzare. Bonurile de producție și foile au fost recalculate cu rețetele actuale.",
+                ],
+                en: [
+                    "On the stock sheet, a finished good's profit subtracts the recipe cost from the sale. Production notes and stock sheets were recalculated with the current recipes.",
+                ]
+            ),
+            release(
+                "1.0.414", "17.10.2026",
+                ro: [
+                    "Ieșire din POS vă aduce direct la tile-urile Producție, POS și Foaie stoc.",
+                ],
+                en: [
+                    "Exit from POS returns straight to the Production, POS, and Stock sheet tiles.",
+                ]
+            ),
+            release(
+                "1.0.413", "17.10.2026",
+                ro: [
+                    "MB3 100/SET (6421735000161) este unificat pe BFG 100 CASEROLE MB XPS 3COMP (396905). Stocul a trecut pe fișa principală. Intrările viitoare cu acest nume sau cod se leagă tot acolo.",
+                ],
+                en: [
+                    "MB3 100/SET (6421735000161) is merged into BFG 100 CASEROLE MB XPS 3COMP (396905). Stock moved onto the main sheet. Future receipts with that name or code link there too.",
+                ]
+            ),
+            release(
+                "1.0.412", "17.10.2026",
+                ro: [
+                    "În rețetele la farfurie (shaorma, shaormaxx, crispy, aripioare și șnițel) intră caserola (1 buc.) și furculița (1 buc.).",
+                ],
+                en: [
+                    "Plate recipes (shawarma, shaormaxx, crispy, wings, and schnitzel) now include the tray (1 pc) and the fork (1 pc).",
+                ]
+            ),
+            release(
+                "1.0.411", "17.10.2026",
+                ro: [
+                    "În rețeta PITA EXTRA intră colțarul (0,004 kg).",
+                ],
+                en: [
+                    "The PITA EXTRA recipe now includes the corner wrap (0.004 kg).",
+                ]
+            ),
+            release(
+                "1.0.410", "17.10.2026",
+                ro: [
+                    "În rețetele SOS CURRY, KETCHUP, SAMURAI, TZATZIKI și USTUROI intră sosiera (1 buc.).",
+                ],
+                en: [
+                    "SOS CURRY, KETCHUP, SAMURAI, TZATZIKI, and USTUROI recipes now include the sauce cup (1 pc).",
+                ]
+            ),
+            release(
+                "1.0.409", "17.10.2026",
+                ro: [
+                    "În rețetele MAXX BUCKET ARIPIOARE, CRISPY și MIXT intră și furculița (1 buc.).",
+                ],
+                en: [
+                    "MAXX BUCKET ARIPIOARE, CRISPY, and MIXT recipes now also include the fork (1 pc).",
+                ]
+            ),
+            release(
+                "1.0.408", "17.10.2026",
+                ro: [
+                    "În rețetele MAXX BUCKET ARIPIOARE, CRISPY și MIXT intră cutia de carton 2500 (1 buc.).",
+                ],
+                en: [
+                    "MAXX BUCKET ARIPIOARE, CRISPY, and MIXT recipes now include the 2500 carton (1 pc).",
+                ]
+            ),
+            release(
+                "1.0.407", "17.10.2026",
+                ro: [
+                    "În rețetele BOX PUI, BOX VITA și BOX MIXT intră cutia (1 buc.) și furculița (1 buc.).",
+                ],
+                en: [
+                    "BOX PUI, BOX VITA, and BOX MIXT recipes now include the carton (1 pc) and the fork (1 pc).",
+                ]
+            ),
+            release(
+                "1.0.406", "17.10.2026",
+                ro: [
+                    "În rețetele de shaorma, chifle, sandwich, cheese kebab și falafel intră colțarul (0,004 kg) și hârtia (0,005 kg).",
+                ],
+                en: [
+                    "Shawarma, bun, sandwich, cheese kebab, and falafel recipes now include the corner wrap (0.004 kg) and the paper (0.005 kg).",
+                ]
+            ),
+            release(
+                "1.0.405", "17.10.2026",
+                ro: [
+                    "Articol nou LIPIA CASEI, produs finit, în afara catalogului. Rețeta pentru o bucată: 0,05 kg făină, 0,0005 kg drojdie, 0,001 kg sare, 0,0015 l ulei și 0,0005 kg zahăr.",
+                ],
+                en: [
+                    "New article LIPIA CASEI, a finished good, outside the catalog. The recipe for one piece: 0.05 kg flour, 0.0005 kg yeast, 0.001 kg salt, 0.0015 l oil, and 0.0005 kg sugar.",
+                ]
+            ),
+            release(
+                "1.0.404", "17.10.2026",
+                ro: [
+                    "Pe foaia de stoc, DONER PUI apare la materii prime și ambalaje, chiar dacă articolul este produs finit.",
+                ],
+                en: [
+                    "On the stock sheet, DONER PUI is listed with raw materials and packaging, even though the article is a finished good.",
+                ]
+            ),
+            release(
+                "1.0.403", "17.10.2026",
+                ro: [
+                    "Un produs finit folosit în altă rețetă se scade din stocul lui. Rețeta lui se folosește doar pe bonul de producție care îl face. Bonurile automate de la închiderea turei și foile de stoc au fost recalculate.",
+                ],
+                en: [
+                    "A finished good used in another recipe is taken from its own stock. Its recipe is used only on the production note that makes it. Automatic end-of-shift production notes and stock sheets were recalculated.",
+                ]
+            ),
+            release(
+                "1.0.402", "17.10.2026",
+                ro: [
+                    "În Administrator, filtrul de dată are Toate pe Bonuri, Z-uri, Facturi, Foi de stoc și Bonuri de consum. Toate este ales la deschidere.",
+                ],
+                en: [
+                    "In Administrator, the date filter has All on Receipts, Z reports, Invoices, Stock sheets, and Consumption vouchers. All is selected when you open the list.",
+                ]
+            ),
+            release(
+                "1.0.401", "17.10.2026",
+                ro: [
+                    "În Administrator, Bonuri, Z-uri, Facturi și Bonurile de consum se filtrează după punctul de lucru și după dată. Data pornește de azi.",
+                ],
+                en: [
+                    "In Administrator, Receipts, Z reports, Invoices, and Consumption vouchers filter by location and by date. The date starts on today.",
+                ]
+            ),
+            release(
+                "1.0.400", "17.10.2026",
+                ro: [
+                    "La fiecare raport Z, baza și TVA-ul pe cote se calculează din vânzările acelui Z, de fiecare dată când îl deschizi, din Vânzări sau din Administrator.",
+                ],
+                en: [
+                    "On every Z report, the base and VAT per rate are calculated from that Z's sales each time you open it, from Sales or from Administrator.",
+                ]
+            ),
+            release(
+                "1.0.399", "17.10.2026",
+                ro: [
+                    "Pe raportul Z, baza și TVA-ul pe fiecare cotă sunt calculate din vânzările acelui Z, la fel în Vânzări și în Administrator.",
+                ],
+                en: [
+                    "On a Z report, the base and VAT for each rate are calculated from that Z's sales, both in Sales and in Administrator.",
+                ]
+            ),
+            release(
+                "1.0.398", "16.10.2026",
+                ro: [
+                    "La click pe un raport Z se deschide pagina ca la casa: firmă, perioadă, încasări și TVA. Același document se descarcă PDF.",
+                ],
+                en: [
+                    "Tapping a Z report opens the page used by the register: company, period, takings and VAT. The same document is downloaded as PDF.",
+                ]
+            ),
+            release(
+                "1.0.397", "16.10.2026",
+                ro: [
+                    "Raportul Z emis de la POS apare și în Vânzări, la Rapoarte Z, cu numerarul, cardul și plata modernă de pe casă.",
+                ],
+                en: [
+                    "A Z report issued by the POS also appears in Sales, under Z reports, with the cash, card, and modern takings from the register.",
+                ]
+            ),
+            release(
+                "1.0.396", "16.10.2026",
+                ro: [
+                    "În Administrator, click pe un bon deschide PDF-ul acelui Z, nu pe cel din Z-ul curent. La Z-uri apar doar rapoartele emise de POS; click-ul le deschide, cu listare și descărcare PDF. Bonurile de consum sunt împărțite în De aprobat și Finalizate.",
+                ],
+                en: [
+                    "In Administrator, tapping a receipt opens that Z report's PDF, not the one from the current Z. Z reports lists only the ones issued by the POS; a tap opens them, with print and PDF download. Consumption vouchers are split into To approve and Completed.",
+                ]
+            ),
+            release(
+                "1.0.395", "16.10.2026",
+                ro: [
+                    "Pe Acasă, după Nomenclatoare, administratorul și super-administratorul văd tile-ul Administrator: vânzări (bonuri, Z-uri și facturi), foi de stoc și bonuri de consum, pe toate punctele, cu căutare. Bonurile de consum se aprobă pe tot bonul sau pe linii.",
+                ],
+                en: [
+                    "On Home, after Nomenclatoare, the administrator and super administrator see the Administrator tile: sales (receipts, Z reports, and invoices), stock sheets, and consumption vouchers, for every location, with search. Consumption vouchers can be approved for the whole voucher or line by line.",
+                ]
+            ),
+            release(
+                "1.0.394", "16.10.2026",
+                ro: [
+                    "La vânzarea modernă, discountul de pe bon se scrie în lei.",
+                ],
+                en: [
+                    "On a modern sale, the receipt discount is an amount in lei.",
+                ]
+            ),
+            release(
+                "1.0.393", "16.10.2026",
+                ro: [
+                    "Raport Produse se vede și de către casier, fără drepturi de administrator.",
+                ],
+                en: [
+                    "Product report is visible to the cashier, without administrator rights.",
+                ]
+            ),
+            release(
+                "1.0.392", "16.10.2026",
+                ro: [
+                    "Raport Produse arată produsele vândute, pe Z-ul închis și pe Z-ul curent.",
+                ],
+                en: [
+                    "Product report shows the products sold, for a closed Z and for the current Z.",
+                ]
+            ),
+            release(
+                "1.0.391", "16.10.2026",
+                ro: [
+                    "Raport Produse se deschide peste ecranul POS, în fereastra aplicației.",
+                ],
+                en: [
+                    "Product report opens over the POS screen, inside the application window.",
+                ]
+            ),
+            release(
+                "1.0.390", "16.10.2026",
+                ro: [
+                    "Raport Produse arată lista de Z-uri și, după alegere, produsele vândute.",
+                ],
+                en: [
+                    "Product report shows the Z list and, after you choose one, the products sold.",
+                ]
+            ),
+            release(
+                "1.0.389", "16.10.2026",
+                ro: [
+                    "Pe POS, înainte de + Numerar, este Raport Produse. Alegeți Z-ul. Primul este Z-ul curent, În lucru - Neînchis. Se vede lista produselor vândute. Înapoi și Închide sunt în fereastră.",
+                ],
+                en: [
+                    "On the POS, before + Cash, there is Product report. Choose the Z. The first is the current Z, In progress - Not closed. You see the products sold. Back and Close are in the window.",
+                ]
+            ),
+            release(
+                "1.0.388", "16.10.2026",
+                ro: [
+                    "Pe bon, butonul × care scoate produsul este mai mare, ca să se apese ușor.",
+                ],
+                en: [
+                    "On the receipt, the × button that removes a product is larger, so it is easy to press.",
+                ]
+            ),
+            release(
+                "1.0.387", "16.10.2026",
+                ro: [
+                    "Pe ecranul POS, înainte de Raport X, sunt + Numerar și - Numerar. Se cere suma, pe Windows cu tastatura numerică, iar la OK casa bagă sau scoate banii.",
+                ],
+                en: [
+                    "On the POS screen, before the X report, there are + Cash and - Cash. The amount is asked, on Windows with a numeric keypad, and at OK the register puts the money in or takes it out.",
+                ]
+            ),
+            release(
+                "1.0.386", "16.10.2026",
+                ro: [
+                    "Jos pe foaia de stoc, după centralizări, se trage o linie și urmează Consumuri: aprobate și scăzute din stoc, cu produs și explicație, apoi neaprobate, încă nescăzute. Intră și liniile parțiale.",
+                ],
+                en: [
+                    "At the bottom of the stock sheet, after the totals, a line is drawn and then Consumptions: approved and deducted from stock, with the product and the explanation, then unapproved, not yet deducted. Partial lines are included.",
+                ]
+            ),
+            release(
+                "1.0.385", "16.10.2026",
+                ro: [
+                    "Pe foaia de stoc, lângă dată, apare ora la care s-a emis Z-ul. Se aplică și foii deja create.",
+                ],
+                en: [
+                    "On the stock sheet, next to the date, the time the Z was issued is shown. This also applies to a sheet already created.",
+                ]
+            ),
+            release(
+                "1.0.384", "16.10.2026",
+                ro: [
+                    "Pe bară au intrat cei 40 lei numerar și 36 lei card listați de casă și lipsiți din program. Încasarea se scrie pe bară imediat ce casa a listat bonul.",
+                ],
+                en: [
+                    "The bar now includes the 40 lei cash and 36 lei card that the register printed and the program was missing. The taking is written on the bar as soon as the register prints the receipt.",
+                ]
+            ),
+            release(
+                "1.0.383", "16.10.2026",
+                ro: [
+                    "Pe bara de jos a casei, Glovo, Bolt și Wolt apar adunate la Modernă, în loc de G, B și W.",
+                ],
+                en: [
+                    "On the cashier bottom bar, Glovo, Bolt and Wolt are added together as Modern, instead of G, B and W.",
+                ]
+            ),
+            release(
+                "1.0.382", "16.10.2026",
+                ro: [
+                    "Pe foaia de stoc apare categoria Garanție cu SGR, numai pe valori, fără cantități de stoc, ca totalul să fie egal cu Z-ul. Ultimul rând este Bani de predat, cu suma din numerar. Se aplică și foii deja create.",
+                ],
+                en: [
+                    "The stock sheet shows the Guarantee category with the SGR, on the values only, with no stock quantities, so the total matches the Z. The last row is Bani de predat, with the cash amount. This also applies to a sheet already created.",
+                ]
+            ),
+            release(
+                "1.0.381", "16.10.2026",
+                ro: [
+                    "Jos pe foaia de stoc sunt încasările: numerar, card și modernă (Glovo, Bolt, Wolt), apoi comparația cu Z-ul: foaie, Z și diferența. Se aplică și foii deja create.",
+                ],
+                en: [
+                    "At the bottom of the stock sheet are the takings: cash, card and modern (Glovo, Bolt, Wolt), then the comparison with the Z: sheet, Z and the difference. This also applies to a sheet already created.",
+                ]
+            ),
+            release(
+                "1.0.380", "16.10.2026",
+                ro: [
+                    "Taxa de ambalaj apare pe foaia de stoc și intră în total. Z 389 din program este 517 lei, ca pe hârtie. O încasare fără bon listat pe casă nu intră în total și nici în Z.",
+                ],
+                en: [
+                    "The packaging tax appears on the stock sheet and enters the total. Z 389 in the program is 517 lei, matching the paper. A taking without a receipt printed by the register is not in the total and not in the Z.",
+                ]
+            ),
+            release(
+                "1.0.379", "16.10.2026",
+                ro: [
+                    "Pe foaia de stoc, la tura 2 data scrisă este cu o zi în urmă. Se aplică și foii deja create.",
+                ],
+                en: [
+                    "On the stock sheet, shift 2 writes the date as the previous day. This also applies to a sheet already created.",
+                ]
+            ),
+            release(
+                "1.0.378", "16.10.2026",
+                ro: [
+                    "Foaia de stoc arată totalul pe Val. magazin, Val. online și Profit, pe fiecare categorie și un total general. Se aplică și foii deja create.",
+                ],
+                en: [
+                    "The stock sheet shows a total on store value, online value and profit, for each category and a grand total. This also applies to a sheet already created.",
+                ]
+            ),
+            release(
+                "1.0.377", "16.10.2026",
+                ro: [
+                    "Pe Windows, animația de la pornire a fost scoasă. Programul se deschide direct.",
+                ],
+                en: [
+                    "On Windows, the startup animation is gone. The program opens directly.",
+                ]
+            ),
+            release(
+                "1.0.376", "16.10.2026",
+                ro: [
+                    "Foaia de stoc, inclusiv cea deja creată, arată doar produsele cu intrări sau ieșiri. Se deschide mare, pe tot ecranul, ca să o citiți, să o listați sau să o salvați.",
+                ],
+                en: [
+                    "The stock sheet, including one already created, shows only products with inflows or outflows. It opens large, full screen, so you can read it, print it or save it.",
+                ]
+            ),
+            release(
+                "1.0.375", "16.10.2026",
+                ro: [
+                    "Factura AGRO 9 a fost acceptată în e-Factura. Pe listă apar id-ul de încărcare și id-ul de descărcare. XML-ul pune județul și sectorul din adresă, ca ANAF să o accepte.",
+                ],
+                en: [
+                    "Invoice AGRO 9 was accepted in e-Factura. The list shows the upload id and the download id. The XML now sends the county and sector from the address, so ANAF accepts it.",
+                ]
+            ),
+            release(
+                "1.0.374", "16.10.2026",
+                ro: [
+                    "La Foaie stoc, un click pe foaia creată deschide PDF-ul în formatul foii, ca să o listați sau să o salvați.",
+                ],
+                en: [
+                    "In Stock sheet, a click on a created sheet opens the PDF in the sheet layout, so you can print it or save it.",
+                ]
+            ),
+            release(
+                "1.0.372", "16.10.2026",
+                ro: [
+                    "Vânzări → Facturi este un tabel: număr, dată, client, CUI, total, stare, e-Factura, id încărcare și id descărcare. Un click deschide PDF-ul. Facturile noi se încarcă automat în SPV.",
+                ],
+                en: [
+                    "Sales → Invoices is a table: number, date, client, tax id, total, status, e-Factura, upload id and download id. A click opens the PDF. New invoices upload to SPV automatically.",
+                ]
+            ),
+            release(
+                "1.0.371", "16.10.2026",
+                ro: [
+                    "Încasările Z 389 au ieșit din bara POS. Factura AGRO 9 către First Consulting (cf BF 9) este în Vânzări → Facturi și se trimite în e-Factura SPV.",
+                    "Pe lista de facturi vedeți starea e-Factura și cele două id-uri ANAF: încărcare și descărcare. Factura de la casă intră singură în listă.",
+                ],
+                en: [
+                    "Z 389 takings left the POS bar. Invoice AGRO 9 to First Consulting (from receipt 9) is in Sales → Invoices and is sent to e-Factura SPV.",
+                    "The invoice list shows the e-Factura status and the two ANAF ids: upload and download. The register invoice is saved in the list.",
+                ]
+            ),
+            release(
+                "1.0.370", "16.10.2026",
+                ro: [
+                    "Pe bara de jos a POS-ului, după încasări, scrie BF = și numărul următorului bon fiscal.",
+                ],
+                en: [
+                    "On the POS bottom bar, after the takings, BF = shows the number of the next fiscal receipt.",
+                ]
+            ),
+            release(
+                "1.0.369", "16.10.2026",
+                ro: [
+                    "În Vânzări → Rapoarte Z, un click pe Z deschide PDF-ul raportului, cu numărul, data și încasările.",
+                ],
+                en: [
+                    "In Sales → Z reports, a click on a Z opens the report PDF, with the number, date and takings.",
+                ]
+            ),
+            release(
+                "1.0.368", "16.10.2026",
+                ro: [
+                    "În Vânzări → Bonuri, un click pe bon deschide PDF-ul listat de casă, cu liniile, prețurile și încasarea.",
+                ],
+                en: [
+                    "In Sales → Receipts, a click on a receipt opens the PDF printed by the register, with the lines, prices and payment.",
+                ]
+            ),
+            release(
+                "1.0.367", "16.10.2026",
+                ro: [
+                    "Pe bonul de transfer, cantitatea e în câmp galben, ca să se vadă că se scrie. Dacă alegeți Ploiești, destinația se completează cu Agronomie, și invers. Bonul se salvează și dacă stocul devine negativ.",
+                ],
+                en: [
+                    "On the transfer note, the quantity is in a yellow field so it is clear you can type. If you pick Ploiești, the destination fills with Agronomie, and the other way around. The note is saved even if stock goes negative.",
+                ]
+            ),
+            release(
+                "1.0.366", "16.10.2026",
+                ro: [
+                    "Pe bonul de transfer, cantitatea se scrie în câmpul de sub articol. Butonul 123 deschide tastatura numerică.",
+                ],
+                en: [
+                    "On the transfer note, type the quantity in the field under the article. The 123 button opens the numeric keypad.",
+                ]
+            ),
+            release(
+                "1.0.364", "16.10.2026",
+                ro: [
+                    "Pe bonul de transfer apar și produsele finite, inclusiv DONER PUI. După producție la Ploiești, îl alegeți pe bon și îl trimiteți la Agronomie.",
+                ],
+                en: [
+                    "Transfer notes now include finished goods, including DONER PUI. After production in Ploiești, pick it on the note and send it to Agronomie.",
+                ]
+            ),
+            release(
+                "1.0.365", "16.10.2026",
+                ro: [
+                    "La Raport Z, condimentul din reteta se scade si cand cantitatea este foarte mica. Se pastreaza cu 6 zecimale, sau cu 8 daca 6 nu ajung. Stocul poate ajunge negativ.",
+                ],
+                en: [
+                    "At Report Z, a very small recipe quantity is still consumed. It is kept with 6 decimal places, or 8 when 6 are not enough. Stock can go negative.",
+                ]
+            ),
+            release(
+                "1.0.363", "16.10.2026",
+                ro: [
+                    "La Raport Z, un condiment din reteta mai mic de 0,0001 nu mai opreste inchiderea. Daca foaia nu s-a salvat dupa ce casa a listat Z-ul, apasati din nou Raport Z: casa nu mai listeaza, se salveaza foaia, se golesc incasarile si Z-ul intra la Vanzari.",
+                ],
+                en: [
+                    "At Report Z, a recipe quantity under 0.0001 no longer stops the close. If the sheet was not saved after the register printed the Z, press Report Z again: it does not print again, the sheet is saved, the takings go back to 0, and the Z appears in Sales.",
+                ]
+            ),
+            release(
+                "1.0.362", "16.10.2026",
+                ro: [
+                    "Dupa ce casa listeaza bonul fiscal, ecranul de vanzare revine la alegerea categoriei, pentru bonul urmator.",
+                ],
+                en: [
+                    "After the cash register prints the fiscal receipt, the sale screen returns to the category choice for the next receipt.",
+                ]
+            ),
+            release(
+                "1.0.361", "16.10.2026",
+                ro: [
+                    "Casierul vede seria de factura a punctului lui, fara drept de administrator. La Agronomie, Emite bon si FF foloseste seria AGRO.",
+                ],
+                en: [
+                    "The cashier sees the invoice series of their location, without administrator rights. At Agronomie, Issue receipt and invoice uses the AGRO series.",
+                ]
+            ),
+            release(
+                "1.0.360", "16.10.2026",
+                ro: [
+                    "La card nu se mai trimite nimic la POS-ul bancar. Marcati suma manual. Daca spuneti ca plata a reusit, casa listeaza bonul.",
+                ],
+                en: [
+                    "On card, nothing is sent to the bank POS. Mark the amount yourself. If you say the payment went through, the register prints the receipt.",
+                ]
+            ),
+            release(
+                "1.0.359", "16.10.2026",
+                ro: [
+                    "La card, suma pleaca intai la terminalul bancar. Daca banca accepta, casa listeaza bonul si il inregistreaza, ca inainte.",
+                ],
+                en: [
+                    "On card, the amount goes to the bank terminal first. If the bank accepts, the register prints the receipt and records it, as before.",
+                ]
+            ),
+            release(
+                "1.0.358", "16.10.2026",
+                ro: [
+                    "Bonul fiscal pleaca direct la casa. Nu se mai opreste inainte de listare din cauza unei comenzi separate catre terminalul de card.",
+                ],
+                en: [
+                    "The fiscal receipt goes straight to the register. It no longer stops before printing because of a separate command to the card terminal.",
+                ]
+            ),
+            release(
+                "1.0.357", "16.10.2026",
+                ro: [
+                    "Pe Windows, la bonul de consum, cantitatea deschide tastatura numerica.",
+                ],
+                en: [
+                    "On Windows, the quantity on a consumption note opens a numeric keypad.",
+                ]
+            ),
+            release(
+                "1.0.356", "16.10.2026",
+                ro: [
+                    "Bonul fiscal se listeaza din nou fara sa astepte confirmarea operatorului. Dupa fiecare bon apare fereastra cu numarul si se inchide singura.",
+                ],
+                en: [
+                    "The fiscal receipt prints again without waiting for the operator to confirm. After each receipt, the window with the number appears and closes by itself.",
+                ]
+            ),
+            release(
+                "1.0.355", "16.10.2026",
+                ro: [
+                    "Pe Windows, cantitatea de pe bonul de productie si de pe bonul de transfer deschide tastatura numerica. La plata cu cardul, fereastra sta in fata: dupa Plata a reusit, casa listeaza bonul si il inregistreaza.",
+                ],
+                en: [
+                    "On Windows, the quantity on a production note and on a transfer note opens the numeric keypad. On card payment the confirmation stays in front: after Payment went through, the register prints the receipt and records it.",
+                ]
+            ),
+            release(
+                "1.0.354", "16.10.2026",
+                ro: [
+                    "Pe Windows, la bonul de productie si la bonul de transfer, cantitatea deschide tastatura numerica.",
+                ],
+                en: [
+                    "On Windows, the quantity on a production note and on a transfer note opens a numeric keypad.",
+                ]
+            ),
+            release(
+                "1.0.353", "16.10.2026",
+                ro: [
+                    "La plata cu cardul, fereastra „Plata a reușit” apare din nou, ca să confirmați încasarea. După confirmare, casa listează bonul și îl închide, fără mesajul OK cu numărul bonului.",
+                ],
+                en: [
+                    "On card payment, the “Payment went through” window appears again so you can confirm the charge. After you confirm, the register prints the receipt and closes it, without the OK message with the receipt number.",
+                ]
+            ),
+            release(
+                "1.0.352", "16.10.2026",
+                ro: [
+                    "Raportul X nu mai cere OK după listare. La Raport Z rămâne doar ecranul de așteptare până se închide tura, apoi dispare singur.",
+                ],
+                en: [
+                    "The X report no longer asks for OK after printing. For the Z report, only the waiting overlay stays until the shift closes, then it disappears on its own.",
+                ]
+            ),
+            release(
+                "1.0.351", "16.10.2026",
+                ro: [
+                    "După listarea bonului pe casa de marcat, nu mai apare mesajul cu numărul bonului. Trebuie să apăsați OK doar dacă ceva nu a mers.",
+                ],
+                en: [
+                    "After the cash register prints a receipt, the receipt-number message no longer appears. You only tap OK if something went wrong.",
+                ]
+            ),
+            release(
+                "1.0.350", "16.10.2026",
+                ro: [
+                    "Tabul Bonuri din Vanzari incarca bonurile din Z-ul curent si din Z-ul ales din lista.",
+                ],
+                en: [
+                    "The Sales Receipts tab loads fiscal receipts for the current Z and for a saved Z picked from the list.",
+                ]
+            ),
+            release(
+                "1.0.349", "16.10.2026",
+                ro: [
+                    "In Vanzari, langa Rapoarte Z, tabul Bonuri arata bonurile fiscale din Z-ul curent si dintr-un Z salvat ales din lista.",
+                ],
+                en: [
+                    "In Sales, next to Z reports, the Receipts tab lists fiscal receipts from the current Z and from a saved Z picked from the list.",
+                ]
+            ),
+            release(
+                "1.0.348", "15.10.2026",
+                ro: [
+                    "La importul XML, accesul la folder se pastreaza. Cand folderul de facturi se schimba, il alegi din nou, o data pentru folderul nou.",
+                ],
+                en: [
+                    "On XML import, folder access stays saved. When the invoice folder changes, choose the new folder once.",
+                ]
+            ),
+            release(
+                "1.0.347", "15.10.2026",
+                ro: [
+                    "La importul XML, fisierul primeste in fata importata_ si cand nu faci NIR, inclusiv daca factura era deja in lista.",
+                ],
+                en: [
+                    "On XML import, the file gets importata_ in front of its name even without a goods receipt, including when the invoice is already in the list.",
+                ]
+            ),
+            release(
+                "1.0.346", "15.10.2026",
+                ro: [
+                    "Dupa importul unei facturi XML, fisierul primeste in fata importata_, fie ca se face NIR, fie ca nu.",
+                ],
+                en: [
+                    "After an invoice XML is imported, the file gets importata_ in front of its name, whether a goods receipt is created or not.",
+                ]
+            ),
+            release(
+                "1.0.345", "15.10.2026",
+                ro: [
+                    "La Raport Z, numerarul intra in registrul punctului de lucru si aceeasi suma pleaca ca transfer in casa sediu. La sediu se trece incasarea; daca nu exista registru in acea data, se creeaza cu soldul anterior din ultimul registru de sediu. Chitanta de la NIR platit cash este plata in casa sediu, la data facturii.",
+                ],
+                en: [
+                    "On a Z report, cash is posted to that location's cash register and the same amount leaves as a transfer to headquarters. Headquarters records the receipt; if that date has no register, one is created with the opening balance from the previous headquarters register. A cash goods-receipt chit is a headquarters payment on the invoice date.",
+                ]
+            ),
+            release(
+                "1.0.344", "15.10.2026",
+                ro: [
+                    "Pe fisa articolului, ingredientele din reteta stau alfabetic dupa denumire. Le poti trage in sus sau in jos, iar ordinea ramane salvata.",
+                ],
+                en: [
+                    "On the article sheet, recipe ingredients start in alphabetical order by name. Drag one up or down and that order stays saved.",
+                ]
+            ),
+            release(
+                "1.0.343", "15.10.2026",
+                ro: [
+                    "Reteta deschisa din fisa articolului ramane pe ecran pana o inchizi.",
+                ],
+                en: [
+                    "A recipe opened from the article sheet stays on screen until you close it.",
+                ]
+            ),
+            release(
+                "1.0.342", "15.10.2026",
+                ro: [
+                    "Pe fisa articolului, daca exista reteta, butonul Vezi reteta / PDF o deschide si o salveaza in PDF.",
+                ],
+                en: [
+                    "On the article sheet, when a recipe exists, View recipe / PDF opens it and saves it as a PDF.",
+                ]
+            ),
+            release(
+                "1.0.341", "15.10.2026",
+                ro: [
+                    "Importul de facturi XML din folder merge si pe iPhone si iPad.",
+                ],
+                en: [
+                    "Importing invoice XML files from a folder also works on iPhone and iPad.",
+                ]
+            ),
+            release(
+                "1.0.340", "15.10.2026",
+                ro: [
+                    "Listele de produse, facturi si stocuri se deschid mai repede.",
+                ],
+                en: [
+                    "Product, invoice, and stock lists open faster.",
+                ]
+            ),
+            release(
+                "1.0.339", "15.10.2026",
+                ro: [
+                    "Listele de facturi, produse si stocuri se incarca mai repede.",
+                ],
+                en: [
+                    "Invoice, product, and stock lists load faster.",
+                ]
+            ),
+            release(
+                "1.0.338", "15.10.2026",
+                ro: [
+                    "Manualul casierului este fara diacritice. Textul si pozele nu mai au patratele.",
+                ],
+                en: [
+                    "The cashier manual has no Romanian diacritics. The text and pictures no longer show empty boxes.",
+                ]
+            ),
+            release(
+                "1.0.337", "15.10.2026",
+                ro: [
+                    "După ce NIR-ul făcut dintr-un XML de factură este salvat ca PDF, fișierul XML rămâne în același loc și primește în față importat_.",
+                ],
+                en: [
+                    "After the goods receipt made from an invoice XML is saved as a PDF, the XML file stays in the same place and gets importat_ in front of its name.",
+                ]
+            ),
+            release(
+                "1.0.336", "15.10.2026",
+                ro: [
+                    "Ajutorul casierului explică, în română și în engleză, fiecare apăsare: CUI pe bon, factura odată cu bonul, numerar, card, numerar + card și plata modernă, ștergerea unui articol, până la 4 bonuri, Raport Z numai după ce bonurile sunt închise, bonul de producție pentru DONER PUI, transferul către Agronomie și bonul de consum. La fiecare pas este o poză cu butonul de apăsat. Privacy, Termeni, Politica GDPR și Despre se deschid în același ecran.",
+                ],
+                en: [
+                    "Cashier Help explains every press in Romanian and English: tax number on the receipt, the invoice together with the receipt, cash, card, cash + card and modern payment, deleting an article, up to 4 receipts, Report Z only after the receipts are closed, the production note for DONER PUI, the transfer to Agronomie, and the consumption note. Each step has a picture of the button to press. Privacy, Terms, GDPR policy and About open on the same screen.",
+                ]
+            ),
+            release(
+                "1.0.335", "15.10.2026",
+                ro: [
+                    "Un bon de consum aprobat după foaia de stoc recalculează foile de la data bonului până la ultima foaie emisă. La fel la redeschidere sau ștergere.",
+                ],
+                en: [
+                    "A consumption note approved after a stock sheet recalculates the sheets from the note date through the last issued sheet. Reopening or deleting does the same.",
+                ]
+            ),
+            release(
+                "1.0.334", "15.10.2026",
+                ro: [
+                    "Bonul de consum nu se salvează fără motiv și fără cel puțin un articol, cu cantitate.",
+                ],
+                en: [
+                    "A consumption note cannot be saved without a reason and at least one article, with a quantity.",
+                ]
+            ),
+            release(
+                "1.0.333", "15.10.2026",
+                ro: [
+                    "Pe bonul de consum, după produs se scrie cantitatea. Produsele se filtrează după categorie, denumire sau cod. O linie adăugată se poate șterge.",
+                ],
+                en: [
+                    "On a consumption note, the quantity is entered after the product. Products filter by category, name, or code. An added line can be deleted.",
+                ]
+            ),
+            release(
+                "1.0.332", "15.10.2026",
+                ro: [
+                    "În Ajutor, sus, sunt butoanele Privacy, Termeni, Politica GDPR și Despre aplicație, și pentru casier.",
+                ],
+                en: [
+                    "Help has Privacy, Terms, GDPR policy, and About at the top, for the cashier too.",
+                ]
+            ),
+            release(
+                "1.0.331", "15.10.2026",
+                ro: [
+                    "În Producție există Bon consum, și pentru casieri. Are motiv și produse din toată lista. Salvarea nu scade stocul. Managerul aprobă tot bonul sau doar liniile bifate, iar apoi bonul se blochează. Lista arată dacă este aprobat. Managerul îl poate redeschide, modifica sau șterge.",
+                ],
+                en: [
+                    "Production includes Consumption note, for cashiers too. It has a reason and products from the whole list. Saving does not decrease stock. A manager approves the whole note or only the ticked lines, and then the note locks. The list shows whether it is approved. A manager can reopen, edit, or delete it.",
+                ]
+            ),
+            release(
+                "1.0.330", "15.10.2026",
+                ro: [
+                    "Categoria articolului este obligatorie. Nu se mai poate salva un produs fara categorie.",
+                ],
+                en: [
+                    "The article category is required. A product can no longer be saved without a category.",
+                ]
+            ),
+            release(
+                "1.0.329", "15.10.2026",
+                ro: [
+                    "Importul de XML pentru NIR merge din nou. Garantie SGR ramane la categoria Garantie, fara grupa si fara stoc.",
+                ],
+                en: [
+                    "XML import for goods receipts works again. The SGR deposit stays in the Guarantee category, with no group and no stock.",
+                ]
+            ),
+            release(
+                "1.0.328", "15.10.2026",
+                ro: [
+                    "Prima foaie de stoc porneste din stocul real al gestiunii punctului, nu din stocul total al firmei. Dupa inventar, stocul initial este cantitatea numarata a acelui punct.",
+                ],
+                en: [
+                    "The first stock sheet starts from the real stock of the location's warehouse, not from the company total. After an inventory, the opening stock is that location's counted quantity.",
+                ]
+            ),
+            release(
+                "1.0.327", "15.10.2026",
+                ro: [
+                    "Garantie SGR este taxa, nu stoc. Nu are grupa, nu are stoc in gestiuni si nu intra pe foaia de stoc.",
+                ],
+                en: [
+                    "SGR deposit is a fee, not stock. It has no group, no warehouse stock, and it is not on the stock sheet.",
+                ]
+            ),
+            release(
+                "1.0.326", "15.10.2026",
+                ro: [
+                    "La bonul de transfer există Bon transfer nou. Pleacă din gestiunea punctului și ajunge în cealaltă gestiune.",
+                ],
+                en: [
+                    "Transfer notes have New transfer note. It leaves from your location's warehouse and arrives at the other warehouse.",
+                ]
+            ),
+            release(
+                "1.0.325", "15.10.2026",
+                ro: [
+                    "Pe Windows, la casierul de punct, lista de bonuri de producție nu se mai blochează. Puteți crea un bon și vă puteți întoarce.",
+                ],
+                en: [
+                    "On Windows, a location cashier's production-note list no longer freezes. You can create a note and go back.",
+                ]
+            ),
+            release(
+                "1.0.324", "15.10.2026",
+                ro: [
+                    "Casierul de punct are Deconectare în meniul din stânga și sus în Casier. Închidere aplicație nu deloghează.",
+                ],
+                en: [
+                    "A location cashier has Sign out in the left menu and at the top of Cashier. Quit does not sign out.",
+                ]
+            ),
+            release(
+                "1.0.323", "14.10.2026",
+                ro: [
+                    "Casierul de punct intră în aplicație pe firma lui și nu mai rămâne pe ecranul de pregătire.",
+                ],
+                en: [
+                    "A location cashier signs in on their company and no longer stays on the preparing screen.",
+                ]
+            ),
+            release(
+                "1.0.322", "14.10.2026",
+                ro: [
+                    "În Casier, când sunt mai multe puncte de lucru, POS le deschide într-o fereastră ca să alegeți locația.",
+                ],
+                en: [
+                    "In Cashier, when there is more than one work location, POS opens them in a window so you can choose the location.",
+                ]
+            ),
+            release(
+                "1.0.321", "14.10.2026",
+                ro: [
+                    "Jos pe foaia de stoc sunt totalurile comparative cu Z-ul și totalul de profit.",
+                ],
+                en: [
+                    "The stock form shows comparison totals with the Z and the profit total at the bottom.",
+                ]
+            ),
+            release(
+                "1.0.320", "14.10.2026",
+                ro: [
+                    "Ajutorul descrie Casierul cu tile-urile colorate, foaia de stoc de după Raport Z și casierul de punct.",
+                ],
+                en: [
+                    "Help describes Cashier with the colored tiles, the stock form after Report Z, and the location cashier.",
+                ]
+            ),
+            release(
+                "1.0.319", "14.10.2026",
+                ro: [
+                    "Casierii de punct intră direct în Casier, doar pe locația lor. Meniul are Casier, Ajutor, Ce este nou și Închidere. Firma nu se poate schimba.",
+                ],
+                en: [
+                    "Location cashiers open Cashier directly, only for their location. The menu is Cashier, Help, What's New, and Quit. The company cannot be changed.",
+                ]
+            ),
+            release(
+                "1.0.318", "14.10.2026",
+                ro: [
+                    "Pe Mac, bonul fiscal din POS are fundal alb și text închis, ca liniile și totalul să se citească.",
+                ],
+                en: [
+                    "On Mac, the POS fiscal receipt uses a white background and dark text, so the lines and the total stay readable.",
+                ]
+            ),
+            release(
+                "1.0.317", "14.10.2026",
+                ro: [
+                    "Foaie stoc este în Casier, nu pe Acasă. Tile-ul Producție are fundal verde, POS roșu și Foaie stoc albastru.",
+                ],
+                en: [
+                    "Stock form is in Cashier, not on Home. The Production tile is green, POS is red, and Stock form is blue.",
+                ]
+            ),
             release(
                 "1.0.316", "14.10.2026",
                 ro: [

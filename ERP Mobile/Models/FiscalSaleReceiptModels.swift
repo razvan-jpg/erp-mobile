@@ -196,6 +196,132 @@ struct FiscalSaleReceiptInsert: Encodable, Sendable {
     }
 }
 
+struct SalesSavedZSheet: Decodable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let sheetDate: String
+    let shiftNo: Int
+    let zNumber: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case sheetDate = "sheet_date"
+        case shiftNo = "shift_no"
+        case zNumber = "z_number"
+    }
+
+    var label: String {
+        let parts = sheetDate.split(separator: "-")
+        let shown = parts.count == 3 ? "\(parts[2]).\(parts[1]).\(parts[0])" : sheetDate
+        let number = zNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        let z = number.isEmpty ? "—" : number
+        return L10n.tr("module.sales.cash_sale.receipts_z_label", z, shown, shiftNo)
+    }
+}
+
+struct SalesIssuedReceiptLine: Decodable, Hashable, Sendable {
+    let denumire: String
+    let um: String
+    let cantitate: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case denumire, cantitate, um
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        denumire = try container.decodeIfPresent(String.self, forKey: .denumire) ?? ""
+        um = try container.decodeIfPresent(String.self, forKey: .um) ?? "buc"
+        if let number = try? container.decode(Double.self, forKey: .cantitate) {
+            cantitate = Decimal(number)
+        } else if let text = try? container.decode(String.self, forKey: .cantitate),
+                  let number = Decimal(string: text.replacingOccurrences(of: ",", with: ".")) {
+            cantitate = number
+        } else {
+            cantitate = 0
+        }
+    }
+}
+
+struct SalesIssuedReceipt: Decodable, Identifiable, Hashable, Sendable {
+    let receiptNumber: String
+    let issuedAt: Date
+    let lines: [SalesIssuedReceiptLine]
+    let slipPath: String?
+
+    var id: String { "\(receiptNumber)|\(issuedAt.timeIntervalSince1970)" }
+
+    enum CodingKeys: String, CodingKey {
+        case receiptNumber = "receipt_number"
+        case issuedAt = "issued_at"
+        case lines
+        case slipPath = "slip_path"
+    }
+}
+
+struct PosSoldProductsOpenParams: Encodable {
+    let workLocationId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case workLocationId = "p_work_location_id"
+    }
+}
+
+struct PosSoldProductsSheetParams: Encodable {
+    let workLocationId: UUID
+    let sheetId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case workLocationId = "p_work_location_id"
+        case sheetId = "p_sheet_id"
+    }
+}
+
+struct PosSoldProduct: Decodable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let group: String
+    let groupOrder: Int
+    let code: String
+    let name: String
+    let unit: String
+    let quantity: Decimal
+    let price: Decimal
+    let value: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case group = "grupa"
+        case groupOrder = "grupa_ordine"
+        case code = "cod"
+        case name = "denumire"
+        case unit = "um"
+        case quantity = "cantitate"
+        case price = "pret"
+        case value = "valoare"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = UUID()
+        group = try container.decodeIfPresent(String.self, forKey: .group) ?? "Fără grupă"
+        groupOrder = try container.decodeIfPresent(Int.self, forKey: .groupOrder) ?? 100000
+        code = try container.decodeIfPresent(String.self, forKey: .code) ?? ""
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+        unit = try container.decodeIfPresent(String.self, forKey: .unit) ?? ""
+        quantity = try container.decode(SupabaseDecimal.self, forKey: .quantity).wrappedValue
+        price = try container.decode(SupabaseDecimal.self, forKey: .price).wrappedValue
+        value = try container.decode(SupabaseDecimal.self, forKey: .value).wrappedValue
+    }
+}
+
+struct SalesFiscalReceiptsParams: Encodable {
+    let workLocationId: UUID
+    let sheetId: UUID?
+
+    enum CodingKeys: String, CodingKey {
+        case workLocationId = "p_work_location_id"
+        case sheetId = "p_sheet_id"
+    }
+}
+
 struct FiscalSaleReceiptLineInsert: Encodable, Sendable {
     let companyId: UUID
     let receiptId: UUID

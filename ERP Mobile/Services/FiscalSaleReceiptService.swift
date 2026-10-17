@@ -252,6 +252,41 @@ enum FiscalSaleReceiptService {
         return lhs.id.uuidString < rhs.id.uuidString
     }
 
+    static func fetchSoldProducts(locationId: UUID, sheetId: UUID?) async throws -> [PosSoldProduct] {
+        if let sheetId {
+            return try await client
+                .rpc("pos_sold_products", params: PosSoldProductsSheetParams(workLocationId: locationId, sheetId: sheetId))
+                .execute()
+                .value
+        }
+        return try await client
+            .rpc("pos_sold_products", params: PosSoldProductsOpenParams(workLocationId: locationId))
+            .execute()
+            .value
+    }
+
+    static func fetchSavedZSheets(companyId: UUID, locationId: UUID) async throws -> [SalesSavedZSheet] {
+        try await client
+            .from("z_stock_sheets")
+            .select("id,sheet_date,shift_no,z_number")
+            .eq("company_id", value: companyId.uuidString)
+            .eq("work_location_id", value: locationId.uuidString)
+            .order("created_at", ascending: false)
+            .limit(200)
+            .execute()
+            .value
+    }
+
+    static func fetchIssuedReceipts(locationId: UUID, sheetId: UUID?) async throws -> [SalesIssuedReceipt] {
+        try await client
+            .rpc(
+                "sales_fiscal_receipts",
+                params: SalesFiscalReceiptsParams(workLocationId: locationId, sheetId: sheetId)
+            )
+            .execute()
+            .value
+    }
+
     nonisolated private static func shiftEnd(_ report: CompanyZReportRecord) -> Date {
         if let print = report.payload.printDateTime {
             return print

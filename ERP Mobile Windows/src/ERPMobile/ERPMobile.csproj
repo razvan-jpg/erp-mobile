@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ERPMobile</RootNamespace>
     <AssemblyName>ERPMobile</AssemblyName>
-    <Version>1.0.316</Version>
-    <InformationalVersion>1.0.316</InformationalVersion>
+    <Version>1.0.420</Version>
+    <InformationalVersion>1.0.420</InformationalVersion>
     <Product>ERP Mobile</Product>
     <Company>Dateconta</Company>
     <Description>ERP Mobile pentru Windows</Description>
@@ -42,6 +42,30 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
     <Content Include="..\..\..\ERP Mobile\Resources\Localization\en.json" Link="Localization\en.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\privacy-policy-ro.txt" Link="Legal\privacy-policy-ro.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\privacy-policy-en.txt" Link="Legal\privacy-policy-en.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\terms-of-service-ro.txt" Link="Legal\terms-of-service-ro.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\terms-of-service-en.txt" Link="Legal\terms-of-service-en.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\gdpr-policy-ro.txt" Link="Legal\gdpr-policy-ro.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\ERP Mobile\Resources\Legal\gdpr-policy-en.txt" Link="Legal\gdpr-policy-en.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
