@@ -9,7 +9,7 @@ namespace ERPMobile.Setup;
 [SupportedOSPlatform("windows")]
 public static class Installer
 {
-    public const string Version = "1.0.420";
+    public const string Version = "1.1.639";
     public const string DisplayName = "ERP Mobile";
 
     public static string InstallDirectory => Path.Combine(

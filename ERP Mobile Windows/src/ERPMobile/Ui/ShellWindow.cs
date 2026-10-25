@@ -580,6 +580,12 @@ public sealed class ShellWindow : Window
         var page = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 14, MaxWidth = 720 };
         page.Children.Add(new TextBlock { Text = "Ce este nou...", FontSize = 22, FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy) });
         page.Children.Add(new TextBlock { Text = "What's New", FontSize = 16, Foreground = Brand.Brush("#003399") });
+        page.Children.Add(Release("1.1.639", "25.10.2026",
+            "La Listări stocuri, coloana Stoc faptic rămâne goală. La listare o completează cel care face inventarul."));
+        page.Children.Add(Release("1.1.638", "25.10.2026",
+            "Listări stocuri are coloana Stoc scriptic, cantitatea din gestiune, și coloana Stoc faptic."));
+        page.Children.Add(Release("1.1.637", "25.10.2026",
+            "Listări stocuri, la produs finit, arată doar codurile 1318, 1503, 79, 83, 84, 1462 și 81. Marfa rămâne întreagă. La materii prime nu mai intră 216400, 6421735000207, 721806, 6421735000208 și Driver FiscalNet Plus - licență anuală. La ambalaje nu mai intră 223617, 211293, 209118 și 6421735000145. Materialele consumabile, materialele de curățenie și birotica nu mai apar."));
         page.Children.Add(Release("1.0.420", "17.10.2026",
             "Raport Produse arată produsele pe grupe, cu prețul de vânzare și totalul liniei. Garanția SGR este grupa ei. Fiecare grupă are subtotal, iar la final este totalul general."));
         page.Children.Add(Release("1.0.419", "17.10.2026",
@@ -1241,7 +1247,7 @@ public sealed class ShellWindow : Window
             "Setări Windows: limbă, utilizatori, sync, setări Zetta, scurtătură pe Desktop, administrare societăți și deconectare — aceleași intrări ca pe Mac.",
             "La modificare, categoria articolului și celelalte câmpuri cu variante se aleg din listă.",
             "Utilitare Windows: arhivă MT940 din extrasul bancar și Excel NextUp din nota contabilă PDF."));
-        page.Children.Add(new TextBlock { Text = "Urmeaza in 1.0.421", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
+        page.Children.Add(new TextBlock { Text = "Urmeaza in 1.1.640", FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy), Margin = new Avalonia.Thickness(0, 8, 0, 0) });
         page.Children.Add(Bullet("BINA Smart Business: stabilizare listă Rapoarte Z în perioadă și descărcare batch PDF-uri în română (validare finală)."));
         page.Children.Add(Bullet("Extragere Rapoarte Z: conectori Memgest, BOCP și Generic HTTP (pe lângă BINA)."));
         page.Children.Add(Bullet("Preluare BF din BINA: import linii detaliate pe bon (dincolo de sloturile generate din Documente Z)."));

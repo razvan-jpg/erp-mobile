@@ -9,15 +9,15 @@ enum WhatsNewContent {
         WhatsNewDocument(
             upcoming: upcoming,
             releases: releases,
-            footerRomanian: "ERP Mobile · DATECONTA.RO · 17 octombrie 2026",
-            footerEnglish: "ERP Mobile · DATECONTA.RO · October 17, 2026"
+            footerRomanian: "ERP Mobile · DATECONTA.RO · 25 octombrie 2026",
+            footerEnglish: "ERP Mobile · DATECONTA.RO · October 25, 2026"
         )
     }
 
     /// Planificat pentru versiunea următoare — nu tot ce e aici va fi livrat; la release mută ce s-a făcut.
     private static var upcoming: WhatsNewUpcoming {
         WhatsNewUpcoming(
-            targetVersionLabel: "1.0.421",
+            targetVersionLabel: "1.1.640",
             romanianItems: [
                 "BINA Smart Business: stabilizare lista Rapoarte Z in perioada si descarcare batch PDF-uri in romana (validare finala).",
                 "Extragere Rapoarte Z: conectori Memgest, BOCP si Generic HTTP (pe langa BINA).",
@@ -39,6 +39,33 @@ enum WhatsNewContent {
 
     private static var releases: [WhatsNewRelease] {
         [
+            release(
+                "1.1.639", "25.10.2026",
+                ro: [
+                    "La Listări stocuri, coloana Stoc faptic rămâne goală. La listare o completează cel care face inventarul.",
+                ],
+                en: [
+                    "In Stock listings, the Physical stock column stays empty. The person doing the inventory fills it in on the printed listing.",
+                ]
+            ),
+            release(
+                "1.1.638", "25.10.2026",
+                ro: [
+                    "Listări stocuri are coloana Stoc scriptic, cantitatea din gestiune, și coloana Stoc faptic.",
+                ],
+                en: [
+                    "Stock listings has a Book stock column for the warehouse quantity, and a Physical stock column.",
+                ]
+            ),
+            release(
+                "1.1.637", "25.10.2026",
+                ro: [
+                    "Listări stocuri, la produs finit, arată doar codurile 1318, 1503, 79, 83, 84, 1462 și 81. Marfa rămâne întreagă. La materii prime nu mai intră 216400, 6421735000207, 721806, 6421735000208 și Driver FiscalNet Plus - licență anuală. La ambalaje nu mai intră 223617, 211293, 209118 și 6421735000145. Materialele consumabile, materialele de curățenie și birotica nu mai apar.",
+                ],
+                en: [
+                    "Stock listings, for finished goods, shows only codes 1318, 1503, 79, 83, 84, 1462 and 81. Merchandise stays complete. Raw materials no longer include 216400, 6421735000207, 721806, 6421735000208 and Driver FiscalNet Plus - licenta anuala. Packaging no longer includes 223617, 211293, 209118 and 6421735000145. Consumables, cleaning materials and office supplies no longer appear.",
+                ]
+            ),
             release(
                 "1.0.420", "17.10.2026",
                 ro: [

@@ -33,10 +33,24 @@ public sealed class AdminHome : UserControl
         wrap.Children.Add(SectionHome.Tile("Vânzări", "Bonuri, rapoarte Z și facturi emise, pe toate punctele de lucru.", () => Open(Sales())));
         wrap.Children.Add(SectionHome.Tile("Foi de stoc", "Foile de stoc de la toate punctele, cu dată și căutare.", () => Open(new StockSheetListView(_session, offersAll: true))));
         wrap.Children.Add(SectionHome.Tile("Bonuri de consum", "Bonurile făcute de casieri. Le aprobați pe tot bonul sau pe linii.", () => Open(new AdminConsumptions(_session, ShowTiles))));
+        wrap.Children.Add(SectionHome.Tile("Listări", "Listări de stoc, fișe de magazie și cele care urmează.", () => Open(ListingsHub())));
         var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 12 };
         page.Children.Add(Back("← Acasă", () => Dispatcher.UIThread.Post(_home)));
         page.Children.Add(wrap);
         _host.Child = new ScrollViewer { Content = page };
+    }
+
+
+    private Control ListingsHub()
+    {
+        var wrap = new WrapPanel();
+        wrap.Children.Add(SectionHome.Tile("Listări stocuri", "Stocul firmei la deschidere, cu filtre, PDF și listare.", () => Open(new StockListingView(_session, () => Open(ListingsHub())))));
+        wrap.Children.Add(SectionHome.Tile("Listări fișe magazie", "Bifați articolele, punctele și perioada. Fișa se deschide pe tot ecranul.", () => Open(new WarehouseCardListingView(_session, () => Open(ListingsHub())))));
+        var page = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 12 };
+        page.Children.Add(Back("← Administrator", ShowTiles));
+        page.Children.Add(new TextBlock { Text = "Listări", FontSize = 22, FontWeight = FontWeight.SemiBold, Foreground = Brand.Brush(Brand.Navy) });
+        page.Children.Add(wrap);
+        return new ScrollViewer { Content = page };
     }
 
     private Control Sales()

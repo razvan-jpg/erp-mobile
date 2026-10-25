@@ -77,9 +77,14 @@ struct ClientsModuleView: View {
                 .appScrollBottomPadding()
             }
         }
-        .navigationDestination(isPresented: $openSituationZReports) {
-            ClientInvoicesPaymentsView(module: module, initialSection: ClientInvoicesPaymentsView.Section.zReports)
-        }
+        .background(
+            ProgrammaticNavigationLink(isActive: $openSituationZReports) {
+                ClientInvoicesPaymentsView(
+                    module: module,
+                    initialSection: ClientInvoicesPaymentsView.Section.zReports
+                )
+            }
+        )
         .navigationTitle(module.name)
         .navigationBarTitleDisplayMode(.inline)
         .onReceive(NotificationCenter.default.publisher(for: .clientZettaOpenSituationZReports)) { _ in

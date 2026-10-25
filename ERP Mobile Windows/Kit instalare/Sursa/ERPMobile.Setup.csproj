@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ERPMobile.Setup</RootNamespace>
     <AssemblyName>ERPMobile.Setup</AssemblyName>
-    <Version>1.0.420</Version>
-    <InformationalVersion>1.0.420</InformationalVersion>
+    <Version>1.1.639</Version>
+    <InformationalVersion>1.1.639</InformationalVersion>
     <Product>ERP Mobile</Product>
     <Company>Dateconta</Company>
     <ApplicationManifest>app.manifest</ApplicationManifest>

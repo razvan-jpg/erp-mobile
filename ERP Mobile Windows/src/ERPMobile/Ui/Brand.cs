@@ -10,9 +10,12 @@ namespace ERPMobile.Ui;
 
 public static class Brand
 {
-    public const string Version = "1.0.420";
+    public const string Version = "1.1.639";
     public const string Build = "188";
     public static readonly Color Navy = Color.Parse("#0B1F3A");
+    public static readonly Color InkBlue = Color.Parse("#0B3A6E");
+    public static readonly Color InkRed = Color.Parse("#8B1A1A");
+    public static readonly Color InkGreen = Color.Parse("#0D5C32");
     public static readonly Color Gold = Color.Parse("#C6A15A");
     public static readonly Color Page = Color.Parse("#F4F6F8");
     public static readonly Color Muted = Color.Parse("#5C6B7A");
